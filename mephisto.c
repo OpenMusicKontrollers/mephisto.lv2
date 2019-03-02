@@ -138,14 +138,20 @@ static inline void
 _play(plughandle_t *handle, int64_t from, int64_t to)
 {
 	const uint32_t nsamples = to - from;
-	const float *audio_in [3] = {
-		&handle->audio_in[0][from],
-		&handle->audio_in[1][from],
+	const size_t buflen = nsamples * sizeof(float);
+
+	float *audio_in [3] = {
+		alloca(buflen), //FIXME check
+		handle->nchannel > 1
+			? alloca(buflen)
+			: NULL, //FIXME check
 		NULL
 	};
 	float *audio_out [3] = {
 		&handle->audio_out[0][from],
-		&handle->audio_out[1][from],
+		handle->nchannel > 1
+			? &handle->audio_out[1][from]
+			: NULL,
 		NULL
 	};
 
@@ -153,7 +159,11 @@ _play(plughandle_t *handle, int64_t from, int64_t to)
 	{
 		for(uint32_t i = 0; i < nsamples; i++)
 		{
-			audio_out[n][i] = 0.f; // silence
+			// clone audio in for in-place compatibility
+			audio_in[n][i] = handle->audio_in[n][from + i];
+
+			// generate silence
+			audio_out[n][i] = 0.f;
 		}
 	}
 
@@ -173,8 +183,10 @@ _play(plughandle_t *handle, int64_t from, int64_t to)
 			const float gain = (float)handle->xfade_cur / handle->xfade_max;
 			const float mul = handle->xfade_dst ? (1.f - gain) : gain;
 
-			audio_out[0][i] *= mul;
-			audio_out[1][i] *= mul;
+			for(uint32_t n = 0; n < handle->nchannel; n++)
+			{
+				audio_out[n][i] *= mul;
+			}
 		}
 
 		if(handle->xfade_cur == 0)
