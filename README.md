@@ -34,7 +34,7 @@ Currently, the editor has to be defined via an environment variable. You can
 use either the environment varialbe *EDITOR* or *MEPHISTO_EDITOR*, whereby the
 latter will take precedence over the former.
 
-    export JIT_EDITOR='urxvt -e nvim'
+    export EDITOR='urxvt -e nvim'
 
 If no environment variable is defined, the default fallback invocation commands
 are defined as follows:
