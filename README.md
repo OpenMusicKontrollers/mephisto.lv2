@@ -13,6 +13,7 @@ Get more information at: [http://open-music-kontrollers.ch/lv2/mephisto](http://
 ### Dependencies
 
 * [LV2](http://lv2plug.in) (LV2 Plugin Standard)
+* [FAUST](https://faust.grame.fr/) (Faust Programming Language)
 
 ### Build / install
 
@@ -22,6 +23,28 @@ Get more information at: [http://open-music-kontrollers.ch/lv2/mephisto](http://
 	cd build
 	ninja -j4
 	sudo ninja install
+
+### GUI
+
+This plugin features an external LV2 plugin GUI, which does nothing else than
+just opening the plugin's C source in your favorite editor and monitor its
+modification state.
+
+Currently, the editor has to be defined via an environment variable. You can
+use either the environment varialbe *EDITOR* or *MEPHISTO_EDITOR*, whereby the
+latter will take precedence over the former.
+
+    export JIT_EDITOR='urxvt -e nvim'
+
+If no environment variable is defined, the default fallback invocation commands
+are defined as follows:
+
+* 'xterm -e vi' (Unix)
+* 'open -nW' (MacOS)
+* 'cmd /c start /wait' (Windows)
+
+Whenever you save the C source, the plugin will try to just-in-time compile and
+inject it. Potential warnings and errors are reported in the plugin host's log.
 
 ### License
 
