@@ -23,6 +23,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <limits.h>
+#include <pthread.h>
 
 #include <mephisto.h>
 #include <props.h>
@@ -83,6 +84,8 @@ struct _plughandle_t {
 	bool play;
 	dsp_t dsp [2];
 };
+
+static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
 static void
 _intercept_code(void *data, int64_t frames __attribute__((unused)),
@@ -356,6 +359,8 @@ _dsp_init(plughandle_t *handle, dsp_t *dsp, const char *code)
 		"-lv", "1"
 	};
 
+	pthread_mutex_lock(&lock);
+
 	dsp->factory = createCDSPFactoryFromString("mephisto", code, ARGC, argv, "", err, -1);
 	if(!dsp->factory)
 	{
@@ -364,7 +369,7 @@ _dsp_init(plughandle_t *handle, dsp_t *dsp, const char *code)
 			lv2_log_error(&handle->logger, "[%s] %s", __func__, err);
 		}
 
-		return 1;
+		goto fail;
 	}
 
 	dsp->instance = createCDSPInstance(dsp->factory);
@@ -376,7 +381,7 @@ _dsp_init(plughandle_t *handle, dsp_t *dsp, const char *code)
 		}
 
 		deleteCDSPFactory(dsp->factory);
-		return 1;
+		goto fail;
 	}
 
 	instanceInitCDSPInstance(dsp->instance, handle->srate);
@@ -386,13 +391,20 @@ _dsp_init(plughandle_t *handle, dsp_t *dsp, const char *code)
 		lv2_log_note(&handle->logger, "[%s] compilation succeeded", __func__);
 	}
 
+	pthread_mutex_unlock(&lock);
 	return 0;
+
+fail:
+	pthread_mutex_unlock(&lock);
+	return 1;
 #undef ARGC
 }
 
 static void
 _dsp_deinit(plughandle_t *handle __attribute__((unused)), const dsp_t *dsp)
 {
+	pthread_mutex_lock(&lock);
+
 	if(dsp->instance)
 	{
 		instanceClearCDSPInstance(dsp->instance);
@@ -403,6 +415,8 @@ _dsp_deinit(plughandle_t *handle __attribute__((unused)), const dsp_t *dsp)
 	{
 		deleteCDSPFactory(dsp->factory);
 	}
+
+	pthread_mutex_unlock(&lock);
 }
 
 static void
