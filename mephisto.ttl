@@ -1,0 +1,376 @@
+# Copyright (c) 2019 Hanspeter Portner (dev@open-music-kontrollers.ch)
+#
+# This is free software: you can redistribute it and/or modify
+# it under the terms of the Artistic License 2.0 as published by
+# The Perl Foundation.
+#
+# This source is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# Artistic License 2.0 for more details.
+#
+# You should have received a copy of the Artistic License 2.0
+# along the source as a COPYING file. If not, obtain it from
+# http://www.perlfoundation.org/artistic_license_2_0.
+
+@prefix owl:			<http://www.w3.org/2002/07/owl#> .
+@prefix xsd:			<http://www.w3.org/2001/XMLSchema#> .
+@prefix foaf:			<http://xmlns.com/foaf/0.1/> .
+@prefix doap:			<http://usefulinc.com/ns/doap#> .
+@prefix rdf:			<http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: 		<http://www.w3.org/2000/01/rdf-schema#> .
+@prefix lv2:			<http://lv2plug.in/ns/lv2core#> .
+@prefix atom:			<http://lv2plug.in/ns/ext/atom#> .
+@prefix time:			<http://lv2plug.in/ns/ext/time#> .
+@prefix midi:			<http://lv2plug.in/ns/ext/midi#> .
+@prefix urid:			<http://lv2plug.in/ns/ext/urid#> .
+@prefix units:		<http://lv2plug.in/ns/extensions/units#> .
+@prefix work:			<http://lv2plug.in/ns/ext/worker#> .
+@prefix state:		<http://lv2plug.in/ns/ext/state#> .
+@prefix bufsz:		<http://lv2plug.in/ns/ext/buf-size#> .
+@prefix patch:		<http://lv2plug.in/ns/ext/patch#> .
+@prefix log:			<http://lv2plug.in/ns/ext/log#> .
+@prefix opts:			<http://lv2plug.in/ns/ext/options#> .
+
+@prefix lic:			<http://opensource.org/licenses/> .
+@prefix omk:			<http://open-music-kontrollers.ch/ventosus#> .
+@prefix proj:			<http://open-music-kontrollers.ch/lv2/> .
+@prefix mephisto:		<http://open-music-kontrollers.ch/lv2/mephisto#> .
+
+# Maintainer
+omk:me
+	a foaf:Person ;
+	foaf:name "Hanspeter Portner" ;
+	foaf:mbox <mailto:dev@open-music-kontrollers.ch> ;
+	foaf:homepage <http://open-music-kontrollers.ch> .
+
+# Project
+proj:mephisto
+	a doap:Project ;
+	doap:maintainer omk:me ;
+	doap:name "Mephisto Bundle" .
+
+# Mephisto params
+mephisto:code
+	a lv2:Parameter ;
+	rdfs:range atom:String ;
+	rdfs:label "Code" ;
+	rdfs:comment "DSP code in Fausat" .
+mephisto:control_1
+	a lv2:Parameter ;
+	rdfs:range atom:Float ;
+	rdfs:label "Control 1" ;
+	rdfs:comment "get/set control 1" ;
+	lv2:minimum 0.0 ;
+	lv2:maximum 1.0 ;
+	lv2:default 0.0 .
+mephisto:control_2
+	a lv2:Parameter ;
+	rdfs:range atom:Float ;
+	rdfs:label "Control 2" ;
+	rdfs:comment "get/set control 2" ;
+	lv2:minimum 0.0 ;
+	lv2:maximum 1.0 ;
+	lv2:default 0.0 .
+mephisto:control_3
+	a lv2:Parameter ;
+	rdfs:range atom:Float ;
+	rdfs:label "Control 3" ;
+	rdfs:comment "get/set control 3" ;
+	lv2:minimum 0.0 ;
+	lv2:maximum 1.0 ;
+	lv2:default 0.0 .
+mephisto:control_4
+	a lv2:Parameter ;
+	rdfs:range atom:Float ;
+	rdfs:label "Control 4" ;
+	rdfs:comment "get/set control 4" ;
+	lv2:minimum 0.0 ;
+	lv2:maximum 1.0 ;
+	lv2:default 0.0 .
+mephisto:control_5
+	a lv2:Parameter ;
+	rdfs:range atom:Float ;
+	rdfs:label "Control 5" ;
+	rdfs:comment "get/set control 5" ;
+	lv2:minimum 0.0 ;
+	lv2:maximum 1.0 ;
+	lv2:default 0.0 .
+mephisto:control_6
+	a lv2:Parameter ;
+	rdfs:range atom:Float ;
+	rdfs:label "Control 6" ;
+	rdfs:comment "get/set control 6" ;
+	lv2:minimum 0.0 ;
+	lv2:maximum 1.0 ;
+	lv2:default 0.0 .
+mephisto:control_7
+	a lv2:Parameter ;
+	rdfs:range atom:Float ;
+	rdfs:label "Control 7" ;
+	rdfs:comment "get/set control 7" ;
+	lv2:minimum 0.0 ;
+	lv2:maximum 1.0 ;
+	lv2:default 0.0 .
+mephisto:control_8
+	a lv2:Parameter ;
+	rdfs:range atom:Float ;
+	rdfs:label "Control 8" ;
+	rdfs:comment "get/set control 8" ;
+	lv2:minimum 0.0 ;
+	lv2:maximum 1.0 ;
+	lv2:default 0.0 .
+mephisto:control_9
+	a lv2:Parameter ;
+	rdfs:range atom:Float ;
+	rdfs:label "Control 9" ;
+	rdfs:comment "get/set control 9" ;
+	lv2:minimum 0.0 ;
+	lv2:maximum 1.0 ;
+	lv2:default 0.0 .
+mephisto:control_10
+	a lv2:Parameter ;
+	rdfs:range atom:Float ;
+	rdfs:label "Control 10" ;
+	rdfs:comment "get/set control 10" ;
+	lv2:minimum 0.0 ;
+	lv2:maximum 1.0 ;
+	lv2:default 0.0 .
+mephisto:control_11
+	a lv2:Parameter ;
+	rdfs:range atom:Float ;
+	rdfs:label "Control 11" ;
+	rdfs:comment "get/set control 11" ;
+	lv2:minimum 0.0 ;
+	lv2:maximum 1.0 ;
+	lv2:default 0.0 .
+mephisto:control_12
+	a lv2:Parameter ;
+	rdfs:range atom:Float ;
+	rdfs:label "Control 12" ;
+	rdfs:comment "get/set control 12" ;
+	lv2:minimum 0.0 ;
+	lv2:maximum 1.0 ;
+	lv2:default 0.0 .
+mephisto:control_13
+	a lv2:Parameter ;
+	rdfs:range atom:Float ;
+	rdfs:label "Control 13" ;
+	rdfs:comment "get/set control 13" ;
+	lv2:minimum 0.0 ;
+	lv2:maximum 1.0 ;
+	lv2:default 0.0 .
+mephisto:control_14
+	a lv2:Parameter ;
+	rdfs:range atom:Float ;
+	rdfs:label "Control 14" ;
+	rdfs:comment "get/set control 14" ;
+	lv2:minimum 0.0 ;
+	lv2:maximum 1.0 ;
+	lv2:default 0.0 .
+mephisto:control_15
+	a lv2:Parameter ;
+	rdfs:range atom:Float ;
+	rdfs:label "Control 15" ;
+	rdfs:comment "get/set control 15" ;
+	lv2:minimum 0.0 ;
+	lv2:maximum 1.0 ;
+	lv2:default 0.0 .
+mephisto:control_16
+	a lv2:Parameter ;
+	rdfs:range atom:Float ;
+	rdfs:label "Control 16" ;
+	rdfs:comment "get/set control 16" ;
+	lv2:minimum 0.0 ;
+	lv2:maximum 1.0 ;
+	lv2:default 0.0 .
+
+mephisto:mono
+	a lv2:Plugin ,
+		lv2:ConverterPlugin ;
+	doap:name "Mephisto Mono" ;
+	doap:license lic:Artistic-2.0 ;
+	lv2:project proj:mephisto ;
+	lv2:requiredFeature urid:map, state:loadDefaultState, work:schedule ;
+	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, state:threadSafeRestore, log:log ;
+	lv2:extensionData	state:interface, work:interface ;
+
+	lv2:port [
+	  a lv2:InputPort ,
+			atom:AtomPort ;
+		atom:bufferType atom:Sequence ;
+		atom:supports time:Position ,
+			patch:Message ;
+		lv2:index 0 ;
+		lv2:symbol "control" ;
+		lv2:name "Control" ;
+		lv2:designation lv2:control ;
+	] , [
+	  a lv2:OutputPort ,
+			atom:AtomPort ;
+		atom:bufferType atom:Sequence ;
+		atom:supports patch:Message ;
+		lv2:index 1 ;
+		lv2:symbol "notify" ;
+		lv2:name "Notify" ;
+		lv2:designation lv2:control ;
+	] , [
+	  a lv2:InputPort ,
+			lv2:AudioPort;
+		lv2:index 2 ;
+		lv2:symbol "audio_in_1" ;
+		lv2:name "Audio In 1" ;
+	] , [
+	  a lv2:OutputPort,
+			lv2:AudioPort;
+		lv2:index 3 ;
+		lv2:symbol "audio_out_1" ;
+		lv2:name "Audio Out 1" ;
+	] ;
+
+	patch:writable
+		mephisto:code ,
+		mephisto:control_1 ,
+		mephisto:control_2 ,
+		mephisto:control_3 ,
+		mephisto:control_4 ,
+		mephisto:control_5 ,
+		mephisto:control_6 ,
+		mephisto:control_7 ,
+		mephisto:control_8 ,
+		mephisto:control_9 ,
+		mephisto:control_10 ,
+		mephisto:control_11 ,
+		mephisto:control_12 ,
+		mephisto:control_13 ,
+		mephisto:control_14 ,
+		mephisto:control_15 ,
+		mephisto:control_16 ;
+
+	state:state [
+		mephisto:code """import("stdfaust.lib");
+freq = 220;
+q = 5;
+gain = 1;
+
+filter = fi.resonlp(freq, q, gain);
+process = no.noise <: filter;
+""" ;
+		mephisto:control_1 "0.0"^^xsd:float ;
+		mephisto:control_2 "0.0"^^xsd:float ;
+		mephisto:control_3 "0.0"^^xsd:float ;
+		mephisto:control_4 "0.0"^^xsd:float ;
+		mephisto:control_5 "0.0"^^xsd:float ;
+		mephisto:control_6 "0.0"^^xsd:float ;
+		mephisto:control_7 "0.0"^^xsd:float ;
+		mephisto:control_8 "0.0"^^xsd:float ;
+		mephisto:control_9 "0.0"^^xsd:float ;
+		mephisto:control_10 "0.0"^^xsd:float ;
+		mephisto:control_11 "0.0"^^xsd:float ;
+		mephisto:control_12 "0.0"^^xsd:float ;
+		mephisto:control_13 "0.0"^^xsd:float ;
+		mephisto:control_14 "0.0"^^xsd:float ;
+		mephisto:control_15 "0.0"^^xsd:float ;
+		mephisto:control_16 "0.0"^^xsd:float ;
+	] .
+
+mephisto:stereo
+	a lv2:Plugin ,
+		lv2:ConverterPlugin ;
+	doap:name "Mephisto Stereo" ;
+	doap:license lic:Artistic-2.0 ;
+	lv2:project proj:mephisto ;
+	lv2:requiredFeature urid:map, state:loadDefaultState, work:schedule ;
+	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, state:threadSafeRestore, log:log ;
+	lv2:extensionData	state:interface, work:interface ;
+
+	lv2:port [
+	  a lv2:InputPort ,
+			atom:AtomPort ;
+		atom:bufferType atom:Sequence ;
+		atom:supports time:Position ,
+			patch:Message ;
+		lv2:index 0 ;
+		lv2:symbol "control" ;
+		lv2:name "Control" ;
+		lv2:designation lv2:control ;
+	] , [
+	  a lv2:OutputPort ,
+			atom:AtomPort ;
+		atom:bufferType atom:Sequence ;
+		atom:supports patch:Message ;
+		lv2:index 1 ;
+		lv2:symbol "notify" ;
+		lv2:name "Notify" ;
+		lv2:designation lv2:control ;
+	] , [
+	  a lv2:InputPort ,
+			lv2:AudioPort;
+		lv2:index 2 ;
+		lv2:symbol "audio_in_1" ;
+		lv2:name "Audio In 1" ;
+	] , [
+	  a lv2:OutputPort,
+			lv2:AudioPort;
+		lv2:index 3 ;
+		lv2:symbol "audio_out_1" ;
+		lv2:name "Audio Out 1" ;
+	] , [
+	  a lv2:InputPort ,
+			lv2:AudioPort;
+		lv2:index 4 ;
+		lv2:symbol "audio_in_2" ;
+		lv2:name "Audio In 2" ;
+	] , [
+	  a lv2:OutputPort,
+			lv2:AudioPort;
+		lv2:index 5 ;
+		lv2:symbol "audio_out_2" ;
+		lv2:name "Audio Out 2" ;
+	] ;
+
+	patch:writable
+		mephisto:code ,
+		mephisto:control_1 ,
+		mephisto:control_2 ,
+		mephisto:control_3 ,
+		mephisto:control_4 ,
+		mephisto:control_5 ,
+		mephisto:control_6 ,
+		mephisto:control_7 ,
+		mephisto:control_8 ,
+		mephisto:control_9 ,
+		mephisto:control_10 ,
+		mephisto:control_11 ,
+		mephisto:control_12 ,
+		mephisto:control_13 ,
+		mephisto:control_14 ,
+		mephisto:control_15 ,
+		mephisto:control_16 ;
+
+	state:state [
+		mephisto:code """import("stdfaust.lib");
+freq = 220;
+q = 5;
+gain = 1;
+
+filter = fi.resonlp(freq, q, gain);
+process = no.noise <: filter, filter;
+""" ;
+		mephisto:control_1 "0.0"^^xsd:float ;
+		mephisto:control_2 "0.0"^^xsd:float ;
+		mephisto:control_3 "0.0"^^xsd:float ;
+		mephisto:control_4 "0.0"^^xsd:float ;
+		mephisto:control_5 "0.0"^^xsd:float ;
+		mephisto:control_6 "0.0"^^xsd:float ;
+		mephisto:control_7 "0.0"^^xsd:float ;
+		mephisto:control_8 "0.0"^^xsd:float ;
+		mephisto:control_9 "0.0"^^xsd:float ;
+		mephisto:control_10 "0.0"^^xsd:float ;
+		mephisto:control_11 "0.0"^^xsd:float ;
+		mephisto:control_12 "0.0"^^xsd:float ;
+		mephisto:control_13 "0.0"^^xsd:float ;
+		mephisto:control_14 "0.0"^^xsd:float ;
+		mephisto:control_15 "0.0"^^xsd:float ;
+		mephisto:control_16 "0.0"^^xsd:float ;
+	] .
