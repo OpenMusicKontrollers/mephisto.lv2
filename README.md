@@ -1,6 +1,6 @@
 # mephisto.lv2
 
-## a Just-in-Time FAUAST compiler embedded in a LV2 plugin
+## a Just-in-Time FAUST compiler embedded in an LV2 plugin
 
 ### Webpage 
 
