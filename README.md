@@ -27,7 +27,7 @@ Get more information at: [http://open-music-kontrollers.ch/lv2/mephisto](http://
 ### GUI
 
 This plugin features an external LV2 plugin GUI, which does nothing else than
-just opening the plugin's C source in your favorite editor and monitor its
+just opening the plugin's FAUST source in your favorite editor and monitor its
 modification state.
 
 Currently, the editor has to be defined via an environment variable. You can
@@ -43,7 +43,7 @@ are defined as follows:
 * 'open -nW' (MacOS)
 * 'cmd /c start /wait' (Windows)
 
-Whenever you save the C source, the plugin will try to just-in-time compile and
+Whenever you save the FAUST source, the plugin will try to just-in-time compile and
 inject it. Potential warnings and errors are reported in the plugin host's log.
 
 ### License
