@@ -79,7 +79,8 @@
 { \
 	.property = MEPHISTO_PREFIX"control_"#NUM, \
 	.offset = offsetof(plugstate_t, control) + (NUM-1)*sizeof(float), \
-	.type = LV2_ATOM__Float \
+	.type = LV2_ATOM__Float, \
+	.event_cb = _intercept_control \
 }
 
 typedef struct _plugstate_t plugstate_t;

@@ -32,14 +32,109 @@
 #include <faust/dsp/llvm-c-dsp.h>
 
 #define MAX_CHANNEL 2
+#define MAX_LABEL 32
 
 typedef struct _dsp_t dsp_t;
 typedef struct _job_t job_t;
 typedef struct _plughandle_t plughandle_t;
 
+typedef struct _cntrl_button_t cntrl_button_t;
+typedef struct _cntrl_check_button_t cntrl_check_button_t;
+typedef struct _cntrl_vertical_slider_t cntrl_vertical_slider_t;
+typedef struct _cntrl_horizontal_slider_t cntrl_horizontal_slider_t;
+typedef struct _cntrl_num_entry_t cntrl_num_entry_t;
+typedef struct _cntrl_horizontal_bargraph_t cntrl_horizontal_bargraph_t;
+typedef struct _cntrl_vertical_bargraph_t cntrl_vertical_bargraph_t;
+typedef struct _cntrl_sound_file_t cntrl_sound_file_t;
+
+typedef struct _cntrl_t cntrl_t;
+
+typedef enum _cntrl_type_t {
+	CNTRL_BUTTON,
+	CNTRL_CHECK_BUTTON,
+	CNTRL_VERTICAL_SLIDER,
+	CNTRL_HORIZONTAL_SLIDER,
+	CNTRL_NUM_ENTRY,
+	CNTRL_HORIZONTAL_BARGRAPH,
+	CNTRL_VERTICAL_BARGRAPH,
+	CNTRL_SOUND_FILE
+} cntrl_type_t;
+
+struct _cntrl_button_t {
+	float *zone;
+};
+
+struct _cntrl_check_button_t {
+	float *zone;
+};
+
+struct _cntrl_vertical_slider_t {
+	float init;
+	float min;
+	float max;
+	float ran;
+	float step;
+	float *zone;
+};
+
+struct _cntrl_horizontal_slider_t {
+	float init;
+	float min;
+	float max;
+	float ran;
+	float step;
+	float *zone;
+};
+
+struct _cntrl_num_entry_t {
+	float init;
+	float min;
+	float max;
+	float ran;
+	float step;
+	float *zone;
+};
+
+struct _cntrl_horizontal_bargraph_t {
+	float min;
+	float max;
+	float *zone;
+};
+
+struct _cntrl_vertical_bargraph_t {
+	float min;
+	float max;
+	float *zone;
+};
+
+struct _cntrl_sound_file_t {
+	uint32_t dummy; //FIXME
+};
+
+struct _cntrl_t {
+	char label [MAX_LABEL];
+	cntrl_type_t type;
+	union {
+		cntrl_button_t button;
+		cntrl_check_button_t check_button;
+		cntrl_vertical_slider_t vertical_slider;
+		cntrl_horizontal_slider_t horizontal_slider;
+		cntrl_num_entry_t num_entry;
+		cntrl_horizontal_bargraph_t horizontal_bargraph;
+		cntrl_vertical_bargraph_t vertical_bargraph;
+		cntrl_sound_file_t sound_file;
+	};
+};
+
 struct _dsp_t {
+	plughandle_t *handle;
 	llvm_dsp_factory *factory;
 	llvm_dsp *instance;
+	UIGlue glue;
+	uint32_t nins;
+	uint32_t nouts;
+	uint32_t ncntrls;
+	cntrl_t cntrls [NCONTROLS];
 };
 
 typedef enum _job_type_t {
@@ -49,7 +144,7 @@ typedef enum _job_type_t {
 
 struct _job_t {
 	job_type_t type;
-	dsp_t dsp;
+	dsp_t *dsp;
 };
 
 struct _plughandle_t {
@@ -82,7 +177,7 @@ struct _plughandle_t {
 	char bundle_path [PATH_MAX];
 
 	bool play;
-	dsp_t dsp [2];
+	dsp_t *dsp [2];
 };
 
 static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
@@ -109,6 +204,104 @@ _intercept_code(void *data, int64_t frames __attribute__((unused)),
 	{
 		lv2_log_trace(&handle->logger, "[%s] ringbuffer overflow\n", __func__);
 	}
+}
+
+static void
+_refresh_value(plughandle_t *handle, uint32_t idx)
+{
+	dsp_t *dsp = handle->dsp[handle->play];
+
+	if(!dsp)
+	{
+		return;
+	}
+
+	cntrl_t *cntrl = idx < dsp->ncntrls
+		? &dsp->cntrls[idx]
+		: NULL;
+
+	if(!cntrl)
+	{
+		return;
+	}
+
+	switch(cntrl->type)
+	{
+		case CNTRL_BUTTON:
+		{
+			const float val = handle->state.control[idx] > 0.5f
+				? 1.f
+				: 0.0;
+
+			if(cntrl->button.zone)
+			{
+				*cntrl->button.zone = val;
+			}
+		} break;
+		case CNTRL_CHECK_BUTTON:
+		{
+			const float val = handle->state.control[idx] > 0.5f
+				? 1.f
+				: 0.0;
+
+			if(cntrl->check_button.zone)
+			{
+				*cntrl->check_button.zone = val;
+			}
+		} break;
+		case CNTRL_VERTICAL_SLIDER:
+		{
+			const float val = handle->state.control[idx] * cntrl->vertical_slider.ran
+				+ cntrl->vertical_slider.min;
+
+			if(cntrl->vertical_slider.zone)
+			{
+				*cntrl->vertical_slider.zone = val;
+			}
+		} break;
+		case CNTRL_HORIZONTAL_SLIDER:
+		{
+			const float val = handle->state.control[idx] * cntrl->horizontal_slider.ran
+				+ cntrl->horizontal_slider.min;
+
+			if(cntrl->horizontal_slider.zone)
+			{
+				*cntrl->horizontal_slider.zone = val;
+			}
+		} break;
+		case CNTRL_NUM_ENTRY:
+		{
+			const float val = handle->state.control[idx] * cntrl->num_entry.ran
+				+ cntrl->num_entry.min;
+
+			if(cntrl->num_entry.zone)
+			{
+				*cntrl->num_entry.zone = val;
+			}
+		} break;
+		case CNTRL_HORIZONTAL_BARGRAPH:
+		{
+			//FIXME
+		} break;
+		case CNTRL_VERTICAL_BARGRAPH:
+		{
+			//FIXME
+		} break;
+		case CNTRL_SOUND_FILE:
+		{
+			//FIXME
+		} break;
+	}
+}
+
+static void
+_intercept_control(void *data, int64_t frames __attribute__((unused)),
+	props_impl_t *impl)
+{
+	plughandle_t *handle = data;
+	const uint32_t idx = (float *)impl->value.body - handle->state.control;
+
+	_refresh_value(handle, idx);
 }
 
 static const props_def_t defs [MAX_NPROPS] = {
@@ -170,11 +363,13 @@ _play(plughandle_t *handle, int64_t from, int64_t to)
 		}
 	}
 
-	dsp_t *dsp = &handle->dsp[handle->play];
-	if(dsp->instance)
 	{
-		computeCDSPInstance(dsp->instance, nsamples, (FAUSTFLOAT **)audio_in,
-			(FAUSTFLOAT **)audio_out);
+		dsp_t *dsp = handle->dsp[handle->play];
+		if(dsp && dsp->instance)
+		{
+			computeCDSPInstance(dsp->instance, nsamples, (FAUSTFLOAT **)audio_in,
+				(FAUSTFLOAT **)audio_out);
+		}
 	}
 
 	if(handle->xfade_cur > 0)
@@ -199,6 +394,12 @@ _play(plughandle_t *handle, int64_t from, int64_t to)
 				handle->play = !handle->play;
 				handle->xfade_cur = handle->xfade_max;
 				handle->xfade_dst = 1;
+
+				dsp_t *dsp = handle->dsp[handle->play];
+				for(uint32_t i = 0; i < dsp->ncntrls; i++)
+				{
+					_refresh_value(handle, i);
+				}
 			}
 		}
 	}
@@ -348,6 +549,319 @@ run(LV2_Handle instance, uint32_t nsamples)
 	}
 }
 
+static cntrl_t *
+_ui_next_cntrl(dsp_t *dsp)
+{
+	if(dsp->ncntrls < (NCONTROLS - 1))
+	{
+		return &dsp->cntrls[dsp->ncntrls++];
+	}
+
+	return NULL;
+}
+
+static void
+_ui_open_tab_box(void* iface, const char* label)
+{
+	dsp_t *dsp = iface;
+	plughandle_t *handle = dsp->handle;
+
+	if(handle->log)
+	{
+		lv2_log_note(&handle->logger, "[%s] %s", __func__,
+			label);
+	}
+}
+
+static void
+_ui_open_horizontal_box(void* iface, const char* label)
+{
+	dsp_t *dsp = iface;
+	plughandle_t *handle = dsp->handle;
+
+	if(handle->log)
+	{
+		lv2_log_note(&handle->logger, "[%s] %s", __func__,
+			label);
+	}
+}
+
+static void
+_ui_open_vertical_box(void* iface, const char* label)
+{
+	dsp_t *dsp = iface;
+	plughandle_t *handle = dsp->handle;
+
+	if(handle->log)
+	{
+		lv2_log_note(&handle->logger, "[%s] %s", __func__,
+			label);
+	}
+}
+
+static void
+_ui_close_box(void* iface)
+{
+	dsp_t *dsp = iface;
+	plughandle_t *handle = dsp->handle;
+
+	if(handle->log)
+	{
+		lv2_log_note(&handle->logger, "[%s]", __func__);
+	}
+}
+
+static void
+_ui_add_button(void* iface, const char* label, FAUSTFLOAT* zone)
+{
+	dsp_t *dsp = iface;
+	plughandle_t *handle = dsp->handle;
+
+	if(handle->log)
+	{
+		lv2_log_note(&handle->logger, "[%s] %s %f", __func__,
+			label, *zone);
+	}
+
+	cntrl_t *cntrl = _ui_next_cntrl(dsp);
+	if(!cntrl)
+	{
+		return;
+	}
+
+	strncpy(cntrl->label, label, sizeof(cntrl->label));
+	cntrl->type = CNTRL_BUTTON;
+	cntrl->button.zone = zone;
+}
+
+static void
+_ui_add_check_button(void* iface, const char* label, FAUSTFLOAT* zone)
+{
+	dsp_t *dsp = iface;
+	plughandle_t *handle = dsp->handle;
+
+	if(handle->log)
+	{
+		lv2_log_note(&handle->logger, "[%s] %s %f", __func__,
+			label, *zone);
+	}
+
+	cntrl_t *cntrl = _ui_next_cntrl(dsp);
+	if(!cntrl)
+	{
+		return;
+	}
+
+	strncpy(cntrl->label, label, sizeof(cntrl->label));
+	cntrl->type = CNTRL_CHECK_BUTTON;
+	cntrl->check_button.zone = zone;
+}
+
+static void
+_ui_add_vertical_slider(void* iface, const char* label, FAUSTFLOAT* zone,
+	FAUSTFLOAT init, FAUSTFLOAT min, FAUSTFLOAT max, FAUSTFLOAT step)
+{
+	dsp_t *dsp = iface;
+	plughandle_t *handle = dsp->handle;
+
+	if(handle->log)
+	{
+		lv2_log_note(&handle->logger, "[%s] %s %f %f %f %f %f", __func__,
+			label, *zone, init, min, max, step);
+	}
+
+	cntrl_t *cntrl = _ui_next_cntrl(dsp);
+	if(!cntrl)
+	{
+		return;
+	}
+
+	strncpy(cntrl->label, label, sizeof(cntrl->label));
+	cntrl->type = CNTRL_VERTICAL_SLIDER;
+	cntrl->vertical_slider.zone = zone;
+	cntrl->vertical_slider.init = init;
+	cntrl->vertical_slider.min = min;
+	cntrl->vertical_slider.max = max;
+	cntrl->vertical_slider.ran = max - min;
+	cntrl->vertical_slider.step = step;
+}
+
+static void
+_ui_add_horizontal_slider(void* iface, const char* label, FAUSTFLOAT* zone,
+	FAUSTFLOAT init, FAUSTFLOAT min, FAUSTFLOAT max, FAUSTFLOAT step)
+{
+	dsp_t *dsp = iface;
+	plughandle_t *handle = dsp->handle;
+
+	if(handle->log)
+	{
+		lv2_log_note(&handle->logger, "[%s] %s %f %f %f %f %f", __func__,
+			label, *zone, init, min, max, step);
+	}
+
+	cntrl_t *cntrl = _ui_next_cntrl(dsp);
+	if(!cntrl)
+	{
+		return;
+	}
+
+	strncpy(cntrl->label, label, sizeof(cntrl->label));
+	cntrl->type = CNTRL_HORIZONTAL_SLIDER;
+	cntrl->horizontal_slider.zone = zone;
+	cntrl->horizontal_slider.init = init;
+	cntrl->horizontal_slider.min = min;
+	cntrl->horizontal_slider.max = max;
+	cntrl->horizontal_slider.ran = max - min;
+	cntrl->horizontal_slider.step = step;
+}
+
+static void
+_ui_add_num_entry(void* iface, const char* label, FAUSTFLOAT* zone,
+	FAUSTFLOAT init, FAUSTFLOAT min, FAUSTFLOAT max, FAUSTFLOAT step)
+{
+	dsp_t *dsp = iface;
+	plughandle_t *handle = dsp->handle;
+
+	if(handle->log)
+	{
+		lv2_log_note(&handle->logger, "[%s] %s %f %f %f %f %f", __func__,
+			label, *zone, init, min, max, step);
+	}
+
+	cntrl_t *cntrl = _ui_next_cntrl(dsp);
+	if(!cntrl)
+	{
+		return;
+	}
+
+	strncpy(cntrl->label, label, sizeof(cntrl->label));
+	cntrl->type = CNTRL_NUM_ENTRY;
+	cntrl->num_entry.zone = zone;
+	cntrl->num_entry.init = init;
+	cntrl->num_entry.min = min;
+	cntrl->num_entry.max = max;
+	cntrl->num_entry.ran = max - min;
+	cntrl->num_entry.step = step;
+}
+
+static void
+_ui_add_horizontal_bargraph(void* iface, const char* label, FAUSTFLOAT* zone,
+	FAUSTFLOAT min, FAUSTFLOAT max)
+{
+	dsp_t *dsp = iface;
+	plughandle_t *handle = dsp->handle;
+
+	if(handle->log)
+	{
+		lv2_log_note(&handle->logger, "[%s] %s %f %f %f", __func__,
+			label, *zone, min, max);
+	}
+
+	cntrl_t *cntrl = _ui_next_cntrl(dsp);
+	if(!cntrl)
+	{
+		return;
+	}
+
+	strncpy(cntrl->label, label, sizeof(cntrl->label));
+	cntrl->type = CNTRL_HORIZONTAL_BARGRAPH;
+	cntrl->horizontal_bargraph.zone = zone;
+	cntrl->horizontal_bargraph.min = min;
+	cntrl->horizontal_bargraph.max = max;
+}
+
+static void
+_ui_add_vertical_bargraph(void* iface, const char* label, FAUSTFLOAT* zone,
+	FAUSTFLOAT min, FAUSTFLOAT max)
+{
+	dsp_t *dsp = iface;
+	plughandle_t *handle = dsp->handle;
+
+	if(handle->log)
+	{
+		lv2_log_note(&handle->logger, "[%s] %s %f %f %f", __func__,
+			label, *zone, min, max);
+	}
+
+	cntrl_t *cntrl = _ui_next_cntrl(dsp);
+	if(!cntrl)
+	{
+		return;
+	}
+
+	strncpy(cntrl->label, label, sizeof(cntrl->label));
+	cntrl->type = CNTRL_VERTICAL_BARGRAPH;
+	cntrl->vertical_bargraph.zone = zone;
+	cntrl->vertical_bargraph.min = min;
+	cntrl->vertical_bargraph.max = max;
+}
+
+static void
+_ui_add_sound_file(void* iface, const char* label, const char* filename,
+	struct Soundfile** sf_zone __attribute__((unused)))
+{
+	dsp_t *dsp = iface;
+	plughandle_t *handle = dsp->handle;
+
+	if(handle->log)
+	{
+		lv2_log_note(&handle->logger, "[%s] %s %s", __func__,
+			label, filename);
+	}
+
+	cntrl_t *cntrl = _ui_next_cntrl(dsp);
+	if(!cntrl)
+	{
+		return;
+	}
+
+	strncpy(cntrl->label, label, sizeof(cntrl->label));
+	cntrl->type = CNTRL_VERTICAL_BARGRAPH;
+	//FIXME
+}
+
+static void
+_ui_declare(void* iface, FAUSTFLOAT* zone, const char* key, const char* value)
+{
+	dsp_t *dsp = iface;
+	plughandle_t *handle = dsp->handle;
+
+	if(handle->log)
+	{
+		lv2_log_note(&handle->logger, "[%s] %s %s", __func__,
+			key, value);
+	}
+
+	//FIXME
+	(void)zone;
+}
+
+static int
+_ui_init(dsp_t *dsp)
+{
+	UIGlue *glue = &dsp->glue;
+
+	glue->uiInterface = dsp;
+
+	glue->openTabBox = _ui_open_tab_box;
+	glue->openHorizontalBox = _ui_open_horizontal_box;
+	glue->openVerticalBox = _ui_open_vertical_box;
+	glue->closeBox = _ui_close_box;
+	glue->addButton = _ui_add_button;
+	glue->addCheckButton = _ui_add_check_button;
+	glue->addVerticalSlider = _ui_add_vertical_slider;
+	glue->addHorizontalSlider = _ui_add_horizontal_slider;
+	glue->addNumEntry = _ui_add_num_entry;
+	glue->addHorizontalBargraph = _ui_add_horizontal_bargraph;
+	glue->addVerticalBargraph = _ui_add_vertical_bargraph;
+	glue->addSoundFile = _ui_add_sound_file;
+	glue->declare = _ui_declare;
+
+	buildUserInterfaceCDSPInstance(dsp->instance, glue);
+
+	return 0;
+}
+
 static int
 _dsp_init(plughandle_t *handle, dsp_t *dsp, const char *code)
 {
@@ -358,6 +872,8 @@ _dsp_init(plughandle_t *handle, dsp_t *dsp, const char *code)
 		"-vec",
 		"-lv", "1"
 	};
+
+	dsp->handle = handle;
 
 	pthread_mutex_lock(&lock);
 
@@ -386,9 +902,24 @@ _dsp_init(plughandle_t *handle, dsp_t *dsp, const char *code)
 
 	instanceInitCDSPInstance(dsp->instance, handle->srate);
 
+	dsp->nins = getNumInputsCDSPInstance(dsp->instance);
+	dsp->nouts = getNumInputsCDSPInstance(dsp->instance);
+
+	if(_ui_init(dsp) != 0)
+	{
+		if(handle->log)
+		{
+			lv2_log_error(&handle->logger, "[%s] ui creation failed", __func__);
+		}
+
+		deleteCDSPFactory(dsp->factory);
+		goto fail;
+	}
+
 	if(handle->log)
 	{
-		lv2_log_note(&handle->logger, "[%s] compilation succeeded", __func__);
+		lv2_log_note(&handle->logger, "[%s] compilation succeeded (%u:%u)",
+			__func__, dsp->nins, dsp->nouts);
 	}
 
 	pthread_mutex_unlock(&lock);
@@ -405,13 +936,13 @@ _dsp_deinit(plughandle_t *handle __attribute__((unused)), const dsp_t *dsp)
 {
 	pthread_mutex_lock(&lock);
 
-	if(dsp->instance)
+	if(dsp && dsp->instance)
 	{
 		instanceClearCDSPInstance(dsp->instance);
 		deleteCDSPInstance(dsp->instance);
 	}
 
-	if(dsp->factory)
+	if(dsp && dsp->factory)
 	{
 		deleteCDSPFactory(dsp->factory);
 	}
@@ -426,8 +957,8 @@ cleanup(LV2_Handle instance)
 
 	munlock(handle, sizeof(plughandle_t));
 	varchunk_free(handle->to_worker);
-	_dsp_deinit(handle, &handle->dsp[0]);
-	_dsp_deinit(handle, &handle->dsp[1]);
+	_dsp_deinit(handle, handle->dsp[0]);
+	_dsp_deinit(handle, handle->dsp[1]);
 	free(handle);
 }
 
@@ -480,10 +1011,15 @@ _work(LV2_Handle instance,
 			const char *code;
 			while( (code= varchunk_read_request(handle->to_worker, &size)) )
 			{
-				dsp_t dsp;
-				if(_dsp_init(handle, &dsp, code) == 0)
+				dsp_t *dsp = calloc(1, sizeof(dsp_t));
+				if(dsp && (_dsp_init(handle, dsp, code) == 0) )
 				{
-					respond(target, sizeof(dsp), &dsp);
+					const job_t job2 = {
+						.type = JOB_TYPE_INIT,
+						.dsp = dsp
+					};
+
+					respond(target, sizeof(job2), &job2);
 				}
 
 				varchunk_read_advance(handle->to_worker);
@@ -491,7 +1027,7 @@ _work(LV2_Handle instance,
 		} break;
 		case JOB_TYPE_DEINIT:
 		{
-			_dsp_deinit(handle, &job->dsp);
+			_dsp_deinit(handle, job->dsp);
 		} break;
 	}
 
@@ -504,22 +1040,31 @@ _work_response(LV2_Handle instance, uint32_t size, const void *body)
 {
 	plughandle_t *handle = instance;
 
-	if(size != sizeof(dsp_t))
+	if(size != sizeof(job_t))
 	{
 		return LV2_WORKER_ERR_UNKNOWN;
 	}
 
-	const job_t job = {
-		.type = JOB_TYPE_DEINIT,
-		.dsp = handle->dsp[!handle->play]
-	};
-	handle->sched->schedule_work(handle->sched->handle, sizeof(job), &job);
+	const job_t *job = body;
+	switch(job->type)
+	{
+		case JOB_TYPE_INIT:
+		{
+			const job_t job2 = {
+				.type = JOB_TYPE_DEINIT,
+				.dsp = handle->dsp[!handle->play]
+			};
+			handle->sched->schedule_work(handle->sched->handle, sizeof(job2), &job2);
 
-	const dsp_t *dsp_new = body;
-	handle->dsp[!handle->play] = *dsp_new;
-
-	handle->xfade_cur = handle->xfade_max;
-	handle->xfade_dst = 0;
+			handle->dsp[!handle->play] = job->dsp;
+			handle->xfade_cur = handle->xfade_max;
+			handle->xfade_dst = 0;
+		} break;
+		case JOB_TYPE_DEINIT:
+		{
+			// never reached
+		} break;
+	}
 
 	return LV2_WORKER_SUCCESS;
 }

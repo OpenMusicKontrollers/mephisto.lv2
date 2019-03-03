@@ -100,6 +100,14 @@ _intercept_code(void *data, int64_t frames __attribute__((unused)),
 	}
 }
 
+static void
+_intercept_control(void *data __attribute__((unused)),
+	int64_t frames __attribute__((unused)),
+	props_impl_t *impl __attribute__((unused)))
+{
+	// nothing to do, yet
+}
+
 static const props_def_t defs [MAX_NPROPS] = {
 	{
 		.property = MEPHISTO__code,
