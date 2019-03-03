@@ -46,6 +46,17 @@ are defined as follows:
 Whenever you save the FAUST source, the plugin will try to just-in-time compile and
 inject it. Potential warnings and errors are reported in the plugin host's log.
 
+### Controls
+
+The plugin supports up to 16 controls implemented as LV2
+[Parameters](http://lv2plug.in/ns/lv2core/lv2core.html#Parameter). To have
+access to them, simply use one of FAUST's active control structures with
+ordering indexes in their labels in your DSP code:
+
+    freq = hslider("[0]frequency", 500.0, 10.0, 1000.0, 1.0);
+    q = hslider("[1]resonance", 5.0, 1.0, 10.0, 1.0);
+    gain = hslider("[2]gain", 0.5, 0.0, 1.0, 0.1);
+
 ### License
 
 Copyright (c) 2019 Hanspeter Portner (dev@open-music-kontrollers.ch)
