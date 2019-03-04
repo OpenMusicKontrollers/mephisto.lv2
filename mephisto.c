@@ -135,6 +135,10 @@ struct _dsp_t {
 	uint32_t nouts;
 	uint32_t ncntrls;
 	cntrl_t cntrls [NCONTROLS];
+	bool has_freq;
+	bool has_gain;
+	bool has_gate;
+	bool is_instrument;
 };
 
 typedef enum _job_type_t {
@@ -612,6 +616,26 @@ _ui_close_box(void* iface)
 }
 
 static void
+_ui_add_common(dsp_t *dsp, cntrl_t *cntrl, cntrl_type_t type, const char *label)
+{
+	cntrl->type = type;
+	strncpy(cntrl->label, label, sizeof(cntrl->label));
+
+	if(strstr(label, "freq"))
+	{
+		dsp->has_freq = true;
+	}
+	else if(strstr(label, "gain"))
+	{
+		dsp->has_gain = true;
+	}
+	else if(strstr(label, "gate"))
+	{
+		dsp->has_gate= true;
+	}
+}
+
+static void
 _ui_add_button(void* iface, const char* label, FAUSTFLOAT* zone)
 {
 	dsp_t *dsp = iface;
@@ -629,8 +653,7 @@ _ui_add_button(void* iface, const char* label, FAUSTFLOAT* zone)
 		return;
 	}
 
-	strncpy(cntrl->label, label, sizeof(cntrl->label));
-	cntrl->type = CNTRL_BUTTON;
+	_ui_add_common(dsp, cntrl, CNTRL_BUTTON, label);
 	cntrl->button.zone = zone;
 }
 
@@ -652,8 +675,7 @@ _ui_add_check_button(void* iface, const char* label, FAUSTFLOAT* zone)
 		return;
 	}
 
-	strncpy(cntrl->label, label, sizeof(cntrl->label));
-	cntrl->type = CNTRL_CHECK_BUTTON;
+	_ui_add_common(dsp, cntrl, CNTRL_CHECK_BUTTON, label);
 	cntrl->check_button.zone = zone;
 }
 
@@ -676,8 +698,7 @@ _ui_add_vertical_slider(void* iface, const char* label, FAUSTFLOAT* zone,
 		return;
 	}
 
-	strncpy(cntrl->label, label, sizeof(cntrl->label));
-	cntrl->type = CNTRL_VERTICAL_SLIDER;
+	_ui_add_common(dsp, cntrl, CNTRL_VERTICAL_SLIDER, label);
 	cntrl->vertical_slider.zone = zone;
 	cntrl->vertical_slider.init = init;
 	cntrl->vertical_slider.min = min;
@@ -705,8 +726,7 @@ _ui_add_horizontal_slider(void* iface, const char* label, FAUSTFLOAT* zone,
 		return;
 	}
 
-	strncpy(cntrl->label, label, sizeof(cntrl->label));
-	cntrl->type = CNTRL_HORIZONTAL_SLIDER;
+	_ui_add_common(dsp, cntrl, CNTRL_HORIZONTAL_SLIDER, label);
 	cntrl->horizontal_slider.zone = zone;
 	cntrl->horizontal_slider.init = init;
 	cntrl->horizontal_slider.min = min;
@@ -734,8 +754,7 @@ _ui_add_num_entry(void* iface, const char* label, FAUSTFLOAT* zone,
 		return;
 	}
 
-	strncpy(cntrl->label, label, sizeof(cntrl->label));
-	cntrl->type = CNTRL_NUM_ENTRY;
+	_ui_add_common(dsp, cntrl, CNTRL_NUM_ENTRY, label);
 	cntrl->num_entry.zone = zone;
 	cntrl->num_entry.init = init;
 	cntrl->num_entry.min = min;
@@ -763,8 +782,7 @@ _ui_add_horizontal_bargraph(void* iface, const char* label, FAUSTFLOAT* zone,
 		return;
 	}
 
-	strncpy(cntrl->label, label, sizeof(cntrl->label));
-	cntrl->type = CNTRL_HORIZONTAL_BARGRAPH;
+	_ui_add_common(dsp, cntrl, CNTRL_HORIZONTAL_BARGRAPH, label);
 	cntrl->horizontal_bargraph.zone = zone;
 	cntrl->horizontal_bargraph.min = min;
 	cntrl->horizontal_bargraph.max = max;
@@ -789,8 +807,7 @@ _ui_add_vertical_bargraph(void* iface, const char* label, FAUSTFLOAT* zone,
 		return;
 	}
 
-	strncpy(cntrl->label, label, sizeof(cntrl->label));
-	cntrl->type = CNTRL_VERTICAL_BARGRAPH;
+	_ui_add_common(dsp, cntrl, CNTRL_VERTICAL_BARGRAPH, label);
 	cntrl->vertical_bargraph.zone = zone;
 	cntrl->vertical_bargraph.min = min;
 	cntrl->vertical_bargraph.max = max;
@@ -815,8 +832,7 @@ _ui_add_sound_file(void* iface, const char* label, const char* filename,
 		return;
 	}
 
-	strncpy(cntrl->label, label, sizeof(cntrl->label));
-	cntrl->type = CNTRL_VERTICAL_BARGRAPH;
+	_ui_add_common(dsp, cntrl, CNTRL_SOUND_FILE, label);
 	//FIXME
 }
 
@@ -858,6 +874,8 @@ _ui_init(dsp_t *dsp)
 	glue->declare = _ui_declare;
 
 	buildUserInterfaceCDSPInstance(dsp->instance, glue);
+
+	dsp->is_instrument =  dsp->has_freq && dsp->has_gain && dsp->has_gate;
 
 	return 0;
 }
@@ -914,6 +932,16 @@ _dsp_init(plughandle_t *handle, dsp_t *dsp, const char *code)
 
 		deleteCDSPFactory(dsp->factory);
 		goto fail;
+	}
+
+	if(dsp->is_instrument)
+	{
+		if(handle->log)
+		{
+			lv2_log_note(&handle->logger, "[%s] is an instrument", __func__);
+		}
+
+		//FIXME clone instance per voice
 	}
 
 	if(handle->log)
