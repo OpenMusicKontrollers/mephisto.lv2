@@ -17,6 +17,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <math.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -24,6 +25,7 @@
 #include <unistd.h>
 #include <limits.h>
 #include <pthread.h>
+#include <inttypes.h>
 
 #include <mephisto.h>
 #include <props.h>
@@ -33,6 +35,7 @@
 
 #define MAX_CHANNEL 2
 #define MAX_LABEL 32
+#define MAX_VOICES 48
 
 typedef struct _dsp_t dsp_t;
 typedef struct _job_t job_t;
@@ -130,7 +133,8 @@ struct _dsp_t {
 	plughandle_t *handle;
 	llvm_dsp_factory *factory;
 	llvm_dsp *instance;
-	UIGlue glue;
+	UIGlue ui_glue;
+	MetaGlue meta_glue;
 	uint32_t nins;
 	uint32_t nouts;
 	uint32_t ncntrls;
@@ -138,7 +142,7 @@ struct _dsp_t {
 	bool has_freq;
 	bool has_gain;
 	bool has_gate;
-	bool is_instrument;
+	uint32_t nvoices;
 };
 
 typedef enum _job_type_t {
@@ -553,6 +557,48 @@ run(LV2_Handle instance, uint32_t nsamples)
 	}
 }
 
+static int
+_meta_get_fmt_v(const char *val, const char *fmt, va_list arg)
+{
+	return vsscanf(val, fmt, arg);
+}
+
+static int
+_meta_get_fmt(const char *val, const char *fmt, ...)
+{
+	va_list arg;
+
+	va_start(arg, fmt);
+	const int res = _meta_get_fmt_v(val, fmt, arg);
+	va_end(arg);
+
+	return res;
+}
+
+static void
+_meta_declare(void *iface, const char *key, const char *val)
+{
+	dsp_t *dsp = iface;
+	plughandle_t *handle = dsp->handle;
+
+	if(handle->log)
+	{
+		lv2_log_note(&handle->logger, "[%s] %s %s", __func__,
+			key, val);
+	}
+
+	if(!strcmp(key, "options"))
+	{
+		if(_meta_get_fmt(val, "[nvoices=%"SCNu32"]", &dsp->nvoices) == 1)
+		{
+			if(dsp->nvoices == 0)
+			{
+				dsp->nvoices = MAX_VOICES;
+			}
+		}
+	}
+}
+
 static cntrl_t *
 _ui_next_cntrl(dsp_t *dsp)
 {
@@ -853,9 +899,25 @@ _ui_declare(void* iface, FAUSTFLOAT* zone, const char* key, const char* value)
 }
 
 static int
+_meta_init(dsp_t *dsp)
+{
+	MetaGlue *glue = &dsp->meta_glue;
+
+	glue->metaInterface = dsp;
+
+	glue->declare = _meta_declare;
+
+	dsp->nvoices = 1; // assume we're a filter by default
+
+	metadataCDSPInstance(dsp->instance, glue);
+
+	return 0;
+}
+
+static int
 _ui_init(dsp_t *dsp)
 {
-	UIGlue *glue = &dsp->glue;
+	UIGlue *glue = &dsp->ui_glue;
 
 	glue->uiInterface = dsp;
 
@@ -874,8 +936,6 @@ _ui_init(dsp_t *dsp)
 	glue->declare = _ui_declare;
 
 	buildUserInterfaceCDSPInstance(dsp->instance, glue);
-
-	dsp->is_instrument =  dsp->has_freq && dsp->has_gain && dsp->has_gate;
 
 	return 0;
 }
@@ -923,6 +983,17 @@ _dsp_init(plughandle_t *handle, dsp_t *dsp, const char *code)
 	dsp->nins = getNumInputsCDSPInstance(dsp->instance);
 	dsp->nouts = getNumInputsCDSPInstance(dsp->instance);
 
+	if(_meta_init(dsp) != 0)
+	{
+		if(handle->log)
+		{
+			lv2_log_error(&handle->logger, "[%s] meta creation failed", __func__);
+		}
+
+		deleteCDSPFactory(dsp->factory);
+		goto fail;
+	}
+
 	if(_ui_init(dsp) != 0)
 	{
 		if(handle->log)
@@ -934,11 +1005,12 @@ _dsp_init(plughandle_t *handle, dsp_t *dsp, const char *code)
 		goto fail;
 	}
 
-	if(dsp->is_instrument)
+	if(dsp->nvoices > 1)
 	{
 		if(handle->log)
 		{
-			lv2_log_note(&handle->logger, "[%s] is an instrument", __func__);
+			lv2_log_note(&handle->logger, "[%s] is an instrument (%u) ", __func__,
+				dsp->nvoices);
 		}
 
 		//FIXME clone instance per voice
