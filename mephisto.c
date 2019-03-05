@@ -35,8 +35,9 @@
 
 #define MAX_CHANNEL 2
 #define MAX_LABEL 32
-#define MAX_VOICES 48
+#define MAX_VOICES 32
 
+typedef struct _voice_t voice_t;
 typedef struct _dsp_t dsp_t;
 typedef struct _job_t job_t;
 typedef struct _plughandle_t plughandle_t;
@@ -129,10 +130,18 @@ struct _cntrl_t {
 	};
 };
 
+struct _voice_t {
+	llvm_dsp *instance;
+	struct {
+		float *freq;
+		float *gate;
+		float *gain;
+	} zone;
+};
+
 struct _dsp_t {
 	plughandle_t *handle;
 	llvm_dsp_factory *factory;
-	llvm_dsp *instance;
 	UIGlue ui_glue;
 	MetaGlue meta_glue;
 	uint32_t nins;
@@ -140,6 +149,7 @@ struct _dsp_t {
 	uint32_t ncntrls;
 	cntrl_t cntrls [NCONTROLS];
 	uint32_t nvoices;
+	voice_t voices [MAX_VOICES];
 	bool has_freq;
 	bool has_gain;
 	bool has_gate;
@@ -345,39 +355,70 @@ _play(plughandle_t *handle, int64_t from, int64_t to)
 	const uint32_t nsamples = to - from;
 	const size_t buflen = nsamples * sizeof(float);
 
-	float *audio_in [3] = {
-		alloca(buflen), //FIXME check
+	float const *audio_in [3] = {
+		&handle->audio_in[0][from],
 		handle->nchannel > 1
-			? alloca(buflen)
+			? &handle->audio_in[1][from]
 			: NULL, //FIXME check
 		NULL
 	};
 	float *audio_out [3] = {
-		&handle->audio_out[0][from],
+		alloca(buflen), //FIXME check
 		handle->nchannel > 1
-			? &handle->audio_out[1][from]
+			? alloca(buflen)
+			: NULL,
+		NULL
+	};
+	float *master_out [3] = {
+		alloca(buflen), //FIXME check
+		handle->nchannel > 1
+			? alloca(buflen)
 			: NULL,
 		NULL
 	};
 
+	// clear master out
 	for(uint32_t n = 0; n < handle->nchannel; n++)
 	{
 		for(uint32_t i = 0; i < nsamples; i++)
 		{
-			// clone audio in for in-place compatibility
-			audio_in[n][i] = handle->audio_in[n][from + i];
-
-			// generate silence
-			audio_out[n][i] = 0.f;
+			master_out[n][i] = 0.f;
 		}
 	}
 
 	{
 		dsp_t *dsp = handle->dsp[handle->play];
-		if(dsp && dsp->instance)
+		if(dsp)
 		{
-			computeCDSPInstance(dsp->instance, nsamples, (FAUSTFLOAT **)audio_in,
-				(FAUSTFLOAT **)audio_out);
+			for(uint32_t v = 0; v < dsp->nvoices; v++)
+			{
+				voice_t *voice = &dsp->voices[v];
+
+				if(voice->instance)
+				{
+					computeCDSPInstance(voice->instance, nsamples, (FAUSTFLOAT **)audio_in,
+						(FAUSTFLOAT **)audio_out);
+
+					// add to master out
+					for(uint32_t n = 0; n < handle->nchannel; n++)
+					{
+						for(uint32_t i = 0; i < nsamples; i++)
+						{
+							// generate silence on master out
+							master_out[n][i] += audio_out[n][i];
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// output master out
+	for(uint32_t n = 0; n < handle->nchannel; n++)
+	{
+		for(uint32_t i = 0; i < nsamples; i++)
+		{
+			handle->audio_out[n][from + i] = master_out[n][i];
 		}
 	}
 
@@ -590,7 +631,7 @@ _meta_declare(void *iface, const char *key, const char *val)
 
 	if(!strcmp(key, "options"))
 	{
-		if(_meta_get_fmt(val, "[nvoices=%"SCNu32"]", &dsp->nvoices) == 1)
+		if(_meta_get_fmt(val, "[nvoices:%"SCNu32"]", &dsp->nvoices) == 1)
 		{
 			if(dsp->nvoices == 0)
 			{
@@ -928,7 +969,8 @@ _meta_init(dsp_t *dsp)
 
 	dsp->nvoices = 1; // assume we're a filter by default
 
-	metadataCDSPInstance(dsp->instance, glue);
+	voice_t *voice = &dsp->voices[0];
+	metadataCDSPInstance(voice->instance, glue);
 
 	return 0;
 }
@@ -954,7 +996,15 @@ _ui_init(dsp_t *dsp)
 	glue->addSoundFile = _ui_add_sound_file;
 	glue->declare = _ui_declare;
 
-	buildUserInterfaceCDSPInstance(dsp->instance, glue);
+	for(uint32_t v = 0; v < dsp->nvoices; v++)
+	{
+		voice_t *voice = &dsp->voices[v];
+
+		if(voice->instance)
+		{
+			buildUserInterfaceCDSPInstance(voice->instance, glue);
+		}
+	}
 
 	return 0;
 }
@@ -985,8 +1035,9 @@ _dsp_init(plughandle_t *handle, dsp_t *dsp, const char *code)
 		goto fail;
 	}
 
-	dsp->instance = createCDSPInstance(dsp->factory);
-	if(!dsp->instance)
+	voice_t *voice = &dsp->voices[0];
+	voice->instance = createCDSPInstance(dsp->factory);
+	if(!voice->instance)
 	{
 		if(handle->log)
 		{
@@ -997,10 +1048,10 @@ _dsp_init(plughandle_t *handle, dsp_t *dsp, const char *code)
 		goto fail;
 	}
 
-	instanceInitCDSPInstance(dsp->instance, handle->srate);
+	instanceInitCDSPInstance(voice->instance, handle->srate);
 
-	dsp->nins = getNumInputsCDSPInstance(dsp->instance);
-	dsp->nouts = getNumInputsCDSPInstance(dsp->instance);
+	dsp->nins = getNumInputsCDSPInstance(voice->instance);
+	dsp->nouts = getNumInputsCDSPInstance(voice->instance);
 
 	if(_meta_init(dsp) != 0)
 	{
@@ -1058,20 +1109,28 @@ fail:
 static void
 _dsp_deinit(plughandle_t *handle __attribute__((unused)), const dsp_t *dsp)
 {
-	pthread_mutex_lock(&lock);
-
-	if(dsp && dsp->instance)
+	if(dsp)
 	{
-		instanceClearCDSPInstance(dsp->instance);
-		deleteCDSPInstance(dsp->instance);
-	}
+		pthread_mutex_lock(&lock);
 
-	if(dsp && dsp->factory)
-	{
-		deleteCDSPFactory(dsp->factory);
-	}
+		for(uint32_t v = 0; v < dsp->nvoices; v++)
+		{
+			const voice_t *voice = &dsp->voices[v];
 
-	pthread_mutex_unlock(&lock);
+			if(voice->instance)
+			{
+				instanceClearCDSPInstance(voice->instance);
+				deleteCDSPInstance(voice->instance);
+			}
+		}
+
+		if(dsp->factory)
+		{
+			deleteCDSPFactory(dsp->factory);
+		}
+
+		pthread_mutex_unlock(&lock);
+	}
 }
 
 static void
