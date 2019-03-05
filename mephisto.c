@@ -139,10 +139,11 @@ struct _dsp_t {
 	uint32_t nouts;
 	uint32_t ncntrls;
 	cntrl_t cntrls [NCONTROLS];
+	uint32_t nvoices;
 	bool has_freq;
 	bool has_gain;
 	bool has_gate;
-	uint32_t nvoices;
+	bool is_instrument;
 };
 
 typedef enum _job_type_t {
@@ -661,21 +662,39 @@ _ui_close_box(void* iface)
 	}
 }
 
+static const char *
+_strendswith(const char *haystack, const char *needle)
+{
+	const char *match = strstr(haystack, needle);
+
+	if(match)
+	{
+		const size_t needle_len = strlen(needle);
+
+		if(match[needle_len] == '\0')
+		{
+			return match;
+		}
+	}
+
+	return NULL;
+}
+
 static void
 _ui_add_common(dsp_t *dsp, cntrl_t *cntrl, cntrl_type_t type, const char *label)
 {
 	cntrl->type = type;
 	strncpy(cntrl->label, label, sizeof(cntrl->label));
 
-	if(strstr(label, "freq"))
+	if(_strendswith(label, "freq"))
 	{
 		dsp->has_freq = true;
 	}
-	else if(strstr(label, "gain"))
+	else if(_strendswith(label, "gain"))
 	{
 		dsp->has_gain = true;
 	}
-	else if(strstr(label, "gate"))
+	else if(_strendswith(label, "gate"))
 	{
 		dsp->has_gate= true;
 	}
@@ -1005,7 +1024,12 @@ _dsp_init(plughandle_t *handle, dsp_t *dsp, const char *code)
 		goto fail;
 	}
 
-	if(dsp->nvoices > 1)
+	dsp->is_instrument = (dsp->nvoices > 1)
+		&& dsp->has_freq
+		&& dsp->has_gain
+		&& dsp->has_gate;
+
+	if(dsp->is_instrument)
 	{
 		if(handle->log)
 		{
