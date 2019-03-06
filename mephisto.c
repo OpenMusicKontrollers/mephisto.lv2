@@ -153,6 +153,7 @@ struct _dsp_t {
 	bool has_freq;
 	bool has_gain;
 	bool has_gate;
+	bool midi_on;
 	bool is_instrument;
 };
 
@@ -599,24 +600,6 @@ run(LV2_Handle instance, uint32_t nsamples)
 	}
 }
 
-static int
-_meta_get_fmt_v(const char *val, const char *fmt, va_list arg)
-{
-	return vsscanf(val, fmt, arg);
-}
-
-static int
-_meta_get_fmt(const char *val, const char *fmt, ...)
-{
-	va_list arg;
-
-	va_start(arg, fmt);
-	const int res = _meta_get_fmt_v(val, fmt, arg);
-	va_end(arg);
-
-	return res;
-}
-
 static void
 _meta_declare(void *iface, const char *key, const char *val)
 {
@@ -631,11 +614,19 @@ _meta_declare(void *iface, const char *key, const char *val)
 
 	if(!strcmp(key, "options"))
 	{
-		if(_meta_get_fmt(val, "[nvoices:%"SCNu32"]", &dsp->nvoices) == 1)
+		// iterate over options values
+		for(const char *ptr = strchr(val, '['); ptr; ptr = strchr(++ptr, '['))
 		{
-			if(dsp->nvoices == 0)
+			if(sscanf(ptr, "[nvoices:%"SCNu32"]", &dsp->nvoices) == 1)
 			{
-				dsp->nvoices = MAX_VOICES;
+				if(dsp->nvoices == 0)
+				{
+					dsp->nvoices = MAX_VOICES;
+				}
+			}
+			else if(strstr(ptr, "[midi:on]") == ptr)
+			{
+				dsp->midi_on = true;
 			}
 		}
 	}
