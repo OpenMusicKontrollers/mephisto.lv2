@@ -133,9 +133,9 @@ struct _cntrl_t {
 struct _voice_t {
 	llvm_dsp *instance;
 	struct {
-		float *freq;
-		float *gate;
-		float *gain;
+		cntrl_t freq;
+		cntrl_t gate;
+		cntrl_t gain;
 	} zone;
 };
 
