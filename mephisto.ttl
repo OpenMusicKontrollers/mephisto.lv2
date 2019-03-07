@@ -27,6 +27,7 @@
 @prefix units:		<http://lv2plug.in/ns/extensions/units#> .
 @prefix work:			<http://lv2plug.in/ns/ext/worker#> .
 @prefix state:		<http://lv2plug.in/ns/ext/state#> .
+@prefix rsz:      <http://lv2plug.in/ns/ext/resize-port#> .
 @prefix bufsz:		<http://lv2plug.in/ns/ext/buf-size#> .
 @prefix patch:		<http://lv2plug.in/ns/ext/patch#> .
 @prefix log:			<http://lv2plug.in/ns/ext/log#> .
@@ -204,6 +205,7 @@ mephisto:mono
 		lv2:index 0 ;
 		lv2:symbol "control" ;
 		lv2:name "Control" ;
+		rsz:minimumSize 131072 ;
 		lv2:designation lv2:control ;
 	] , [
 	  a lv2:OutputPort ,
@@ -213,6 +215,7 @@ mephisto:mono
 		lv2:index 1 ;
 		lv2:symbol "notify" ;
 		lv2:name "Notify" ;
+		rsz:minimumSize 131072 ;
 		lv2:designation lv2:control ;
 	] , [
 	  a lv2:InputPort ,
@@ -293,6 +296,7 @@ mephisto:stereo
 		lv2:index 0 ;
 		lv2:symbol "control" ;
 		lv2:name "Control" ;
+		rsz:minimumSize 131072 ;
 		lv2:designation lv2:control ;
 	] , [
 	  a lv2:OutputPort ,
@@ -302,6 +306,7 @@ mephisto:stereo
 		lv2:index 1 ;
 		lv2:symbol "notify" ;
 		lv2:name "Notify" ;
+		rsz:minimumSize 131072 ;
 		lv2:designation lv2:control ;
 	] , [
 	  a lv2:InputPort ,
