@@ -132,9 +132,17 @@ struct _cntrl_t {
 
 struct _voice_t {
 	llvm_dsp *instance;
+
 	cntrl_t freq;
 	cntrl_t gate;
 	cntrl_t gain;
+
+	uint32_t ncntrls;
+	cntrl_t cntrls [NCONTROLS];
+
+	bool active;
+	uint8_t cha;
+	uint8_t note;
 };
 
 struct _dsp_t {
@@ -144,8 +152,6 @@ struct _dsp_t {
 	MetaGlue meta_glue;
 	uint32_t nins;
 	uint32_t nouts;
-	uint32_t ncntrls;
-	cntrl_t cntrls [NCONTROLS];
 	uint32_t nvoices;
 	uint32_t cvoices;
 	voice_t voices [MAX_VOICES];
@@ -171,6 +177,8 @@ struct _plughandle_t {
 
 	LV2_Log_Log *log;
 	LV2_Log_Logger logger;
+
+	LV2_URID midi_MidiEvent;
 
 	plugstate_t state;
 	plugstate_t stash;
@@ -223,29 +231,68 @@ _intercept_code(void *data, int64_t frames __attribute__((unused)),
 }
 
 static void
-_refresh_value(plughandle_t *handle, uint32_t idx)
+_cntrl_refresh_value_abs(cntrl_t *cntrl, float val)
 {
-	dsp_t *dsp = handle->dsp[handle->play];
-
-	if(!dsp)
-	{
-		return;
-	}
-
-	cntrl_t *cntrl = idx < dsp->ncntrls
-		? &dsp->cntrls[idx]
-		: NULL;
-
-	if(!cntrl)
-	{
-		return;
-	}
-
 	switch(cntrl->type)
 	{
 		case CNTRL_BUTTON:
 		{
-			const float val = handle->state.control[idx] > 0.5f
+			if(cntrl->button.zone)
+			{
+				*cntrl->button.zone = val;
+			}
+		} break;
+		case CNTRL_CHECK_BUTTON:
+		{
+			if(cntrl->check_button.zone)
+			{
+				*cntrl->check_button.zone = val;
+			}
+		} break;
+		case CNTRL_VERTICAL_SLIDER:
+		{
+			if(cntrl->vertical_slider.zone)
+			{
+				*cntrl->vertical_slider.zone = val;
+			}
+		} break;
+		case CNTRL_HORIZONTAL_SLIDER:
+		{
+			if(cntrl->horizontal_slider.zone)
+			{
+				*cntrl->horizontal_slider.zone = val;
+			}
+		} break;
+		case CNTRL_NUM_ENTRY:
+		{
+			if(cntrl->num_entry.zone)
+			{
+				*cntrl->num_entry.zone = val;
+			}
+		} break;
+		case CNTRL_HORIZONTAL_BARGRAPH:
+		{
+			//FIXME
+		} break;
+		case CNTRL_VERTICAL_BARGRAPH:
+		{
+			//FIXME
+		} break;
+		case CNTRL_SOUND_FILE:
+		{
+			//FIXME
+		} break;
+	}
+}
+
+static void
+_cntrl_refresh_value_rel(cntrl_t *cntrl, float val)
+{
+	switch(cntrl->type)
+	{
+		case CNTRL_BUTTON:
+		{
+			val = val > 0.5f
 				? 1.f
 				: 0.0;
 
@@ -256,7 +303,7 @@ _refresh_value(plughandle_t *handle, uint32_t idx)
 		} break;
 		case CNTRL_CHECK_BUTTON:
 		{
-			const float val = handle->state.control[idx] > 0.5f
+			val = val > 0.5f
 				? 1.f
 				: 0.0;
 
@@ -267,7 +314,7 @@ _refresh_value(plughandle_t *handle, uint32_t idx)
 		} break;
 		case CNTRL_VERTICAL_SLIDER:
 		{
-			const float val = handle->state.control[idx] * cntrl->vertical_slider.ran
+			val = val * cntrl->vertical_slider.ran
 				+ cntrl->vertical_slider.min;
 
 			if(cntrl->vertical_slider.zone)
@@ -277,7 +324,7 @@ _refresh_value(plughandle_t *handle, uint32_t idx)
 		} break;
 		case CNTRL_HORIZONTAL_SLIDER:
 		{
-			const float val = handle->state.control[idx] * cntrl->horizontal_slider.ran
+			val = val * cntrl->horizontal_slider.ran
 				+ cntrl->horizontal_slider.min;
 
 			if(cntrl->horizontal_slider.zone)
@@ -287,7 +334,7 @@ _refresh_value(plughandle_t *handle, uint32_t idx)
 		} break;
 		case CNTRL_NUM_ENTRY:
 		{
-			const float val = handle->state.control[idx] * cntrl->num_entry.ran
+			val = val * cntrl->num_entry.ran
 				+ cntrl->num_entry.min;
 
 			if(cntrl->num_entry.zone)
@@ -307,6 +354,35 @@ _refresh_value(plughandle_t *handle, uint32_t idx)
 		{
 			//FIXME
 		} break;
+	}
+}
+
+static void
+_refresh_value(plughandle_t *handle, uint32_t idx)
+{
+	dsp_t *dsp = handle->dsp[handle->play];
+
+	if(!dsp)
+	{
+		return;
+	}
+
+	const float val = handle->state.control[idx];
+
+	for(uint32_t v = 0; v < dsp->nvoices; v++)
+	{
+		voice_t *voice = &dsp->voices[v];
+
+		cntrl_t *cntrl = idx < voice->ncntrls
+			? &voice->cntrls[idx]
+			: NULL;
+
+		if(!cntrl)
+		{
+			continue;
+		}
+
+		_cntrl_refresh_value_rel(cntrl, val);
 	}
 }
 
@@ -391,7 +467,7 @@ _play(plughandle_t *handle, int64_t from, int64_t to)
 			{
 				voice_t *voice = &dsp->voices[v];
 
-				if(voice->instance)
+				if(voice->instance && voice->active)
 				{
 					computeCDSPInstance(voice->instance, nsamples, (FAUSTFLOAT **)audio_in,
 						(FAUSTFLOAT **)audio_out);
@@ -442,8 +518,7 @@ _play(plughandle_t *handle, int64_t from, int64_t to)
 				handle->xfade_cur = handle->xfade_max;
 				handle->xfade_dst = 1;
 
-				dsp_t *dsp = handle->dsp[handle->play];
-				for(uint32_t i = 0; i < dsp->ncntrls; i++)
+				for(uint32_t i = 0; i < NCONTROLS; i++)
 				{
 					_refresh_value(handle, i);
 				}
@@ -510,6 +585,9 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 
 	lv2_atom_forge_init(&handle->forge, handle->map);
 
+	handle->midi_MidiEvent = handle->map->map(handle->map->handle,
+		LV2_MIDI__MidiEvent);
+
 	if(!props_init(&handle->props, descriptor->URI,
 		defs, MAX_NPROPS, &handle->state, &handle->stash,
 		handle->map, handle))
@@ -556,6 +634,68 @@ connect_port(LV2_Handle instance, uint32_t port, void *data)
 	}
 }
 
+static inline float
+_midi2cps(uint8_t pitch)
+{
+	return exp2f( (pitch - 69.f) / 12.f) * 440.f;
+}
+
+static void
+_handle_midi(plughandle_t *handle, int64_t frames __attribute__((unused)),
+	const uint8_t *msg, uint32_t len __attribute__((unused)))
+{
+	dsp_t *dsp = handle->dsp[handle->play];
+	const uint8_t cmd = msg[0] & 0xf0;
+	const uint8_t cha = msg[0] & 0x0f;
+
+	switch(cmd)
+	{
+		case LV2_MIDI_MSG_NOTE_ON:
+		{
+			const uint8_t note = msg[1];
+			const uint8_t vel = msg[2];
+
+			for(uint32_t v = 0; v < dsp->nvoices; v++)
+			{
+				voice_t *voice = &dsp->voices[v];
+
+				if(voice->active)
+				{
+					continue;
+				}
+
+				_cntrl_refresh_value_abs(&voice->freq, _midi2cps(note));
+				_cntrl_refresh_value_abs(&voice->gain, vel * 0x1p-7);
+				_cntrl_refresh_value_abs(&voice->gate, 1.f);
+
+				voice->note = note;
+				voice->cha = cha;
+				voice->active = true;
+
+				break;
+			}
+		} break;
+		case LV2_MIDI_MSG_NOTE_OFF:
+		{
+			const uint8_t note = msg[1];
+
+			for(uint32_t v = 0; v < dsp->nvoices; v++)
+			{
+				voice_t *voice = &dsp->voices[v];
+
+				if( !voice->active || (voice->note != note) || (voice->cha != cha) )
+				{
+					continue;
+				}
+
+				_cntrl_refresh_value_abs(&voice->gate, 0.f);
+				voice->active = false; //FIXME wait until silent
+			}
+
+		} break;
+	}
+}
+
 static void
 run(LV2_Handle instance, uint32_t nsamples)
 {
@@ -571,9 +711,19 @@ run(LV2_Handle instance, uint32_t nsamples)
 	int64_t last_t = 0;
 	LV2_ATOM_SEQUENCE_FOREACH(handle->control, ev)
 	{
+		const LV2_Atom *atom = &ev->body;
 		const LV2_Atom_Object *obj = (const LV2_Atom_Object *)&ev->body;
 
-		props_advance(&handle->props, &handle->forge, ev->time.frames, obj, &handle->ref);
+		if(atom->type == handle->midi_MidiEvent)
+		{
+			_handle_midi(handle, ev->time.frames, LV2_ATOM_BODY_CONST(atom), atom->size);
+		}
+		else
+		{
+			props_advance(&handle->props, &handle->forge, ev->time.frames, obj,
+				&handle->ref);
+		}
+
 		_play(handle, last_t, ev->time.frames);
 
 		last_t = ev->time.frames;
@@ -651,6 +801,7 @@ _current_voice(dsp_t *dsp)
 {
 	if(dsp->cvoices < (dsp->nvoices- 1))
 	{
+		fprintf(stderr, ":::: %u\n", dsp->cvoices);
 		return &dsp->voices[dsp->cvoices];
 	}
 
@@ -661,37 +812,28 @@ static cntrl_t *
 _ui_next_cntrl(dsp_t *dsp, cntrl_type_t type, const char *label)
 {
 	cntrl_t *cntrl = NULL;
+	voice_t *voice = _current_voice(dsp);
+
+	if(!voice)
+	{
+		return NULL;
+	}
 
 	if(dsp->is_instrument && _strendswith(label, "freq"))
 	{
-		voice_t *voice = _current_voice(dsp);
-
-		if(voice)
-		{
-			cntrl = &voice->freq;
-		}
+		cntrl = &voice->freq;
 	}
 	else if(dsp->is_instrument && _strendswith(label, "gain"))
 	{
-		voice_t *voice = _current_voice(dsp);
-
-		if(voice)
-		{
-			cntrl = &voice->gain;
-		}
+		cntrl = &voice->gain;
 	}
 	else if(dsp->is_instrument && _strendswith(label, "gate"))
 	{
-		voice_t *voice = _current_voice(dsp);
-
-		if(voice)
-		{
-			cntrl = &voice->gate;
-		}
+		cntrl = &voice->gate;
 	}
-	else if(dsp->ncntrls < (NCONTROLS - 1))
+	else if(voice->ncntrls < (NCONTROLS - 1))
 	{
-		cntrl = &dsp->cntrls[dsp->ncntrls++];
+		cntrl = &voice->cntrls[voice->ncntrls++];
 	}
 
 	if(!cntrl)
@@ -1003,9 +1145,9 @@ _ui_init(dsp_t *dsp)
 	glue->addSoundFile = _ui_add_sound_file;
 	glue->declare = _ui_declare;
 
-	for(uint32_t v = 0; v < dsp->nvoices; v++)
+	for(dsp->cvoices = 0; dsp->cvoices < dsp->nvoices; dsp->cvoices++)
 	{
-		voice_t *voice = &dsp->voices[v];
+		voice_t *voice = &dsp->voices[dsp->cvoices];
 
 		if(voice->instance)
 		{
@@ -1042,9 +1184,9 @@ _dsp_init(plughandle_t *handle, dsp_t *dsp, const char *code)
 		goto fail;
 	}
 
-	voice_t *voice = &dsp->voices[0];
-	voice->instance = createCDSPInstance(dsp->factory);
-	if(!voice->instance)
+	voice_t *base_voice = &dsp->voices[0];
+	base_voice->instance = createCDSPInstance(dsp->factory);
+	if(!base_voice->instance)
 	{
 		if(handle->log)
 		{
@@ -1055,10 +1197,10 @@ _dsp_init(plughandle_t *handle, dsp_t *dsp, const char *code)
 		goto fail;
 	}
 
-	instanceInitCDSPInstance(voice->instance, handle->srate);
+	instanceInitCDSPInstance(base_voice->instance, handle->srate);
 
-	dsp->nins = getNumInputsCDSPInstance(voice->instance);
-	dsp->nouts = getNumInputsCDSPInstance(voice->instance);
+	dsp->nins = getNumInputsCDSPInstance(base_voice->instance);
+	dsp->nouts = getNumInputsCDSPInstance(base_voice->instance);
 
 	if(_meta_init(dsp) != 0)
 	{
@@ -1081,7 +1223,23 @@ _dsp_init(plughandle_t *handle, dsp_t *dsp, const char *code)
 				dsp->nvoices);
 		}
 
-		//FIXME clone instance per voice
+		for(uint32_t v = 1; v < dsp->nvoices; v++)
+		{
+			voice_t *voice = &dsp->voices[v];
+
+			voice->instance = cloneCDSPInstance(base_voice->instance);
+			if(!voice->instance)
+			{
+				if(handle->log)
+				{
+					lv2_log_error(&handle->logger, "[%s] instance creation failed", __func__);
+				}
+
+				break;
+			}
+
+			instanceInitCDSPInstance(voice->instance, handle->srate);
+		}
 	}
 
 	if(_ui_init(dsp) != 0)
