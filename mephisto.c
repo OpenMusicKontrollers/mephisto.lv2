@@ -132,11 +132,9 @@ struct _cntrl_t {
 
 struct _voice_t {
 	llvm_dsp *instance;
-	struct {
-		cntrl_t freq;
-		cntrl_t gate;
-		cntrl_t gain;
-	} zone;
+	cntrl_t freq;
+	cntrl_t gate;
+	cntrl_t gain;
 };
 
 struct _dsp_t {
@@ -149,10 +147,8 @@ struct _dsp_t {
 	uint32_t ncntrls;
 	cntrl_t cntrls [NCONTROLS];
 	uint32_t nvoices;
+	uint32_t cvoices;
 	voice_t voices [MAX_VOICES];
-	bool has_freq;
-	bool has_gain;
-	bool has_gate;
 	bool midi_on;
 	bool is_instrument;
 };
@@ -360,20 +356,20 @@ _play(plughandle_t *handle, int64_t from, int64_t to)
 		&handle->audio_in[0][from],
 		handle->nchannel > 1
 			? &handle->audio_in[1][from]
-			: NULL, //FIXME check
+			: NULL,
 		NULL
 	};
 	float *audio_out [3] = {
 		alloca(buflen), //FIXME check
 		handle->nchannel > 1
-			? alloca(buflen)
+			? alloca(buflen) //FIXME check
 			: NULL,
 		NULL
 	};
 	float *master_out [3] = {
 		alloca(buflen), //FIXME check
 		handle->nchannel > 1
-			? alloca(buflen)
+			? alloca(buflen) //FIXME check
 			: NULL,
 		NULL
 	};
@@ -632,15 +628,81 @@ _meta_declare(void *iface, const char *key, const char *val)
 	}
 }
 
-static cntrl_t *
-_ui_next_cntrl(dsp_t *dsp)
+static const char *
+_strendswith(const char *haystack, const char *needle)
 {
-	if(dsp->ncntrls < (NCONTROLS - 1))
+	const char *match = strstr(haystack, needle);
+
+	if(match)
 	{
-		return &dsp->cntrls[dsp->ncntrls++];
+		const size_t needle_len = strlen(needle);
+
+		if(match[needle_len] == '\0')
+		{
+			return match;
+		}
 	}
 
 	return NULL;
+}
+
+static voice_t *
+_current_voice(dsp_t *dsp)
+{
+	if(dsp->cvoices < (dsp->nvoices- 1))
+	{
+		return &dsp->voices[dsp->cvoices];
+	}
+
+	return NULL;
+}
+
+static cntrl_t *
+_ui_next_cntrl(dsp_t *dsp, cntrl_type_t type, const char *label)
+{
+	cntrl_t *cntrl = NULL;
+
+	if(dsp->is_instrument && _strendswith(label, "freq"))
+	{
+		voice_t *voice = _current_voice(dsp);
+
+		if(voice)
+		{
+			cntrl = &voice->freq;
+		}
+	}
+	else if(dsp->is_instrument && _strendswith(label, "gain"))
+	{
+		voice_t *voice = _current_voice(dsp);
+
+		if(voice)
+		{
+			cntrl = &voice->gain;
+		}
+	}
+	else if(dsp->is_instrument && _strendswith(label, "gate"))
+	{
+		voice_t *voice = _current_voice(dsp);
+
+		if(voice)
+		{
+			cntrl = &voice->gate;
+		}
+	}
+	else if(dsp->ncntrls < (NCONTROLS - 1))
+	{
+		cntrl = &dsp->cntrls[dsp->ncntrls++];
+	}
+
+	if(!cntrl)
+	{
+		return NULL;
+	}
+
+	cntrl->type = type;
+	strncpy(cntrl->label, label, sizeof(cntrl->label));
+
+	return cntrl;
 }
 
 static void
@@ -694,44 +756,6 @@ _ui_close_box(void* iface)
 	}
 }
 
-static const char *
-_strendswith(const char *haystack, const char *needle)
-{
-	const char *match = strstr(haystack, needle);
-
-	if(match)
-	{
-		const size_t needle_len = strlen(needle);
-
-		if(match[needle_len] == '\0')
-		{
-			return match;
-		}
-	}
-
-	return NULL;
-}
-
-static void
-_ui_add_common(dsp_t *dsp, cntrl_t *cntrl, cntrl_type_t type, const char *label)
-{
-	cntrl->type = type;
-	strncpy(cntrl->label, label, sizeof(cntrl->label));
-
-	if(_strendswith(label, "freq"))
-	{
-		dsp->has_freq = true;
-	}
-	else if(_strendswith(label, "gain"))
-	{
-		dsp->has_gain = true;
-	}
-	else if(_strendswith(label, "gate"))
-	{
-		dsp->has_gate= true;
-	}
-}
-
 static void
 _ui_add_button(void* iface, const char* label, FAUSTFLOAT* zone)
 {
@@ -744,13 +768,12 @@ _ui_add_button(void* iface, const char* label, FAUSTFLOAT* zone)
 			label, *zone);
 	}
 
-	cntrl_t *cntrl = _ui_next_cntrl(dsp);
+	cntrl_t *cntrl = _ui_next_cntrl(dsp, CNTRL_BUTTON, label);
 	if(!cntrl)
 	{
 		return;
 	}
 
-	_ui_add_common(dsp, cntrl, CNTRL_BUTTON, label);
 	cntrl->button.zone = zone;
 }
 
@@ -766,13 +789,12 @@ _ui_add_check_button(void* iface, const char* label, FAUSTFLOAT* zone)
 			label, *zone);
 	}
 
-	cntrl_t *cntrl = _ui_next_cntrl(dsp);
+	cntrl_t *cntrl = _ui_next_cntrl(dsp, CNTRL_CHECK_BUTTON, label);
 	if(!cntrl)
 	{
 		return;
 	}
 
-	_ui_add_common(dsp, cntrl, CNTRL_CHECK_BUTTON, label);
 	cntrl->check_button.zone = zone;
 }
 
@@ -789,13 +811,12 @@ _ui_add_vertical_slider(void* iface, const char* label, FAUSTFLOAT* zone,
 			label, *zone, init, min, max, step);
 	}
 
-	cntrl_t *cntrl = _ui_next_cntrl(dsp);
+	cntrl_t *cntrl = _ui_next_cntrl(dsp, CNTRL_VERTICAL_SLIDER, label);
 	if(!cntrl)
 	{
 		return;
 	}
 
-	_ui_add_common(dsp, cntrl, CNTRL_VERTICAL_SLIDER, label);
 	cntrl->vertical_slider.zone = zone;
 	cntrl->vertical_slider.init = init;
 	cntrl->vertical_slider.min = min;
@@ -817,13 +838,12 @@ _ui_add_horizontal_slider(void* iface, const char* label, FAUSTFLOAT* zone,
 			label, *zone, init, min, max, step);
 	}
 
-	cntrl_t *cntrl = _ui_next_cntrl(dsp);
+	cntrl_t *cntrl = _ui_next_cntrl(dsp, CNTRL_HORIZONTAL_SLIDER, label);
 	if(!cntrl)
 	{
 		return;
 	}
 
-	_ui_add_common(dsp, cntrl, CNTRL_HORIZONTAL_SLIDER, label);
 	cntrl->horizontal_slider.zone = zone;
 	cntrl->horizontal_slider.init = init;
 	cntrl->horizontal_slider.min = min;
@@ -845,13 +865,12 @@ _ui_add_num_entry(void* iface, const char* label, FAUSTFLOAT* zone,
 			label, *zone, init, min, max, step);
 	}
 
-	cntrl_t *cntrl = _ui_next_cntrl(dsp);
+	cntrl_t *cntrl = _ui_next_cntrl(dsp, CNTRL_NUM_ENTRY, label);
 	if(!cntrl)
 	{
 		return;
 	}
 
-	_ui_add_common(dsp, cntrl, CNTRL_NUM_ENTRY, label);
 	cntrl->num_entry.zone = zone;
 	cntrl->num_entry.init = init;
 	cntrl->num_entry.min = min;
@@ -873,13 +892,12 @@ _ui_add_horizontal_bargraph(void* iface, const char* label, FAUSTFLOAT* zone,
 			label, *zone, min, max);
 	}
 
-	cntrl_t *cntrl = _ui_next_cntrl(dsp);
+	cntrl_t *cntrl = _ui_next_cntrl(dsp, CNTRL_HORIZONTAL_BARGRAPH, label);
 	if(!cntrl)
 	{
 		return;
 	}
 
-	_ui_add_common(dsp, cntrl, CNTRL_HORIZONTAL_BARGRAPH, label);
 	cntrl->horizontal_bargraph.zone = zone;
 	cntrl->horizontal_bargraph.min = min;
 	cntrl->horizontal_bargraph.max = max;
@@ -898,13 +916,12 @@ _ui_add_vertical_bargraph(void* iface, const char* label, FAUSTFLOAT* zone,
 			label, *zone, min, max);
 	}
 
-	cntrl_t *cntrl = _ui_next_cntrl(dsp);
+	cntrl_t *cntrl = _ui_next_cntrl(dsp, CNTRL_VERTICAL_BARGRAPH, label);
 	if(!cntrl)
 	{
 		return;
 	}
 
-	_ui_add_common(dsp, cntrl, CNTRL_VERTICAL_BARGRAPH, label);
 	cntrl->vertical_bargraph.zone = zone;
 	cntrl->vertical_bargraph.min = min;
 	cntrl->vertical_bargraph.max = max;
@@ -923,13 +940,12 @@ _ui_add_sound_file(void* iface, const char* label, const char* filename,
 			label, filename);
 	}
 
-	cntrl_t *cntrl = _ui_next_cntrl(dsp);
+	cntrl_t *cntrl = _ui_next_cntrl(dsp, CNTRL_SOUND_FILE, label);
 	if(!cntrl)
 	{
 		return;
 	}
 
-	_ui_add_common(dsp, cntrl, CNTRL_SOUND_FILE, label);
 	//FIXME
 }
 
@@ -1055,21 +1071,7 @@ _dsp_init(plughandle_t *handle, dsp_t *dsp, const char *code)
 		goto fail;
 	}
 
-	if(_ui_init(dsp) != 0)
-	{
-		if(handle->log)
-		{
-			lv2_log_error(&handle->logger, "[%s] ui creation failed", __func__);
-		}
-
-		deleteCDSPFactory(dsp->factory);
-		goto fail;
-	}
-
-	dsp->is_instrument = (dsp->nvoices > 1)
-		&& dsp->has_freq
-		&& dsp->has_gain
-		&& dsp->has_gate;
+	dsp->is_instrument = (dsp->nvoices > 1);
 
 	if(dsp->is_instrument)
 	{
@@ -1080,6 +1082,17 @@ _dsp_init(plughandle_t *handle, dsp_t *dsp, const char *code)
 		}
 
 		//FIXME clone instance per voice
+	}
+
+	if(_ui_init(dsp) != 0)
+	{
+		if(handle->log)
+		{
+			lv2_log_error(&handle->logger, "[%s] ui creation failed", __func__);
+		}
+
+		deleteCDSPFactory(dsp->factory);
+		goto fail;
 	}
 
 	if(handle->log)
