@@ -206,6 +206,29 @@ struct _plughandle_t {
 
 static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
+static inline voice_t *
+_voice_begin(dsp_t *dsp)
+{
+	return dsp->voices;
+}
+
+static inline bool
+_voice_not_end(dsp_t *dsp, voice_t *voice)
+{
+	return (voice - dsp->voices) < dsp->nvoices;
+}
+
+static inline voice_t *
+_voice_next(voice_t *voice)
+{
+	return voice + 1;
+}
+
+#define VOICE_FOREACH(DSP, VOICE) \
+	for(voice_t *(VOICE) = _voice_begin((DSP)); \
+		_voice_not_end((DSP), (VOICE)); \
+		(VOICE) = _voice_next((VOICE)))
+
 static void
 _intercept_code(void *data, int64_t frames __attribute__((unused)),
 	props_impl_t *impl)
@@ -369,10 +392,8 @@ _refresh_value(plughandle_t *handle, uint32_t idx)
 
 	const float val = handle->state.control[idx];
 
-	for(uint32_t v = 0; v < dsp->nvoices; v++)
+	VOICE_FOREACH(dsp, voice)
 	{
-		voice_t *voice = &dsp->voices[v];
-
 		cntrl_t *cntrl = idx < voice->ncntrls
 			? &voice->cntrls[idx]
 			: NULL;
@@ -463,10 +484,8 @@ _play(plughandle_t *handle, int64_t from, int64_t to)
 		dsp_t *dsp = handle->dsp[handle->play];
 		if(dsp)
 		{
-			for(uint32_t v = 0; v < dsp->nvoices; v++)
+			VOICE_FOREACH(dsp, voice)
 			{
-				voice_t *voice = &dsp->voices[v];
-
 				if(voice->instance && voice->active)
 				{
 					computeCDSPInstance(voice->instance, nsamples, (FAUSTFLOAT **)audio_in,
@@ -655,10 +674,8 @@ _handle_midi(plughandle_t *handle, int64_t frames __attribute__((unused)),
 			const uint8_t note = msg[1];
 			const uint8_t vel = msg[2];
 
-			for(uint32_t v = 0; v < dsp->nvoices; v++)
+			VOICE_FOREACH(dsp, voice)
 			{
-				voice_t *voice = &dsp->voices[v];
-
 				if(voice->active)
 				{
 					continue;
@@ -679,10 +696,8 @@ _handle_midi(plughandle_t *handle, int64_t frames __attribute__((unused)),
 		{
 			const uint8_t note = msg[1];
 
-			for(uint32_t v = 0; v < dsp->nvoices; v++)
+			VOICE_FOREACH(dsp, voice)
 			{
-				voice_t *voice = &dsp->voices[v];
-
 				if( !voice->active || (voice->note != note) || (voice->cha != cha) )
 				{
 					continue;
@@ -1108,7 +1123,7 @@ _ui_declare(void* iface, FAUSTFLOAT* zone, const char* key, const char* value)
 }
 
 static int
-_meta_init(dsp_t *dsp)
+_meta_init(dsp_t *dsp, voice_t *base_voice)
 {
 	MetaGlue *glue = &dsp->meta_glue;
 
@@ -1118,8 +1133,7 @@ _meta_init(dsp_t *dsp)
 
 	dsp->nvoices = 1; // assume we're a filter by default
 
-	voice_t *voice = &dsp->voices[0];
-	metadataCDSPInstance(voice->instance, glue);
+	metadataCDSPInstance(base_voice->instance, glue);
 
 	return 0;
 }
@@ -1145,14 +1159,16 @@ _ui_init(dsp_t *dsp)
 	glue->addSoundFile = _ui_add_sound_file;
 	glue->declare = _ui_declare;
 
-	for(dsp->cvoices = 0; dsp->cvoices < dsp->nvoices; dsp->cvoices++)
-	{
-		voice_t *voice = &dsp->voices[dsp->cvoices];
+	dsp->cvoices = 0;
 
+	VOICE_FOREACH(dsp, voice)
+	{
 		if(voice->instance)
 		{
 			buildUserInterfaceCDSPInstance(voice->instance, glue);
 		}
+
+		dsp->cvoices++;
 	}
 
 	return 0;
@@ -1184,7 +1200,7 @@ _dsp_init(plughandle_t *handle, dsp_t *dsp, const char *code)
 		goto fail;
 	}
 
-	voice_t *base_voice = &dsp->voices[0];
+	voice_t *base_voice = _voice_begin(dsp);
 	base_voice->instance = createCDSPInstance(dsp->factory);
 	if(!base_voice->instance)
 	{
@@ -1202,7 +1218,7 @@ _dsp_init(plughandle_t *handle, dsp_t *dsp, const char *code)
 	dsp->nins = getNumInputsCDSPInstance(base_voice->instance);
 	dsp->nouts = getNumInputsCDSPInstance(base_voice->instance);
 
-	if(_meta_init(dsp) != 0)
+	if(_meta_init(dsp, base_voice) != 0)
 	{
 		if(handle->log)
 		{
@@ -1223,9 +1239,12 @@ _dsp_init(plughandle_t *handle, dsp_t *dsp, const char *code)
 				dsp->nvoices);
 		}
 
-		for(uint32_t v = 1; v < dsp->nvoices; v++)
+		VOICE_FOREACH(dsp, voice)
 		{
-			voice_t *voice = &dsp->voices[v];
+			if(voice == base_voice) // skip base voice
+			{
+				continue;
+			}
 
 			voice->instance = cloneCDSPInstance(base_voice->instance);
 			if(!voice->instance)
@@ -1269,16 +1288,14 @@ fail:
 }
 
 static void
-_dsp_deinit(plughandle_t *handle __attribute__((unused)), const dsp_t *dsp)
+_dsp_deinit(plughandle_t *handle __attribute__((unused)), dsp_t *dsp)
 {
 	if(dsp)
 	{
 		pthread_mutex_lock(&lock);
 
-		for(uint32_t v = 0; v < dsp->nvoices; v++)
+		VOICE_FOREACH(dsp, voice)
 		{
-			const voice_t *voice = &dsp->voices[v];
-
 			if(voice->instance)
 			{
 				instanceClearCDSPInstance(voice->instance);
