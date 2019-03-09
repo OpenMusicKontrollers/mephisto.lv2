@@ -667,6 +667,11 @@ _handle_midi(plughandle_t *handle, int64_t frames __attribute__((unused)),
 	const uint8_t cmd = msg[0] & 0xf0;
 	const uint8_t cha = msg[0] & 0x0f;
 
+	if(!dsp->is_instrument)
+	{
+		return;
+	}
+
 	switch(cmd)
 	{
 		case LV2_MIDI_MSG_NOTE_ON:
@@ -814,9 +819,8 @@ _strendswith(const char *haystack, const char *needle)
 static voice_t *
 _current_voice(dsp_t *dsp)
 {
-	if(dsp->cvoices < (dsp->nvoices- 1))
+	if(dsp->cvoices < dsp->nvoices)
 	{
-		fprintf(stderr, ":::: %u\n", dsp->cvoices);
 		return &dsp->voices[dsp->cvoices];
 	}
 
@@ -846,7 +850,7 @@ _ui_next_cntrl(dsp_t *dsp, cntrl_type_t type, const char *label)
 	{
 		cntrl = &voice->gate;
 	}
-	else if(voice->ncntrls < (NCONTROLS - 1))
+	else if(voice->ncntrls < NCONTROLS)
 	{
 		cntrl = &voice->cntrls[voice->ncntrls++];
 	}
@@ -1259,6 +1263,10 @@ _dsp_init(plughandle_t *handle, dsp_t *dsp, const char *code)
 
 			instanceInitCDSPInstance(voice->instance, handle->srate);
 		}
+	}
+	else
+	{
+		base_voice->active = true;
 	}
 
 	if(_ui_init(dsp) != 0)
