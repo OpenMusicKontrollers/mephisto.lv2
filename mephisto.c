@@ -130,6 +130,11 @@ struct _cntrl_t {
 	};
 };
 
+typedef enum _voice_state_t {
+	VOICE_STATE_INACTIVE = 0,
+	VOICE_STATE_ACTIVE   = (1 << 0)
+} voice_state_t;
+
 struct _voice_t {
 	llvm_dsp *instance;
 
@@ -140,7 +145,7 @@ struct _voice_t {
 	uint32_t ncntrls;
 	cntrl_t cntrls [NCONTROLS];
 
-	bool active;
+	voice_state_t state;
 	uint8_t cha;
 	uint8_t note;
 };
@@ -486,7 +491,7 @@ _play(plughandle_t *handle, int64_t from, int64_t to)
 		{
 			VOICE_FOREACH(dsp, voice)
 			{
-				if(voice->instance && voice->active)
+				if(voice->instance && (voice->state & VOICE_STATE_ACTIVE))
 				{
 					computeCDSPInstance(voice->instance, nsamples, (FAUSTFLOAT **)audio_in,
 						(FAUSTFLOAT **)audio_out);
@@ -681,7 +686,7 @@ _handle_midi(plughandle_t *handle, int64_t frames __attribute__((unused)),
 
 			VOICE_FOREACH(dsp, voice)
 			{
-				if(voice->active)
+				if(voice->state & VOICE_STATE_ACTIVE)
 				{
 					continue;
 				}
@@ -692,7 +697,7 @@ _handle_midi(plughandle_t *handle, int64_t frames __attribute__((unused)),
 
 				voice->note = note;
 				voice->cha = cha;
-				voice->active = true;
+				voice->state |= VOICE_STATE_ACTIVE;
 
 				break;
 			}
@@ -703,13 +708,15 @@ _handle_midi(plughandle_t *handle, int64_t frames __attribute__((unused)),
 
 			VOICE_FOREACH(dsp, voice)
 			{
-				if( !voice->active || (voice->note != note) || (voice->cha != cha) )
+				if( !(voice->state & VOICE_STATE_ACTIVE) || (voice->note != note) || (voice->cha != cha) )
 				{
 					continue;
 				}
 
 				_cntrl_refresh_value_abs(&voice->gate, 0.f);
-				voice->active = false; //FIXME wait until silent
+				voice->state &= ~VOICE_STATE_ACTIVE; //FIXME wait until silent
+
+				break;
 			}
 
 		} break;
@@ -1266,7 +1273,7 @@ _dsp_init(plughandle_t *handle, dsp_t *dsp, const char *code)
 	}
 	else
 	{
-		base_voice->active = true;
+		base_voice->state |= VOICE_STATE_ACTIVE;
 	}
 
 	if(_ui_init(dsp) != 0)
