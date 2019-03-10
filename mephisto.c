@@ -66,11 +66,11 @@ typedef enum _cntrl_type_t {
 } cntrl_type_t;
 
 struct _cntrl_button_t {
-	float *zone;
+	uint32_t dummy; //FIXME
 };
 
 struct _cntrl_check_button_t {
-	float *zone;
+	uint32_t dummy; //FIXME
 };
 
 struct _cntrl_vertical_slider_t {
@@ -79,7 +79,6 @@ struct _cntrl_vertical_slider_t {
 	float max;
 	float ran;
 	float step;
-	float *zone;
 };
 
 struct _cntrl_horizontal_slider_t {
@@ -88,7 +87,6 @@ struct _cntrl_horizontal_slider_t {
 	float max;
 	float ran;
 	float step;
-	float *zone;
 };
 
 struct _cntrl_num_entry_t {
@@ -97,19 +95,16 @@ struct _cntrl_num_entry_t {
 	float max;
 	float ran;
 	float step;
-	float *zone;
 };
 
 struct _cntrl_horizontal_bargraph_t {
 	float min;
 	float max;
-	float *zone;
 };
 
 struct _cntrl_vertical_bargraph_t {
 	float min;
 	float max;
-	float *zone;
 };
 
 struct _cntrl_sound_file_t {
@@ -119,6 +114,7 @@ struct _cntrl_sound_file_t {
 struct _cntrl_t {
 	char label [MAX_LABEL];
 	cntrl_type_t type;
+	float *zone;
 	union {
 		cntrl_button_t button;
 		cntrl_check_button_t check_button;
@@ -279,56 +275,21 @@ _intercept_code(void *data, int64_t frames __attribute__((unused)),
 static void
 _cntrl_refresh_value_abs(cntrl_t *cntrl, float val)
 {
-	switch(cntrl->type)
+	if(cntrl->zone)
 	{
-		case CNTRL_BUTTON:
-		{
-			if(cntrl->button.zone)
-			{
-				*cntrl->button.zone = val;
-			}
-		} break;
-		case CNTRL_CHECK_BUTTON:
-		{
-			if(cntrl->check_button.zone)
-			{
-				*cntrl->check_button.zone = val;
-			}
-		} break;
-		case CNTRL_VERTICAL_SLIDER:
-		{
-			if(cntrl->vertical_slider.zone)
-			{
-				*cntrl->vertical_slider.zone = val;
-			}
-		} break;
-		case CNTRL_HORIZONTAL_SLIDER:
-		{
-			if(cntrl->horizontal_slider.zone)
-			{
-				*cntrl->horizontal_slider.zone = val;
-			}
-		} break;
-		case CNTRL_NUM_ENTRY:
-		{
-			if(cntrl->num_entry.zone)
-			{
-				*cntrl->num_entry.zone = val;
-			}
-		} break;
-		case CNTRL_HORIZONTAL_BARGRAPH:
-		{
-			//FIXME
-		} break;
-		case CNTRL_VERTICAL_BARGRAPH:
-		{
-			//FIXME
-		} break;
-		case CNTRL_SOUND_FILE:
-		{
-			//FIXME
-		} break;
+		*cntrl->zone = val;
 	}
+}
+
+static float
+_cntrl_get_value_abs(cntrl_t *cntrl)
+{
+	if(cntrl->zone)
+	{
+		return *cntrl->zone;
+	}
+
+	return 0.f;
 }
 
 static void
@@ -342,9 +303,9 @@ _cntrl_refresh_value_rel(cntrl_t *cntrl, float val)
 				? 1.f
 				: 0.0;
 
-			if(cntrl->button.zone)
+			if(cntrl->zone)
 			{
-				*cntrl->button.zone = val;
+				*cntrl->zone = val;
 			}
 		} break;
 		case CNTRL_CHECK_BUTTON:
@@ -353,9 +314,9 @@ _cntrl_refresh_value_rel(cntrl_t *cntrl, float val)
 				? 1.f
 				: 0.0;
 
-			if(cntrl->check_button.zone)
+			if(cntrl->zone)
 			{
-				*cntrl->check_button.zone = val;
+				*cntrl->zone = val;
 			}
 		} break;
 		case CNTRL_VERTICAL_SLIDER:
@@ -363,9 +324,9 @@ _cntrl_refresh_value_rel(cntrl_t *cntrl, float val)
 			val = val * cntrl->vertical_slider.ran
 				+ cntrl->vertical_slider.min;
 
-			if(cntrl->vertical_slider.zone)
+			if(cntrl->zone)
 			{
-				*cntrl->vertical_slider.zone = val;
+				*cntrl->zone = val;
 			}
 		} break;
 		case CNTRL_HORIZONTAL_SLIDER:
@@ -373,9 +334,9 @@ _cntrl_refresh_value_rel(cntrl_t *cntrl, float val)
 			val = val * cntrl->horizontal_slider.ran
 				+ cntrl->horizontal_slider.min;
 
-			if(cntrl->horizontal_slider.zone)
+			if(cntrl->zone)
 			{
-				*cntrl->horizontal_slider.zone = val;
+				*cntrl->zone = val;
 			}
 		} break;
 		case CNTRL_NUM_ENTRY:
@@ -383,9 +344,9 @@ _cntrl_refresh_value_rel(cntrl_t *cntrl, float val)
 			val = val * cntrl->num_entry.ran
 				+ cntrl->num_entry.min;
 
-			if(cntrl->num_entry.zone)
+			if(cntrl->zone)
 			{
-				*cntrl->num_entry.zone = val;
+				*cntrl->zone = val;
 			}
 		} break;
 		case CNTRL_HORIZONTAL_BARGRAPH:
@@ -566,6 +527,8 @@ _play(plughandle_t *handle, int64_t from, int64_t to)
 		{
 			if(handle->xfade_dst == 0)
 			{
+				dsp_t *old_dsp = handle->dsp[handle->play];
+
 				handle->play = !handle->play;
 				handle->xfade_cur = handle->xfade_max;
 				handle->xfade_dst = 1;
@@ -573,6 +536,34 @@ _play(plughandle_t *handle, int64_t from, int64_t to)
 				for(uint32_t i = 0; i < NCONTROLS; i++)
 				{
 					_refresh_value(handle, i);
+				}
+
+				dsp_t *new_dsp = handle->dsp[handle->play];
+
+				if(old_dsp && new_dsp)
+				{
+					voice_t *old_voice = _voice_begin(old_dsp);
+
+					VOICE_FOREACH(new_dsp, new_voice)
+					{
+						_cntrl_refresh_value_abs(&new_voice->freq,
+							_cntrl_get_value_abs(&old_voice->freq));
+						_cntrl_refresh_value_abs(&new_voice->gate,
+							_cntrl_get_value_abs(&old_voice->gate));
+						_cntrl_refresh_value_abs(&new_voice->gain,
+							_cntrl_get_value_abs(&old_voice->gain));
+
+						new_voice->state = old_voice->state;
+						new_voice->remaining = old_voice->remaining;
+						new_voice->hash = old_voice->hash;
+
+						if(!_voice_not_end(old_dsp, old_voice))
+						{
+							break;
+						}
+
+						old_voice = _voice_next(old_voice);
+					}
 				}
 			}
 		}
@@ -1130,7 +1121,7 @@ _ui_add_button(void* iface, const char* label, FAUSTFLOAT* zone)
 		return;
 	}
 
-	cntrl->button.zone = zone;
+	cntrl->zone = zone;
 }
 
 static void
@@ -1151,7 +1142,7 @@ _ui_add_check_button(void* iface, const char* label, FAUSTFLOAT* zone)
 		return;
 	}
 
-	cntrl->check_button.zone = zone;
+	cntrl->zone = zone;
 }
 
 static void
@@ -1173,7 +1164,7 @@ _ui_add_vertical_slider(void* iface, const char* label, FAUSTFLOAT* zone,
 		return;
 	}
 
-	cntrl->vertical_slider.zone = zone;
+	cntrl->zone = zone;
 	cntrl->vertical_slider.init = init;
 	cntrl->vertical_slider.min = min;
 	cntrl->vertical_slider.max = max;
@@ -1200,7 +1191,7 @@ _ui_add_horizontal_slider(void* iface, const char* label, FAUSTFLOAT* zone,
 		return;
 	}
 
-	cntrl->horizontal_slider.zone = zone;
+	cntrl->zone = zone;
 	cntrl->horizontal_slider.init = init;
 	cntrl->horizontal_slider.min = min;
 	cntrl->horizontal_slider.max = max;
@@ -1227,7 +1218,7 @@ _ui_add_num_entry(void* iface, const char* label, FAUSTFLOAT* zone,
 		return;
 	}
 
-	cntrl->num_entry.zone = zone;
+	cntrl->zone = zone;
 	cntrl->num_entry.init = init;
 	cntrl->num_entry.min = min;
 	cntrl->num_entry.max = max;
@@ -1254,7 +1245,7 @@ _ui_add_horizontal_bargraph(void* iface, const char* label, FAUSTFLOAT* zone,
 		return;
 	}
 
-	cntrl->horizontal_bargraph.zone = zone;
+	cntrl->zone = zone;
 	cntrl->horizontal_bargraph.min = min;
 	cntrl->horizontal_bargraph.max = max;
 }
@@ -1278,7 +1269,7 @@ _ui_add_vertical_bargraph(void* iface, const char* label, FAUSTFLOAT* zone,
 		return;
 	}
 
-	cntrl->vertical_bargraph.zone = zone;
+	cntrl->zone = zone;
 	cntrl->vertical_bargraph.min = min;
 	cntrl->vertical_bargraph.max = max;
 }
