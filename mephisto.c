@@ -646,7 +646,7 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 
 	for(uint32_t chn = 0; chn < 0x10; chn++)
 	{
-		handle->range[chn] = 2.f; // semitones
+		handle->range[chn] = 48.f; // semitones
 	}
 
 	return handle;
@@ -824,13 +824,30 @@ _handle_midi(plughandle_t *handle, int64_t frames __attribute__((unused)),
 				_voice_off(handle, voice);
 			}
 		} break;
+		case LV2_MIDI_MSG_NOTE_PRESSURE:
+		{
+			const uint8_t key = msg[1];
+			const uint8_t pre = msg[2];
+
+			const hash_t hash = {
+				.key= key,
+				.chn = chn
+			};
+
+			voice_t *voice = _find_active_voice(dsp, &hash);
+
+			if(voice)
+			{
+				_cntrl_refresh_value_abs(&voice->gain, pre * 0x1p-7);
+			}
+		} break;
 		case LV2_MIDI_MSG_BENDER:
 		{
 			const uint8_t lsb = msg[1];
 			const uint8_t msb = msg[2];
 			const int16_t bend = (msb << 7) | lsb;
 
-			handle->bend[chn] = (bend - 0x1fff) * 0x1p-13;
+			handle->bend[chn] = (bend - 0x2000) * 0x1p-13;
 			_update_frequency(handle, dsp, chn);
 		} break;
 		case LV2_MIDI_MSG_CONTROLLER:
