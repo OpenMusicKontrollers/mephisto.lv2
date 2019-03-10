@@ -37,6 +37,7 @@
 #define MAX_LABEL 32
 #define MAX_VOICES 32
 
+typedef union _hash_t hash_t;
 typedef struct _voice_t voice_t;
 typedef struct _dsp_t dsp_t;
 typedef struct _job_t job_t;
@@ -133,8 +134,17 @@ struct _cntrl_t {
 typedef enum _voice_state_t {
 	VOICE_STATE_INACTIVE     = 0,
 	VOICE_STATE_ACTIVE       = (1 << 0),
-	VOICE_STATE_DEACTIVATING = (2 << 0)
+	VOICE_STATE_SUSTAIN      = (1 << 1),
+	VOICE_STATE_DEACTIVATING = (1 << 2)
 } voice_state_t;
+
+union _hash_t {
+	struct {
+		uint8_t chn;
+		uint8_t key;
+	};
+	uint16_t id;
+};
 
 struct _voice_t {
 	llvm_dsp *instance;
@@ -148,8 +158,7 @@ struct _voice_t {
 
 	voice_state_t state;
 	int32_t remaining;
-	uint8_t cha;
-	uint8_t note;
+	hash_t hash;
 };
 
 struct _dsp_t {
@@ -209,6 +218,13 @@ struct _plughandle_t {
 
 	bool play;
 	dsp_t *dsp [2];
+
+	uint16_t rpn_lsb [0x10];
+	uint16_t rpn_msb [0x10];
+	uint16_t data_lsb [0x10];
+	float bend [0x10];
+	float range [0x10];
+	bool sustain [0x10];
 };
 
 static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
@@ -637,6 +653,11 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 	handle->xfade_max = 100e-3 * rate;
 	handle->srate = rate;
 
+	for(uint32_t chn = 0; chn < 0x10; chn++)
+	{
+		handle->range[chn] = 2.f; // semitones
+	}
+
 	return handle;
 }
 
@@ -671,7 +692,7 @@ connect_port(LV2_Handle instance, uint32_t port, void *data)
 }
 
 static inline float
-_midi2cps(uint8_t pitch)
+_midi2cps(float pitch)
 {
 	return exp2f( (pitch - 69.f) / 12.f) * 440.f;
 }
@@ -695,17 +716,9 @@ _next_available_voice(dsp_t *dsp)
 		}
 	}
 
-	return NULL;
-}
-
-static inline voice_t *
-_find_active_voice(dsp_t *dsp, const uint8_t cha, const uint8_t note)
-{
 	VOICE_FOREACH(dsp, voice)
 	{
-		if(  (voice->state == VOICE_STATE_ACTIVE)
-			&& (voice->cha == cha)
-			&& (voice->note == note) )
+		if(voice->state & VOICE_STATE_SUSTAIN)
 		{
 			return voice;
 		}
@@ -714,15 +727,70 @@ _find_active_voice(dsp_t *dsp, const uint8_t cha, const uint8_t note)
 	return NULL;
 }
 
+static inline voice_t *
+_find_active_voice(dsp_t *dsp, const hash_t *hash)
+{
+	VOICE_FOREACH(dsp, voice)
+	{
+		if(  (voice->state == VOICE_STATE_ACTIVE)
+			&& (voice->hash.id == hash->id) )
+		{
+			return voice;
+		}
+	}
+
+	return NULL;
+}
+
+static inline void
+_update_frequency(plughandle_t *handle, dsp_t *dsp, uint8_t chn)
+{
+	VOICE_FOREACH(dsp, voice)
+	{
+		if(voice->state & VOICE_STATE_ACTIVE)
+		{
+			if(voice->hash.chn == chn)
+			{
+				const float freq = _midi2cps(voice->hash.key
+					+ handle->bend[chn]*handle->range[chn]);
+
+				_cntrl_refresh_value_abs(&voice->freq, freq);
+			}
+		}
+	}
+}
+
+static inline void
+_voice_off(plughandle_t *handle, voice_t *voice)
+{
+	if(handle->sustain[voice->hash.chn])
+	{
+		voice->state |= VOICE_STATE_SUSTAIN;
+	}
+	else
+	{
+		_cntrl_refresh_value_abs(&voice->gate, 0.f);
+
+		voice->state |= VOICE_STATE_DEACTIVATING;
+		voice->remaining = handle->srate; //FIXME how long ?
+	}
+}
+
+static inline void
+_voice_off_force(voice_t *voice)
+{
+	voice->state = VOICE_STATE_INACTIVE;
+}
+
 static void
 _handle_midi(plughandle_t *handle, int64_t frames __attribute__((unused)),
 	const uint8_t *msg, uint32_t len __attribute__((unused)))
 {
 	dsp_t *dsp = handle->dsp[handle->play];
 	const uint8_t cmd = msg[0] & 0xf0;
-	const uint8_t cha = msg[0] & 0x0f;
+	const uint8_t chn = msg[0] & 0x0f;
 
-	if(!dsp->is_instrument)
+	if(!dsp || !dsp->is_instrument)
 	{
 		return;
 	}
@@ -731,34 +799,113 @@ _handle_midi(plughandle_t *handle, int64_t frames __attribute__((unused)),
 	{
 		case LV2_MIDI_MSG_NOTE_ON:
 		{
-			const uint8_t note = msg[1];
+			const uint8_t key = msg[1];
 			const uint8_t vel = msg[2];
 
 			voice_t *voice = _next_available_voice(dsp);
 			if(voice)
 			{
-				_cntrl_refresh_value_abs(&voice->freq, _midi2cps(note));
+				const float freq = _midi2cps(key);
+
+				_cntrl_refresh_value_abs(&voice->freq, freq);
 				_cntrl_refresh_value_abs(&voice->gain, vel * 0x1p-7);
 				_cntrl_refresh_value_abs(&voice->gate, 1.f);
 
-				voice->note = note;
-				voice->cha = cha;
+				voice->hash.key = key;
+				voice->hash.chn = chn;
 				voice->state = VOICE_STATE_ACTIVE;
 				voice->remaining = 0;
 			}
 		} break;
 		case LV2_MIDI_MSG_NOTE_OFF:
 		{
-			const uint8_t note = msg[1];
+			const uint8_t key = msg[1];
 
-			voice_t *voice = _find_active_voice(dsp, cha, note);
+			const hash_t hash = {
+				.key= key,
+				.chn = chn
+			};
+
+			voice_t *voice = _find_active_voice(dsp, &hash);
 
 			if(voice)
 			{
-				_cntrl_refresh_value_abs(&voice->gate, 0.f);
+				_voice_off(handle, voice);
+			}
+		} break;
+		case LV2_MIDI_MSG_BENDER:
+		{
+			const uint8_t lsb = msg[1];
+			const uint8_t msb = msg[2];
+			const int16_t bend = (msb << 7) | lsb;
 
-				voice->state |= VOICE_STATE_DEACTIVATING;
-				voice->remaining = handle->srate; //FIXME how long ?
+			handle->bend[chn] = (bend - 0x1fff) * 0x1p-13;
+			_update_frequency(handle, dsp, chn);
+		} break;
+		case LV2_MIDI_MSG_CONTROLLER:
+		{
+			const uint8_t ctr = msg[1];
+			const uint8_t val = msg[2];
+
+			switch(ctr)
+			{
+				case LV2_MIDI_CTL_SUSTAIN:
+				{
+					//handle->sustain[chn] = (val > 0x3f)
+					handle->sustain[chn] = (val < 0x3f)
+						? true
+						: false;
+
+					if(handle->sustain[chn] == false)
+					{
+						VOICE_FOREACH(dsp, voice)
+						{
+							if(  (voice->hash.chn == chn)
+								&& (voice->state & VOICE_STATE_SUSTAIN) )
+							{
+								_voice_off(handle, voice);
+							}
+						}
+					}
+				} break;
+				case LV2_MIDI_CTL_ALL_NOTES_OFF:
+				{
+					VOICE_FOREACH(dsp, voice)
+					{
+						_voice_off(handle, voice);
+					}
+				} break;
+				case LV2_MIDI_CTL_ALL_SOUNDS_OFF:
+				{
+					VOICE_FOREACH(dsp, voice)
+					{
+						_voice_off_force(voice);
+					}
+				} break;
+				case LV2_MIDI_CTL_RPN_LSB:
+				{
+					handle->rpn_lsb[chn] = val;
+				} break;
+				case LV2_MIDI_CTL_RPN_MSB:
+				{
+					handle->rpn_msb[chn] = val;
+				} break;
+				case LV2_MIDI_CTL_LSB_DATA_ENTRY:
+				{
+					handle->data_lsb[chn] = val;
+				} break;
+				case LV2_MIDI_CTL_MSB_DATA_ENTRY:
+				{
+					// pitch-bend range
+					if( (handle->rpn_msb[chn] == 0x0) && (handle->rpn_lsb[chn] == 0x1) )
+					{
+						const uint8_t semi = val;
+						const uint8_t cent = handle->data_lsb[chn];
+
+						handle->range[chn] = (float)semi + cent*0.01f;
+						_update_frequency(handle, dsp, chn);
+					}
+				} break;
 			}
 		} break;
 	}
