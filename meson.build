@@ -82,10 +82,16 @@ ui_ttl = custom_target('mephisto_ui_ttl',
 	command : clone,
 	install : true,
 	install_dir : inst_dir)
+pset_ttl = custom_target('presets.ttl',
+	input : 'presets.ttl',
+	output : 'presets.ttl',
+	command : clone,
+	install : true,
+	install_dir : inst_dir)
 
 if lv2_validate.found()
 	test('LV2 validate', lv2_validate,
-		args : [manifest_ttl, dsp_ttl, ui_ttl])
+		args : [manifest_ttl, dsp_ttl, ui_ttl, pset_ttl])
 endif
 
 if lv2lint.found()

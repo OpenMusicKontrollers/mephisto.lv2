@@ -18,6 +18,7 @@
 @prefix rdfs:     <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix ui:       <http://lv2plug.in/ns/extensions/ui#> .
 @prefix kx:       <http://kxstudio.sf.net/ns/lv2ext/external-ui#> .
+@prefix pset:     <http://lv2plug.in/ns/ext/presets#> .
 
 @prefix mephisto:		<http://open-music-kontrollers.ch/lv2/mephisto#> .
 
@@ -48,6 +49,7 @@ mephisto:stereo
 	lv2:binary <mephisto@MODULE_SUFFIX@> ;
 	rdfs:seeAlso <mephisto.ttl> .
 
+# UIs
 mephisto:showUI
 	a ui:UI ;
 	ui:binary <mephisto_ui@MODULE_SUFFIX@> ;
@@ -56,3 +58,29 @@ mephisto:kxUI
 	a kx:Widget ;
 	ui:binary <mephisto_ui@MODULE_SUFFIX@> ;
 	rdfs:seeAlso <mephisto_ui.ttl> .
+
+# Preset banks
+mephisto:bank-filter
+	a pset:Bank ;
+	rdfs:label "Filter bank" .
+mephisto:bank-instrument
+	a pset:Bank ;
+	rdfs:label "Instrument bank" .
+
+# Filter bank
+mephisto:bank-filter_through
+	a pset:Preset ;
+	lv2:appliesTo mephisto:mono ,
+		mephisto:stereo ;
+	pset:bank mephisto:bank-filter ;
+	rdfs:label "Through" ;
+	rdfs:seeAlso <presets.ttl> .
+
+# Filter bank
+mephisto:bank-instrument_osc
+	a pset:Preset ;
+	lv2:appliesTo mephisto:mono ,
+		mephisto:stereo ;
+	pset:bank mephisto:bank-instrument ;
+	rdfs:label "Oscillator" ;
+	rdfs:seeAlso <presets.ttl> .

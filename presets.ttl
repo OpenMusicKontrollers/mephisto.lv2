@@ -1,0 +1,52 @@
+# Copyright (c) 2019 Hanspeter Portner (dev@open-music-kontrollers.ch)
+#
+# This is free software: you can redistribute it and/or modify
+# it under the terms of the Artistic License 2.0 as published by
+# The Perl Foundation.
+#
+# This source is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# Artistic License 2.0 for more details.
+#
+# You should have received a copy of the Artistic License 2.0
+# along the source as a COPYING file. If not, obtain it from
+# http://www.perlfoundation.org/artistic_license_2_0.
+
+@prefix doap: <http://usefulinc.com/ns/doap#> .
+@prefix atom: <http://lv2plug.in/ns/ext/atom#> .
+@prefix lv2: <http://lv2plug.in/ns/lv2core#> .
+@prefix pset: <http://lv2plug.in/ns/ext/presets#> .
+@prefix midi: <http://lv2plug.in/ns/ext/midi#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix state: <http://lv2plug.in/ns/ext/state#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+@prefix mephisto: <http://open-music-kontrollers.ch/lv2/mephisto#> .
+@prefix lic: <http://opensource.org/licenses/> .
+
+mephisto:bank-filter_through
+	a pset:Preset ;
+	doap:license lic:Artistic-2.0 ;
+	state:state [
+		mephisto:code """import("stdfaust.lib");
+
+process = _, _;""" ;
+	] .
+
+mephisto:bank-instrument_osc
+	a pset:Preset ;
+	doap:license lic:Artistic-2.0 ;
+	state:state [
+		mephisto:code """import("stdfaust.lib");
+declare options "[nvoices:48]";
+
+freq = hslider("freq", 20, 20, 20000, 1);
+gain = hslider("gain", 0, 0, 1, 0.01);
+gate = button("gate");
+
+inst = os.osc(freq) * gain;
+
+process = inst, inst;""" ;
+	] .

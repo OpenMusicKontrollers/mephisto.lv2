@@ -252,13 +252,8 @@ mephisto:mono
 
 	state:state [
 		mephisto:code """import("stdfaust.lib");
-freq = hslider("[0]frequency", 500.0, 10.0, 1000.0, 1.0);
-q = hslider("[1]resonance", 5.0, 1.0, 10.0, 1.0);
-gain = hslider("[2]gain", 0.5, 0.0, 1.0, 0.1);
 
-filter = fi.resonlp(freq, q, gain);
-process = no.noise <: filter;
-""" ;
+process = _;""" ;
 		mephisto:control_1 "0.5"^^xsd:float ;
 		mephisto:control_2 "0.5"^^xsd:float ;
 		mephisto:control_3 "0.5"^^xsd:float ;
@@ -355,13 +350,8 @@ mephisto:stereo
 
 	state:state [
 		mephisto:code """import("stdfaust.lib");
-freq = hslider("[0]frequency", 500.0, 10.0, 1000.0, 1.0);
-q = hslider("[1]resonance", 5.0, 1.0, 10.0, 1.0);
-gain = hslider("[2]gain", 0.5, 0.0, 1.0, 0.1);
 
-filter = fi.resonlp(freq, q, gain);
-process = no.noise <: filter, filter;
-""" ;
+process = _, _;""" ;
 		mephisto:control_1 "0.5"^^xsd:float ;
 		mephisto:control_2 "0.5"^^xsd:float ;
 		mephisto:control_3 "0.5"^^xsd:float ;
