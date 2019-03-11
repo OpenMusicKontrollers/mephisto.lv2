@@ -218,6 +218,8 @@ struct _plughandle_t {
 	uint16_t rpn_lsb [0x10];
 	uint16_t rpn_msb [0x10];
 	uint16_t data_lsb [0x10];
+	uint16_t pressure [0x10];
+	uint16_t timbre [0x10];
 	float bend [0x10];
 	float range [0x10];
 	bool sustain [0x10];
@@ -752,6 +754,39 @@ _update_frequency(plughandle_t *handle, dsp_t *dsp, uint8_t chn)
 }
 
 static inline void
+_update_pressure(plughandle_t *handle, dsp_t *dsp, uint8_t chn)
+{
+	VOICE_FOREACH(dsp, voice)
+	{
+		if(voice->state & VOICE_STATE_ACTIVE)
+		{
+			if(voice->hash.chn == chn)
+			{
+				const float pressure = handle->pressure[chn] * 0x1p-14;
+
+				_cntrl_refresh_value_abs(&voice->gain, pressure);
+			}
+		}
+	}
+}
+
+static inline void
+_update_timbre(plughandle_t *handle, dsp_t *dsp, uint8_t chn)
+{
+	VOICE_FOREACH(dsp, voice)
+	{
+		if(voice->state & VOICE_STATE_ACTIVE)
+		{
+			if(voice->hash.chn == chn)
+			{
+				const float timbre = handle->timbre[chn] * 0x1p-14;
+				(void)timbre; //FIXME
+			}
+		}
+	}
+}
+
+static inline void
 _voice_off(plughandle_t *handle, voice_t *voice)
 {
 	if(handle->sustain[voice->hash.chn])
@@ -775,8 +810,13 @@ _voice_off_force(voice_t *voice)
 
 static void
 _handle_midi(plughandle_t *handle, int64_t frames __attribute__((unused)),
-	const uint8_t *msg, uint32_t len __attribute__((unused)))
+	const uint8_t *msg, uint32_t len)
 {
+	if(len < 3)
+	{
+		return;
+	}
+
 	dsp_t *dsp = handle->dsp[handle->play];
 	const uint8_t cmd = msg[0] & 0xf0;
 	const uint8_t chn = msg[0] & 0x0f;
@@ -913,6 +953,31 @@ _handle_midi(plughandle_t *handle, int64_t frames __attribute__((unused)),
 						handle->range[chn] = (float)semi + cent*0.01f;
 						_update_frequency(handle, dsp, chn);
 					}
+				} break;
+
+				case 70 | 0x20:
+				{
+					handle->pressure[chn] &= 0x7f;
+					handle->pressure[chn] |= val;
+				} break;
+				case 70:
+				{
+					handle->pressure[chn] &= 0x3f80;
+					handle->pressure[chn] |= val << 7;
+
+					_update_pressure(handle, dsp, chn);
+				} break;
+				case 74 | 0x20:
+				{
+					handle->timbre[chn] &= 0x7f;
+					handle->timbre[chn] |= val;
+				} break;
+				case 74:
+				{
+					handle->timbre[chn] &= 0x3f80;
+					handle->timbre[chn] |= val << 7;
+
+					_update_timbre(handle, dsp, chn);
 				} break;
 			}
 		} break;
