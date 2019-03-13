@@ -192,9 +192,10 @@ mephisto:mono
 	doap:name "Mephisto Mono" ;
 	doap:license lic:Artistic-2.0 ;
 	lv2:project proj:mephisto ;
-	lv2:requiredFeature urid:map, state:loadDefaultState, work:schedule ;
+	lv2:requiredFeature urid:map, state:loadDefaultState, work:schedule, opts:options ;
 	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, state:threadSafeRestore, log:log ;
 	lv2:extensionData	state:interface, work:interface ;
+	opts:requiredOption bufsz:maxBlockLength ;
 
 	lv2:port [
 	  a lv2:InputPort ,
@@ -278,9 +279,10 @@ mephisto:stereo
 	doap:name "Mephisto Stereo" ;
 	doap:license lic:Artistic-2.0 ;
 	lv2:project proj:mephisto ;
-	lv2:requiredFeature urid:map, state:loadDefaultState, work:schedule ;
+	lv2:requiredFeature urid:map, state:loadDefaultState, work:schedule, opts:options ;
 	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, state:threadSafeRestore, log:log ;
 	lv2:extensionData	state:interface, work:interface ;
+	opts:requiredOption bufsz:maxBlockLength ;
 
 	lv2:port [
 	  a lv2:InputPort ,

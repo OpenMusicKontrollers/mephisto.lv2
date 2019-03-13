@@ -223,6 +223,9 @@ struct _plughandle_t {
 	float bend [0x10];
 	float range [0x10];
 	bool sustain [0x10];
+
+	FAUSTFLOAT *faudio_in [MAX_CHANNEL];
+	FAUSTFLOAT *faudio_out [MAX_CHANNEL];
 };
 
 static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
@@ -433,36 +436,23 @@ static inline void
 _play(plughandle_t *handle, int64_t from, int64_t to)
 {
 	const uint32_t nsamples = to - from;
-	const size_t buflen = nsamples * sizeof(float);
 
-	float const *audio_in [3] = {
-		&handle->audio_in[0][from],
-		handle->nchannel > 1
-			? &handle->audio_in[1][from]
-			: NULL,
-		NULL
+	FAUSTFLOAT *audio_in [2] = {
+		handle->faudio_in[0],
+		handle->nchannel > 1 ? handle->faudio_in[1] : NULL
 	};
-	float *audio_out [3] = {
-		alloca(buflen), //FIXME check
-		handle->nchannel > 1
-			? alloca(buflen) //FIXME check
-			: NULL,
-		NULL
-	};
-	float *master_out [3] = {
-		alloca(buflen), //FIXME check
-		handle->nchannel > 1
-			? alloca(buflen) //FIXME check
-			: NULL,
-		NULL
+	FAUSTFLOAT *audio_out [2] = {
+		handle->faudio_out[0],
+		handle->nchannel > 1 ? handle->faudio_out[1] : NULL
 	};
 
-	// clear master out
+	// fill audio in, clear audio out
 	for(uint32_t n = 0; n < handle->nchannel; n++)
 	{
 		for(uint32_t i = 0; i < nsamples; i++)
 		{
-			master_out[n][i] = 0.f;
+			audio_in[n][i] = handle->audio_in[n][from + i];
+			handle->audio_out[n][from + i] = 0.f;
 		}
 	}
 
@@ -474,8 +464,7 @@ _play(plughandle_t *handle, int64_t from, int64_t to)
 			{
 				if(voice->instance && (voice->state & VOICE_STATE_ACTIVE) )
 				{
-					computeCDSPInstance(voice->instance, nsamples, (FAUSTFLOAT **)audio_in,
-						(FAUSTFLOAT **)audio_out);
+					computeCDSPInstance(voice->instance, nsamples, audio_in, audio_out);
 
 					// add to master out
 					for(uint32_t n = 0; n < handle->nchannel; n++)
@@ -483,7 +472,7 @@ _play(plughandle_t *handle, int64_t from, int64_t to)
 						for(uint32_t i = 0; i < nsamples; i++)
 						{
 							// generate silence on master out
-							master_out[n][i] += audio_out[n][i];
+							handle->audio_out[n][from + i] += audio_out[n][i];
 						}
 					}
 
@@ -506,7 +495,7 @@ _play(plughandle_t *handle, int64_t from, int64_t to)
 	{
 		for(uint32_t i = 0; i < nsamples; i++)
 		{
-			handle->audio_out[n][from + i] = master_out[n][i];
+			handle->audio_out[n][from + i] = audio_out[n][i];
 		}
 	}
 
@@ -591,6 +580,7 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 
 	strncpy(handle->bundle_path, bundle_path, sizeof(handle->bundle_path));
 
+	LV2_Options_Option *opts = NULL;
 	for(unsigned i=0; features[i]; i++)
 	{
 		if(!strcmp(features[i]->URI, LV2_URID__map))
@@ -604,6 +594,10 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		else if(!strcmp(features[i]->URI, LV2_LOG__log))
 		{
 			handle->log = features[i]->data;
+		}
+		else if(!strcmp(features[i]->URI, LV2_OPTIONS__options))
+		{
+			opts = features[i]->data;
 		}
 	}
 
@@ -632,6 +626,38 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 
 	handle->midi_MidiEvent = handle->map->map(handle->map->handle,
 		LV2_MIDI__MidiEvent);
+	const LV2_URID bufsz_maxBlockLength = handle->map->map(handle->map->handle,
+		LV2_BUF_SIZE__maxBlockLength);
+
+	int32_t max_block_length = 0;
+	for(LV2_Options_Option *opt = opts;
+		(opt->key != 0) && (opt->value != NULL);
+		opt++)
+	{
+		if(  (opt->key == bufsz_maxBlockLength)
+			&& (opt->size == sizeof(int32_t))
+			&& (opt->type == handle->forge.Int) )
+		{
+			max_block_length = *(const int32_t *)opt->value;
+
+			break;
+		}
+	}
+
+	if(max_block_length == 0)
+	{
+		fprintf(stderr,
+			"%s: Host does not provide bufsz:maxBlockLength\n", descriptor->URI);
+		free(handle);
+		return NULL;
+	}
+
+	const size_t buflen = sizeof(FAUSTFLOAT) * max_block_length;
+	for(uint32_t n = 0; n < handle->nchannel; n++)
+	{
+		handle->faudio_in[n] = malloc(buflen); //FIXME check
+		handle->faudio_out[n] = malloc(buflen); //FIXME check
+	}
 
 	if(!props_init(&handle->props, descriptor->URI,
 		defs, MAX_NPROPS, &handle->state, &handle->stash,
