@@ -207,7 +207,6 @@ struct _plughandle_t {
 
 	uint32_t xfade_max;
 	uint32_t xfade_cur;
-	uint32_t xfade_dst;
 
 	uint32_t srate;
 	char bundle_path [PATH_MAX];
@@ -372,27 +371,35 @@ _cntrl_refresh_value_rel(cntrl_t *cntrl, float val)
 static void
 _refresh_value(plughandle_t *handle, uint32_t idx)
 {
-	dsp_t *dsp = handle->dsp[handle->play];
-
-	if(!dsp)
-	{
-		return;
-	}
+	const bool off [2] = {
+		handle->play,
+		!handle->play
+	};
 
 	const float val = handle->state.control[idx];
 
-	VOICE_FOREACH(dsp, voice)
+	for(uint32_t d = 0; d < 2; d++)
 	{
-		cntrl_t *cntrl = idx < voice->ncntrls
-			? &voice->cntrls[idx]
-			: NULL;
+		dsp_t *dsp = handle->dsp[off[d]];
 
-		if(!cntrl)
+		if(!dsp)
 		{
 			continue;
 		}
 
-		_cntrl_refresh_value_rel(cntrl, val);
+		VOICE_FOREACH(dsp, voice)
+		{
+			cntrl_t *cntrl = idx < voice->ncntrls
+				? &voice->cntrls[idx]
+				: NULL;
+
+			if(!cntrl)
+			{
+				continue;
+			}
+
+			_cntrl_refresh_value_rel(cntrl, val);
+		}
 	}
 }
 
@@ -456,107 +463,83 @@ _play(plughandle_t *handle, int64_t from, int64_t to)
 		}
 	}
 
+	const bool off [2] = {
+		handle->play,
+		!handle->play
+	};
+
+	for(uint32_t d = 0; d < 2; d++)
 	{
-		dsp_t *dsp = handle->dsp[handle->play];
-		if(dsp)
+		dsp_t *dsp = handle->dsp[off[d]];
+
+		if(!dsp)
 		{
-			VOICE_FOREACH(dsp, voice)
+			continue;
+		}
+
+		float gain = 1.f;
+
+		if(handle->xfade_cur > 0)
+		{
+			const float t = 2.f * handle->xfade_cur / handle->xfade_max - 1.f;
+
+			if(d == 0) // fade-out
 			{
-				if(voice->instance && (voice->state & VOICE_STATE_ACTIVE) )
+				gain = sqrtf(0.5f * (1.f + t) );
+			}
+			else // fade-in
+			{
+				gain = sqrtf(0.5f * (1.f - t) );
+			}
+		}
+		else
+		{
+			if(d == 1)
+			{
+				continue; // skip this
+			}
+		}
+
+		VOICE_FOREACH(dsp, voice)
+		{
+			if(voice->instance && (voice->state & VOICE_STATE_ACTIVE) )
+			{
+				computeCDSPInstance(voice->instance, nsamples, audio_in, audio_out);
+
+				// add to master out
+				for(uint32_t n = 0; n < handle->nchannel; n++)
 				{
-					computeCDSPInstance(voice->instance, nsamples, audio_in, audio_out);
-
-					// add to master out
-					for(uint32_t n = 0; n < handle->nchannel; n++)
+					for(uint32_t i = 0; i < nsamples; i++)
 					{
-						for(uint32_t i = 0; i < nsamples; i++)
-						{
-							// generate silence on master out
-							handle->audio_out[n][from + i] += audio_out[n][i];
-						}
+						handle->audio_out[n][from + i] += gain * audio_out[n][i];
 					}
+				}
 
-					if(voice->state & VOICE_STATE_DEACTIVATING)
+				if(voice->state & VOICE_STATE_DEACTIVATING)
+				{
+					voice->remaining -= nsamples;
+
+					if(voice->remaining <= 0)
 					{
-						voice->remaining -= nsamples;
-
-						if(voice->remaining <= 0)
-						{
-							voice->state = VOICE_STATE_INACTIVE;
-						}
+						voice->state = VOICE_STATE_INACTIVE;
 					}
 				}
 			}
-		}
-	}
-
-	// output master out
-	for(uint32_t n = 0; n < handle->nchannel; n++)
-	{
-		for(uint32_t i = 0; i < nsamples; i++)
-		{
-			handle->audio_out[n][from + i] = audio_out[n][i];
 		}
 	}
 
 	if(handle->xfade_cur > 0)
 	{
-		for(uint32_t i = 0;
-			(handle->xfade_cur > 0) && (i < nsamples);
-			i++, handle->xfade_cur--)
+		if(nsamples >= handle->xfade_cur)
 		{
-			const float gain = (float)handle->xfade_cur / handle->xfade_max;
-			const float mul = handle->xfade_dst ? (1.f - gain) : gain;
+			handle->xfade_cur = 0;
 
-			for(uint32_t n = 0; n < handle->nchannel; n++)
-			{
-				audio_out[n][i] *= mul;
-			}
+			// switch dsps
+			handle->play = !handle->play;
 		}
-
-		if(handle->xfade_cur == 0)
+		else
 		{
-			if(handle->xfade_dst == 0)
-			{
-				dsp_t *old_dsp = handle->dsp[handle->play];
-
-				handle->play = !handle->play;
-				handle->xfade_cur = handle->xfade_max;
-				handle->xfade_dst = 1;
-
-				for(uint32_t i = 0; i < NCONTROLS; i++)
-				{
-					_refresh_value(handle, i);
-				}
-
-				dsp_t *new_dsp = handle->dsp[handle->play];
-
-				if(old_dsp && new_dsp)
-				{
-					voice_t *old_voice = _voice_begin(old_dsp);
-
-					VOICE_FOREACH(new_dsp, new_voice)
-					{
-						_cntrl_refresh_value_abs(&new_voice->freq,
-							_cntrl_get_value_abs(&old_voice->freq));
-						_cntrl_refresh_value_abs(&new_voice->gate,
-							_cntrl_get_value_abs(&old_voice->gate));
-						_cntrl_refresh_value_abs(&new_voice->gain,
-							_cntrl_get_value_abs(&old_voice->gain));
-
-						new_voice->state = old_voice->state;
-						new_voice->remaining = old_voice->remaining;
-						new_voice->hash = old_voice->hash;
-
-						if(!_voice_not_end(old_dsp, old_voice))
-						{
-							break;
-						}
-
-						old_voice = _voice_next(old_voice);
-					}
-				}
-			}
+			handle->xfade_cur -= nsamples;
 		}
 	}
 }
@@ -669,7 +652,7 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 	}
 
 	handle->to_worker = varchunk_new(BUF_SIZE, true);
-	handle->xfade_max = 100e-3 * rate;
+	handle->xfade_max = rate; //FIXME make this configurable
 	handle->srate = rate;
 
 	for(uint32_t chn = 0; chn < 0x10; chn++)
@@ -835,15 +818,14 @@ _voice_off_force(voice_t *voice)
 }
 
 static void
-_handle_midi(plughandle_t *handle, int64_t frames __attribute__((unused)),
-	const uint8_t *msg, uint32_t len)
+_handle_midi(plughandle_t *handle, dsp_t *dsp,
+	int64_t frames __attribute__((unused)), const uint8_t *msg, uint32_t len)
 {
 	if(len < 3)
 	{
 		return;
 	}
 
-	dsp_t *dsp = handle->dsp[handle->play];
 	const uint8_t cmd = msg[0] & 0xf0;
 	const uint8_t chn = msg[0] & 0x0f;
 
@@ -1030,7 +1012,23 @@ run(LV2_Handle instance, uint32_t nsamples)
 
 		if(atom->type == handle->midi_MidiEvent)
 		{
-			_handle_midi(handle, ev->time.frames, LV2_ATOM_BODY_CONST(atom), atom->size);
+			const bool off [2] = {
+				handle->play,
+				!handle->play
+			};
+
+			for(uint32_t d = 0; d < 2; d++)
+			{
+				dsp_t *dsp = handle->dsp[off[d]];
+
+				if(!dsp)
+				{
+					continue;
+				}
+
+				_handle_midi(handle, dsp, ev->time.frames, LV2_ATOM_BODY_CONST(atom),
+					atom->size);
+			}
 		}
 		else
 		{
@@ -1722,7 +1720,40 @@ _work_response(LV2_Handle instance, uint32_t size, const void *body)
 
 			handle->dsp[!handle->play] = job->dsp;
 			handle->xfade_cur = handle->xfade_max;
-			handle->xfade_dst = 0;
+
+			for(uint32_t i = 0; i < NCONTROLS; i++)
+			{
+				_refresh_value(handle, i);
+			}
+
+			dsp_t *cur_dsp = handle->dsp[handle->play];
+			dsp_t *new_dsp = handle->dsp[!handle->play];
+
+			if(cur_dsp && new_dsp)
+			{
+				voice_t *cur_voice = _voice_begin(cur_dsp);
+
+				VOICE_FOREACH(new_dsp, new_voice)
+				{
+					_cntrl_refresh_value_abs(&new_voice->freq,
+						_cntrl_get_value_abs(&cur_voice->freq));
+					_cntrl_refresh_value_abs(&new_voice->gate,
+						_cntrl_get_value_abs(&cur_voice->gate));
+					_cntrl_refresh_value_abs(&new_voice->gain,
+						_cntrl_get_value_abs(&cur_voice->gain));
+
+					new_voice->state = cur_voice->state;
+					new_voice->remaining = cur_voice->remaining;
+					new_voice->hash = cur_voice->hash;
+
+					if(!_voice_not_end(cur_dsp, cur_voice))
+					{
+						break;
+					}
+
+					cur_voice = _voice_next(cur_voice);
+				}
+			}
 		} break;
 		case JOB_TYPE_DEINIT:
 		{
