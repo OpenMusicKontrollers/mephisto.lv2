@@ -145,9 +145,14 @@ union _hash_t {
 struct _voice_t {
 	llvm_dsp *instance;
 
-	cntrl_t freq;
 	cntrl_t gate;
 	cntrl_t gain;
+	cntrl_t freq;
+	cntrl_t pressure;
+	cntrl_t timbre;
+	cntrl_t d_freq;
+	cntrl_t d_pressure;
+	cntrl_t d_timbre;
 
 	uint32_t ncntrls;
 	cntrl_t cntrls [NCONTROLS];
@@ -217,6 +222,7 @@ struct _plughandle_t {
 	uint16_t rpn_lsb [0x10];
 	uint16_t rpn_msb [0x10];
 	uint16_t data_lsb [0x10];
+	uint16_t gain [0x10];
 	uint16_t pressure [0x10];
 	uint16_t timbre [0x10];
 	float bend [0x10];
@@ -763,6 +769,23 @@ _update_frequency(plughandle_t *handle, dsp_t *dsp, uint8_t chn)
 }
 
 static inline void
+_update_gain(plughandle_t *handle, dsp_t *dsp, uint8_t chn)
+{
+	VOICE_FOREACH(dsp, voice)
+	{
+		if(voice->state & VOICE_STATE_ACTIVE)
+		{
+			if(voice->hash.chn == chn)
+			{
+				const float gain = handle->gain[chn] * 0x1p-14;
+
+				_cntrl_refresh_value_abs(&voice->gain, gain);
+			}
+		}
+	}
+}
+
+static inline void
 _update_pressure(plughandle_t *handle, dsp_t *dsp, uint8_t chn)
 {
 	VOICE_FOREACH(dsp, voice)
@@ -773,7 +796,7 @@ _update_pressure(plughandle_t *handle, dsp_t *dsp, uint8_t chn)
 			{
 				const float pressure = handle->pressure[chn] * 0x1p-14;
 
-				_cntrl_refresh_value_abs(&voice->gain, pressure);
+				_cntrl_refresh_value_abs(&voice->pressure, pressure);
 			}
 		}
 	}
@@ -789,7 +812,8 @@ _update_timbre(plughandle_t *handle, dsp_t *dsp, uint8_t chn)
 			if(voice->hash.chn == chn)
 			{
 				const float timbre = handle->timbre[chn] * 0x1p-14;
-				(void)timbre; //FIXME
+
+				_cntrl_refresh_value_abs(&voice->timbre, timbre);
 			}
 		}
 	}
@@ -886,7 +910,7 @@ _handle_midi(plughandle_t *handle, dsp_t *dsp,
 
 			if(voice)
 			{
-				_cntrl_refresh_value_abs(&voice->gain, pre * 0x1p-7);
+				_cntrl_refresh_value_abs(&voice->pressure, pre * 0x1p-7);
 			}
 		} break;
 		case LV2_MIDI_MSG_BENDER:
@@ -963,24 +987,36 @@ _handle_midi(plughandle_t *handle, dsp_t *dsp,
 					}
 				} break;
 
-				case 70 | 0x20:
+				case LV2_MIDI_CTL_LSB_MAIN_VOLUME:
+				{
+					handle->gain[chn] &= 0x7f;
+					handle->gain[chn] |= val;
+				} break;
+				case LV2_MIDI_CTL_MSB_MAIN_VOLUME:
+				{
+					handle->gain[chn] &= 0x3f80;
+					handle->gain[chn] |= val << 7;
+
+					_update_gain(handle, dsp, chn);
+				} break;
+				case LV2_MIDI_CTL_SC1_SOUND_VARIATION | 0x20:
 				{
 					handle->pressure[chn] &= 0x7f;
 					handle->pressure[chn] |= val;
 				} break;
-				case 70:
+				case LV2_MIDI_CTL_SC1_SOUND_VARIATION:
 				{
 					handle->pressure[chn] &= 0x3f80;
 					handle->pressure[chn] |= val << 7;
 
 					_update_pressure(handle, dsp, chn);
 				} break;
-				case 74 | 0x20:
+				case LV2_MIDI_CTL_SC5_BRIGHTNESS | 0x20:
 				{
 					handle->timbre[chn] &= 0x7f;
 					handle->timbre[chn] |= val;
 				} break;
-				case 74:
+				case LV2_MIDI_CTL_SC5_BRIGHTNESS:
 				{
 					handle->timbre[chn] &= 0x3f80;
 					handle->timbre[chn] |= val << 7;
@@ -1093,7 +1129,7 @@ _meta_declare(void *iface, const char *key, const char *val)
 static const char *
 _strendswith(const char *haystack, const char *needle)
 {
-	const char *match = strstr(haystack, needle);
+	const char *match = strcasestr(haystack, needle);
 
 	if(match)
 	{
@@ -1130,17 +1166,37 @@ _ui_next_cntrl(dsp_t *dsp, cntrl_type_t type, const char *label)
 		return NULL;
 	}
 
-	if(dsp->is_instrument && _strendswith(label, "freq"))
-	{
-		cntrl = &voice->freq;
-	}
-	else if(dsp->is_instrument && _strendswith(label, "gain"))
+	if(dsp->is_instrument && _strendswith(label, "gain"))
 	{
 		cntrl = &voice->gain;
 	}
 	else if(dsp->is_instrument && _strendswith(label, "gate"))
 	{
 		cntrl = &voice->gate;
+	}
+	else if(dsp->is_instrument && _strendswith(label, "dfreq"))
+	{
+		cntrl = &voice->d_freq;
+	}
+	else if(dsp->is_instrument && _strendswith(label, "dpressure"))
+	{
+		cntrl = &voice->d_pressure;
+	}
+	else if(dsp->is_instrument && _strendswith(label, "dtimbre"))
+	{
+		cntrl = &voice->d_timbre;
+	}
+	else if(dsp->is_instrument && _strendswith(label, "freq"))
+	{
+		cntrl = &voice->freq;
+	}
+	else if(dsp->is_instrument && _strendswith(label, "pressure"))
+	{
+		cntrl = &voice->pressure;
+	}
+	else if(dsp->is_instrument && _strendswith(label, "timbre"))
+	{
+		cntrl = &voice->timbre;
 	}
 	else if(voice->ncntrls < NCONTROLS)
 	{
@@ -1737,6 +1793,16 @@ _work_response(LV2_Handle instance, uint32_t size, const void *body)
 				{
 					_cntrl_refresh_value_abs(&new_voice->freq,
 						_cntrl_get_value_abs(&cur_voice->freq));
+					_cntrl_refresh_value_abs(&new_voice->pressure,
+						_cntrl_get_value_abs(&cur_voice->pressure));
+					_cntrl_refresh_value_abs(&new_voice->timbre,
+						_cntrl_get_value_abs(&cur_voice->timbre));
+					_cntrl_refresh_value_abs(&new_voice->d_freq,
+						_cntrl_get_value_abs(&cur_voice->d_freq));
+					_cntrl_refresh_value_abs(&new_voice->d_pressure,
+						_cntrl_get_value_abs(&cur_voice->d_pressure));
+					_cntrl_refresh_value_abs(&new_voice->d_timbre,
+						_cntrl_get_value_abs(&cur_voice->d_timbre));
 					_cntrl_refresh_value_abs(&new_voice->gate,
 						_cntrl_get_value_abs(&cur_voice->gate));
 					_cntrl_refresh_value_abs(&new_voice->gain,
