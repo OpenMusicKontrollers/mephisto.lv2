@@ -35,7 +35,7 @@
 
 #define MAX_CHANNEL 2
 #define MAX_LABEL 32
-#define MAX_VOICES 32
+#define MAX_VOICES 64
 
 typedef union _hash_t hash_t;
 typedef struct _voice_t voice_t;
@@ -1113,7 +1113,7 @@ _meta_declare(void *iface, const char *key, const char *val)
 		{
 			if(sscanf(ptr, "[nvoices:%"SCNu32"]", &dsp->nvoices) == 1)
 			{
-				if(dsp->nvoices == 0)
+				if( (dsp->nvoices == 0) || (dsp->nvoices > MAX_VOICES) )
 				{
 					dsp->nvoices = MAX_VOICES;
 				}
