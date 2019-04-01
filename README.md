@@ -6,51 +6,47 @@
 
 [![build status](https://gitlab.com/OpenMusicKontrollers/mephisto.lv2/badges/master/build.svg)](https://gitlab.com/OpenMusicKontrollers/mephisto.lv2/commits/master)
 
-<!--
+### Binaries
+
+For GNU/Linux (64-bit, 32-bit, armv7), Windows (64-bit, 32-bit) and MacOS
+(64/32-bit univeral).
+
 To install the plugin bundle on your system, simply copy the __mephisto.lv2__
 folder out of the platform folder of the downloaded package into your
 [LV2 path](http://lv2plug.in/pages/filesystem-hierarchy-standard.html).
--->
 
 <!--
 #### Stable release
 
-* ![linux](/pix/icons/Linux-icon.png) [GNU/Linux](https://dl.open-music-kontrollers.ch/mephisto.lv2/stable/mephisto.lv2-latest-stable.zip) (64-bit, 32-bit)
-* ![windows](/pix/icons/Windows-icon.png) [Windows](https://dl.open-music-kontrollers.ch/mephisto.lv2/stable/mephisto.lv2-latest-stable.zip) (64-bit, 32-bit)
-* ![macos](/pix/icons/Apple-Blue-icon.png) [MacOS](https://dl.open-music-kontrollers.ch/mephisto.lv2/stable/mephisto.lv2-latest-stable.zip) (64-bit, 32-bit, universal)
+* [mephisto.lv2-0.16.0.zip](https://dl.open-music-kontrollers.ch/mephisto.lv2/stable/mephisto.lv2-0.16.0.zip) ([sig](https://dl.open-music-kontrollers.ch/mephisto.lv2/stable/mephisto.lv2-0.16.0.zip.sig))
 -->
 
-<!--
 #### Unstable (nightly) release
 
-* ![linux](/pix/icons/Linux-icon.png) [GNU/Linux](https://dl.open-music-kontrollers.ch/mephisto.lv2/unstable/mephisto.lv2-latest-unstable.zip) (64-bit, 32-bit)
-* ![windows](/pix/icons/Windows-icon.png) [Windows](https://dl.open-music-kontrollers.ch/mephisto.lv2/unstable/mephisto.lv2-latest-unstable.zip) (64-bit, 32-bit)
-* ![macos](/pix/icons/Apple-Blue-icon.png) [MacOS](https://dl.open-music-kontrollers.ch/mephisto.lv2/unstable/mephisto.lv2-latest-unstable.zip) (64-bit, 32-bit, universal)
+* [mephisto.lv2-latest-unstable.zip](https://dl.open-music-kontrollers.ch/mephisto.lv2/unstable/mephisto.lv2-latest-unstable.zip) ([sig](https://dl.open-music-kontrollers.ch/mephisto.lv2/unstable/mephisto.lv2-latest-unstable.zip.sig))
+
+### Sources
+
+<!--
+#### Stable release
+
+* [mephisto.lv2-0.16.0.tar.xz](https://git.open-music-kontrollers.ch/lv2/mephisto.lv2/snapshot/mephisto.lv2-0.16.0.tar.xz)
 -->
 
-#### Sources
+#### Git repository
 
 * <https://git.open-music-kontrollers.ch/lv2/mephisto.lv2>
 
 <!--
-#### Packages
+### Packages
 
 * [ArchLinux](https://www.archlinux.org/packages/community/x86_64/mephisto.lv2/)
 -->
 
-#### Dependencies
+### Bugs and feature requests
 
-* [LV2](http://lv2plug.in) (LV2 Plugin Standard)
-* [FAUST](https://faust.grame.fr/) (Faust Programming Language)
-
-#### Build / install
-
-	git clone https://git.open-music-kontrollers.ch/lv2/mephisto.lv2
-	cd mephisto.lv2
-	meson build
-	cd build
-	ninja -j4
-	sudo ninja install
+* [Gitlab](https://gitlab.com/OpenMusicKontrollers/mephisto.lv2)
+* [Github](https://github.com/OpenMusicKontrollers/mephisto.lv2)
 
 #### Plugins
 
@@ -69,6 +65,20 @@ Stereo version of plugin.
 Prototype new audio filters and instruments in [FAUST](https://faust.grame.fr)
 directly in your favorite running host, without the need to restart the latter
 after code changes.
+
+#### Dependencies
+
+* [LV2](http://lv2plug.in) (LV2 Plugin Standard)
+* [FAUST](https://faust.grame.fr/) (Faust Programming Language)
+
+#### Build / install
+
+	git clone https://git.open-music-kontrollers.ch/lv2/mephisto.lv2
+	cd mephisto.lv2
+	meson build
+	cd build
+	ninja -j4
+	sudo ninja install
 
 #### GUI
 
