@@ -62,7 +62,7 @@ struct _plughandle_t {
 };
 
 static void
-_intercept(void *data, int64_t frames, props_impl_t *impl)
+_intercept(void *data, int64_t frames __attribute__((unused)), props_impl_t *impl)
 {
 	plughandle_t *handle = data;
 
@@ -159,8 +159,10 @@ static const props_def_t defs [MAX_NPROPS] = {
 };
 
 static LV2_Handle
-instantiate(const LV2_Descriptor* descriptor, double rate,
-	const char *bundle_path, const LV2_Feature *const *features)
+instantiate(const LV2_Descriptor* descriptor,
+	double rate __attribute__((unused)),
+	const char *bundle_path __attribute__((unused)),
+	const LV2_Feature *const *features)
 {
 	plughandle_t *handle = calloc(1, sizeof(plughandle_t));
 	if(!handle)
@@ -226,7 +228,7 @@ connect_port(LV2_Handle instance, uint32_t port, void *data)
 }
 
 static void
-run(LV2_Handle instance, uint32_t nsamples)
+run(LV2_Handle instance, uint32_t nsamples __attribute__((unused)))
 {
 	plughandle_t *handle = instance;
 
