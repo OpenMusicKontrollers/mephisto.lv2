@@ -263,7 +263,7 @@ _props_qsort(props_impl_t *A, int n)
 }
 
 static inline props_impl_t *
-_props_bsearch(props_t *props, LV2_URID property)
+_props_impl_get(props_t *props, LV2_URID property)
 {
 	props_impl_t *base = props->impls;
 
@@ -668,7 +668,7 @@ props_advance(props_t *props, LV2_Atom_Forge *forge, uint32_t frames,
 		}
 		else if(property->atom.type == props->urid.atom_urid)
 		{
-			props_impl_t *impl = _props_bsearch(props, property->body);
+			props_impl_t *impl = _props_impl_get(props, property->body);
 
 			if(impl)
 			{
@@ -728,7 +728,7 @@ props_advance(props_t *props, LV2_Atom_Forge *forge, uint32_t frames,
 			return 0;
 		}
 
-		props_impl_t *impl = _props_bsearch(props, property->body);
+		props_impl_t *impl = _props_impl_get(props, property->body);
 		if(impl && (impl->access == props->urid.patch_writable) )
 		{
 			_props_impl_set(props, impl, value->type, value->size,
@@ -794,7 +794,7 @@ props_advance(props_t *props, LV2_Atom_Forge *forge, uint32_t frames,
 			const LV2_URID property = prop->key;
 			const LV2_Atom *value = &prop->value;
 
-			props_impl_t *impl = _props_bsearch(props, property);
+			props_impl_t *impl = _props_impl_get(props, property);
 			if(impl && (impl->access == props->urid.patch_writable) )
 			{
 				_props_impl_set(props, impl, value->type, value->size,
@@ -822,7 +822,7 @@ static inline void
 props_set(props_t *props, LV2_Atom_Forge *forge, uint32_t frames,
 	LV2_URID property, LV2_Atom_Forge_Ref *ref)
 {
-	props_impl_t *impl = _props_bsearch(props, property);
+	props_impl_t *impl = _props_impl_get(props, property);
 
 	if(impl)
 	{
@@ -837,7 +837,7 @@ static inline void
 props_get(props_t *props, LV2_Atom_Forge *forge, uint32_t frames,
 	LV2_URID property, LV2_Atom_Forge_Ref *ref)
 {
-	props_impl_t *impl = _props_bsearch(props, property);
+	props_impl_t *impl = _props_impl_get(props, property);
 
 	if(impl)
 	{
@@ -849,7 +849,7 @@ props_get(props_t *props, LV2_Atom_Forge *forge, uint32_t frames,
 static inline void
 props_stash(props_t *props, LV2_URID property)
 {
-	props_impl_t *impl = _props_bsearch(props, property);
+	props_impl_t *impl = _props_impl_get(props, property);
 
 	if(impl)
 		_props_impl_stash(props, impl);
@@ -872,7 +872,7 @@ props_map(props_t *props, const char *uri)
 static inline const char *
 props_unmap(props_t *props, LV2_URID property)
 {
-	props_impl_t *impl = _props_bsearch(props, property);
+	props_impl_t *impl = _props_impl_get(props, property);
 
 	if(impl)
 		return impl->def->property;
