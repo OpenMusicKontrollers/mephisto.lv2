@@ -1508,7 +1508,7 @@ _ui_init(dsp_t *dsp)
 	glue->addNumEntry = _ui_add_num_entry;
 	glue->addHorizontalBargraph = _ui_add_horizontal_bargraph;
 	glue->addVerticalBargraph = _ui_add_vertical_bargraph;
-	glue->addSoundFile = _ui_add_sound_file;
+	glue->addSoundfile = _ui_add_sound_file;
 	glue->declare = _ui_declare;
 
 	dsp->cvoices = 0;
