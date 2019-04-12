@@ -12,6 +12,7 @@ cc = meson.get_compiler('c')
 
 cp = find_program('cp')
 lv2_validate = find_program('lv2_validate', native : true, required : false)
+sord_validate = find_program('sord_validate', native : true, required : false)
 lv2lint = find_program('lv2lint', required : false)
 clone = [cp, '@INPUT@', '@OUTPUT@']
 
@@ -89,7 +90,7 @@ pset_ttl = custom_target('presets.ttl',
 	install : true,
 	install_dir : inst_dir)
 
-if lv2_validate.found()
+if lv2_validate.found() and sord_validate.found()
 	test('LV2 validate', lv2_validate,
 		args : [manifest_ttl, dsp_ttl, ui_ttl, pset_ttl])
 endif

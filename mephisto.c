@@ -567,7 +567,7 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		handle->nchannel = 2;
 	}
 
-	strncpy(handle->bundle_path, bundle_path, sizeof(handle->bundle_path));
+	strncpy(handle->bundle_path, bundle_path, sizeof(handle->bundle_path) - 1);
 
 	LV2_Options_Option *opts = NULL;
 	for(unsigned i=0; features[i]; i++)
@@ -1209,7 +1209,7 @@ _ui_next_cntrl(dsp_t *dsp, cntrl_type_t type, const char *label)
 	}
 
 	cntrl->type = type;
-	strncpy(cntrl->label, label, sizeof(cntrl->label));
+	strncpy(cntrl->label, label, sizeof(cntrl->label) - 1);
 
 	return cntrl;
 }
