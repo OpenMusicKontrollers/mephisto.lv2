@@ -46,7 +46,9 @@ folder out of the platform folder of the downloaded package into your
 ### Bugs and feature requests
 
 * [Gitlab](https://gitlab.com/OpenMusicKontrollers/mephisto.lv2)
+<!--
 * [Github](https://github.com/OpenMusicKontrollers/mephisto.lv2)
+-->
 
 #### Plugins
 
