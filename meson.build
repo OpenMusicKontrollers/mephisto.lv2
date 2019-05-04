@@ -18,7 +18,7 @@ clone = [cp, '@INPUT@', '@OUTPUT@']
 
 m_dep = cc.find_library('m')
 lv2_dep = dependency('lv2', version : '>=1.14.0')
-faust_dep = cc.find_library('libfaust')
+faust_dep = cc.find_library('faust')
 dsp_deps = [m_dep, lv2_dep, faust_dep]
 
 props_inc = include_directories('props.lv2')
