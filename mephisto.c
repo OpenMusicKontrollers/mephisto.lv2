@@ -1508,7 +1508,11 @@ _ui_init(dsp_t *dsp)
 	glue->addNumEntry = _ui_add_num_entry;
 	glue->addHorizontalBargraph = _ui_add_horizontal_bargraph;
 	glue->addVerticalBargraph = _ui_add_vertical_bargraph;
+#if (FAUST_MAJOR_VERSION >= 2) && (FAUST_MINOR_VERSION >= 15) && (FAUST_MICRO_VERSION >= 11)
 	glue->addSoundfile = _ui_add_sound_file;
+#else
+	glue->addSoundFile = _ui_add_sound_file;
+#endif
 	glue->declare = _ui_declare;
 
 	dsp->cvoices = 0;

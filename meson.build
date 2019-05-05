@@ -14,7 +14,15 @@ cp = find_program('cp')
 lv2_validate = find_program('lv2_validate', native : true, required : false)
 sord_validate = find_program('sord_validate', native : true, required : false)
 lv2lint = find_program('lv2lint', required : false)
+faust = find_program('faust', required : true)
 clone = [cp, '@INPUT@', '@OUTPUT@']
+
+# get FAUST version
+r = run_command(faust, '--version')
+faust_ver = r.stdout().split('Version')[1].split()[0].strip().split('.')
+add_project_arguments('-DFAUST_MAJOR_VERSION=' + faust_ver[0], language : 'c')
+add_project_arguments('-DFAUST_MINOR_VERSION=' + faust_ver[1], language : 'c')
+add_project_arguments('-DFAUST_MICRO_VERSION=' + faust_ver[2], language : 'c')
 
 m_dep = cc.find_library('m')
 lv2_dep = dependency('lv2', version : '>=1.14.0')
