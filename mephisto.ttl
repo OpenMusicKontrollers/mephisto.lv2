@@ -51,12 +51,17 @@ proj:mephisto
 	doap:maintainer omk:me ;
 	doap:name "Mephisto Bundle" .
 
-# Mephisto params
+# Params
 mephisto:code
 	a lv2:Parameter ;
 	rdfs:range atom:String ;
 	rdfs:label "Code" ;
-	rdfs:comment "DSP code in Fausat" .
+	rdfs:comment "DSP code" .
+mephisto:error
+	a lv2:Parameter ;
+	rdfs:range atom:String ;
+	rdfs:label "Error" ;
+	rdfs:comment "Compilation error" .
 mephisto:control_1
 	a lv2:Parameter ;
 	rdfs:range atom:Float ;
@@ -232,6 +237,9 @@ mephisto:mono
 		lv2:name "Audio Out 1" ;
 	] ;
 
+	patch:readable
+		mephisto:code ;
+
 	patch:writable
 		mephisto:code ,
 		mephisto:control_1 ,
@@ -330,6 +338,9 @@ mephisto:stereo
 		lv2:symbol "audio_out_2" ;
 		lv2:name "Audio Out 2" ;
 	] ;
+
+	patch:readable
+		mephisto:error ;
 
 	patch:writable
 		mephisto:code ,

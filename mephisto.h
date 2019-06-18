@@ -53,6 +53,7 @@
 
 // param uris
 #define MEPHISTO__code          MEPHISTO_PREFIX "code"
+#define MEPHISTO__error         MEPHISTO_PREFIX "error"
 #define MEPHISTO__control_1     MEPHISTO_PREFIX "control_1"
 #define MEPHISTO__control_2     MEPHISTO_PREFIX "control_2"
 #define MEPHISTO__control_3     MEPHISTO_PREFIX "control_3"
@@ -71,8 +72,9 @@
 #define MEPHISTO__control_16    MEPHISTO_PREFIX "control_16"
 
 #define NCONTROLS 16
-#define MAX_NPROPS (1 + NCONTROLS)
+#define MAX_NPROPS (2 + NCONTROLS)
 #define CODE_SIZE 0x10000 // 64 K
+#define ERROR_SIZE 0x400 // 1 K
 #define BUF_SIZE (CODE_SIZE * 4)
 
 #define CONTROL(NUM) \
@@ -87,6 +89,7 @@ typedef struct _plugstate_t plugstate_t;
 
 struct _plugstate_t {
 	char code [CODE_SIZE];
+	char error [ERROR_SIZE];
 	float control [NCONTROLS];
 };
 

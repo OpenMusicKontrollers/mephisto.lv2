@@ -37,7 +37,8 @@
 typedef struct _ui_t ui_t;
 
 struct _ui_t {
-	LV2_URID mephisto_code;
+	LV2_URID urid_code;
+	LV2_URID urid_error;
 	LV2_URID atom_eventTransfer;
 
 	LV2_Log_Log *log;
@@ -69,6 +70,7 @@ struct _ui_t {
 	PROPS_T(props, MAX_NPROPS);
 
 	char path [PATH_MAX];
+	char err [PATH_MAX];
 };
 
 static const LV2UI_Descriptor simple_ui;
@@ -83,15 +85,47 @@ _intercept_code(void *data, int64_t frames __attribute__((unused)),
 	FILE *f = fopen(ui->path, "wb");
 	if(f)
 	{
-		if( (fwrite(ui->state.code, impl->value.size - 1, 1, f) != 1)
-			&& ui->log )
+		if(impl->value.size > 0)
 		{
-			lv2_log_error(&ui->logger, "simple_ui: fwrite failed\n");
+			if( (fwrite(ui->state.code, impl->value.size - 1, 1, f) != 1)
+				&& ui->log )
+			{
+				lv2_log_error(&ui->logger, "simple_ui: fwrite failed\n");
+			}
 		}
 
 		fclose(f);
 
 		if(stat(ui->path, &ui->stat) < 0) // update modification timestamp
+			lv2_log_error(&ui->logger, "simple_ui: stat failed\n");
+	}
+	else if(ui->log)
+	{
+		lv2_log_error(&ui->logger, "simple_ui: fopen failed\n");
+	}
+}
+
+static void
+_intercept_error(void *data, int64_t frames __attribute__((unused)),
+	props_impl_t *impl)
+{
+	ui_t *ui = data;
+
+	FILE *f = fopen(ui->err, "wb");
+	if(f)
+	{
+		if(impl->value.size > 0)
+		{
+			if( (fwrite(ui->state.error, impl->value.size - 1, 1, f) != 1)
+				&& ui->log )
+			{
+				lv2_log_error(&ui->logger, "simple_ui: fwrite failed\n");
+			}
+		}
+
+		fclose(f);
+
+		if(stat(ui->err, &ui->stat) < 0) // update modification timestamp
 			lv2_log_error(&ui->logger, "simple_ui: stat failed\n");
 	}
 	else if(ui->log)
@@ -116,6 +150,14 @@ static const props_def_t defs [MAX_NPROPS] = {
 		.event_cb = _intercept_code,
 		.max_size = CODE_SIZE
 	},
+	{
+		.property = MEPHISTO__error,
+		.access = LV2_PATCH__readable,
+		.offset = offsetof(plugstate_t, error),
+		.type = LV2_ATOM__String,
+		.event_cb = _intercept_error,
+		.max_size = ERROR_SIZE
+	},
 	CONTROL(1),
 	CONTROL(2),
 	CONTROL(3),
@@ -135,7 +177,7 @@ static const props_def_t defs [MAX_NPROPS] = {
 };
 
 static void
-_mephisto_message_send(ui_t *handle, LV2_URID key, const char *str, uint32_t size)
+_message_send(ui_t *handle, LV2_URID key, const char *str, uint32_t size)
 {
 	ser_atom_t ser;
 	props_impl_t *impl = _props_impl_get(&handle->props, key);
@@ -189,7 +231,7 @@ _load_chosen(ui_t *ui, const char *path)
 			if(fread(str, fsize, 1, f) == 1)
 			{
 				str[fsize] = 0;
-				_mephisto_message_send(ui, ui->mephisto_code, str, fsize + 1);
+				_message_send(ui, ui->urid_code, str, fsize + 1);
 			}
 
 			free(str);
@@ -218,13 +260,13 @@ _show_cb(LV2UI_Handle instance)
 #endif
 
 	// get default editor from environment
-	const char *mephisto_editor = getenv("MEPHISTO_EDITOR");
-	if(!mephisto_editor)
-		mephisto_editor = getenv("EDITOR");
-	if(!mephisto_editor)
-		mephisto_editor = command;
-	char *dup = strdup(mephisto_editor);
-	char **args = dup ? _spawn_parse_env(dup, ui->path) : NULL;
+	const char *editor = getenv("MEPHISTO_EDITOR");
+	if(!editor)
+		editor = getenv("EDITOR");
+	if(!editor)
+		editor = command;
+	char *dup = strdup(editor);
+	char **args = dup ? _spawn_parse_env(dup, ui->path, ui->err) : NULL;
 
 	const int status = _spawn_spawn(&ui->spawn, args);
 
@@ -386,7 +428,8 @@ instantiate(const LV2UI_Descriptor *descriptor, const char *plugin_uri,
 	ui->control_port = ui->port_map->port_index(ui->port_map->handle, "control");
 	ui->notify_port = ui->port_map->port_index(ui->port_map->handle, "notify");
 
-	ui->mephisto_code = ui->map->map(ui->map->handle, MEPHISTO__code);
+	ui->urid_code = ui->map->map(ui->map->handle, MEPHISTO__code);
+	ui->urid_error = ui->map->map(ui->map->handle, MEPHISTO__error);
 	ui->atom_eventTransfer = ui->map->map(ui->map->handle, LV2_ATOM__eventTransfer);
 
 	lv2_atom_forge_init(&ui->forge, ui->map);
@@ -414,7 +457,7 @@ instantiate(const LV2UI_Descriptor *descriptor, const char *plugin_uri,
 	const char *tmp_dir = P_tmpdir;
 	const char *sep = tmp_dir[strlen(tmp_dir) - 1] == '/' ? "" : "/";
 #endif
-	asprintf(&tmp_template, "%s%smephisto_XXXXXX.dsp", tmp_dir, sep);
+	asprintf(&tmp_template, "%s%sjit_XXXXXX", tmp_dir, sep);
 
 	if(!tmp_template)
 	{
@@ -423,11 +466,19 @@ instantiate(const LV2UI_Descriptor *descriptor, const char *plugin_uri,
 		return NULL;
 	}
 
-	int fd = mkstemps(tmp_template, 4);
+	int fd = mkstemps(tmp_template, 0);
 	if(fd)
 		close(fd);
 
 	snprintf(ui->path, sizeof(ui->path), "%s", tmp_template);
+	snprintf(ui->err, sizeof(ui->err), "%s", tmp_template);
+	char *match = strstr(ui->err, "jit_");
+	if(match)
+	{
+		match[0] = 'e';
+		match[1] = 'r';
+		match[2] = 'r';
+	}
 
 	if(ui->log)
 		lv2_log_note(&ui->logger, "simple_ui: opening %s\n", ui->path);
@@ -437,7 +488,8 @@ instantiate(const LV2UI_Descriptor *descriptor, const char *plugin_uri,
 
 	free(tmp_template);
 
-	_mephisto_message_send(ui, ui->mephisto_code, NULL, 0);
+	_message_send(ui, ui->urid_code, NULL, 0);
+	_message_send(ui, ui->urid_error, NULL, 0);
 	ui->done = 1;
 
 	return ui;
@@ -449,6 +501,7 @@ cleanup(LV2UI_Handle handle)
 	ui_t *ui = handle;
 
 	unlink(ui->path);
+	unlink(ui->err);
 
 	if(ui->log)
 		lv2_log_note(&ui->logger, "simple_ui: closing %s\n", ui->path);

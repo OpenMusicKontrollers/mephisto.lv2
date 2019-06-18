@@ -15,8 +15,8 @@
  * http://www.perlfoundation.org/artistic_license_2_0.
  */
 
-#ifndef _MBEDC_COMMON_UI_H
-#define _MBEDC_COMMON_UI_H
+#ifndef _JIT_COMMON_UI_H
+#define _JIT_COMMON_UI_H
 
 #include <unistd.h>
 #include <stdbool.h>
@@ -61,7 +61,7 @@ strsep(char **sp, char *sep)
 #endif
 
 static inline char **
-_spawn_parse_env(char *env, char *path)
+_spawn_parse_env(char *env, char *path, char *err)
 {
 	unsigned n = 0;
 	char **args = malloc((n+1) * sizeof(char *));
@@ -84,13 +84,25 @@ _spawn_parse_env(char *env, char *path)
 		args[n] = NULL;
 	}
 
-	args[n++] = path;
-	oldargs = args;
-	args = realloc(args, (n+1) * sizeof(char *));
-	if(!args)
-		goto fail;
-	oldargs = NULL;
-	args[n] = NULL;
+	{
+		args[n++] = path;
+		oldargs = args;
+		args = realloc(args, (n+1) * sizeof(char *));
+		if(!args)
+			goto fail;
+		oldargs = NULL;
+		args[n] = NULL;
+	}
+
+	{
+		args[n++] = err;
+		oldargs = args;
+		args = realloc(args, (n+1) * sizeof(char *));
+		if(!args)
+			goto fail;
+		oldargs = NULL;
+		args[n] = NULL;
+	}
 
 	return args;
 

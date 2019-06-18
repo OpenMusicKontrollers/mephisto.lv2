@@ -283,6 +283,32 @@ _intercept_code(void *data, int64_t frames __attribute__((unused)),
 }
 
 static void
+_intercept_error(void *data, int64_t frames __attribute__((unused)),
+	props_impl_t *impl)
+{
+	plughandle_t *handle = data;
+
+#if 0
+	char *code;
+	if( (code = varchunk_write_request(handle->to_worker, impl->value.size)) )
+	{
+		memcpy(code, handle->state.code, impl->value.size);
+
+		varchunk_write_advance(handle->to_worker, impl->value.size);
+
+		const job_t job = {
+			.type = JOB_TYPE_INIT
+		};
+		handle->sched->schedule_work(handle->sched->handle, sizeof(job), &job);
+	}
+	else if(handle->log)
+	{
+		lv2_log_trace(&handle->logger, "[%s] ringbuffer overflow\n", __func__);
+	}
+#endif
+}
+
+static void
 _cntrl_refresh_value_abs(cntrl_t *cntrl, float val)
 {
 	if(cntrl->zone)
@@ -426,6 +452,14 @@ static const props_def_t defs [MAX_NPROPS] = {
 		.type = LV2_ATOM__String,
 		.event_cb = _intercept_code,
 		.max_size = CODE_SIZE
+	},
+	{
+		.property = MEPHISTO__error,
+		.access = LV2_PATCH__readable,
+		.offset = offsetof(plugstate_t, error),
+		.type = LV2_ATOM__String,
+		.event_cb = _intercept_error,
+		.max_size = ERROR_SIZE
 	},
 	CONTROL(1),
 	CONTROL(2),
