@@ -20,6 +20,7 @@ clone = [cp, '@INPUT@', '@OUTPUT@']
 # get FAUST version
 r = run_command(faust, '--version')
 faust_ver = r.stdout().split('Version')[1].split()[0].strip().split('.')
+message(faust_ver)
 add_project_arguments('-DFAUST_MAJOR_VERSION=' + faust_ver[0], language : 'c')
 add_project_arguments('-DFAUST_MINOR_VERSION=' + faust_ver[1], language : 'c')
 add_project_arguments('-DFAUST_MICRO_VERSION=' + faust_ver[2], language : 'c')
