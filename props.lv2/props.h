@@ -729,7 +729,7 @@ props_advance(props_t *props, LV2_Atom_Forge *forge, uint32_t frames,
 		}
 
 		props_impl_t *impl = _props_impl_get(props, property->body);
-		if(impl && (impl->access == props->urid.patch_writable) )
+		if(impl)
 		{
 			_props_impl_set(props, impl, value->type, value->size,
 				LV2_ATOM_BODY_CONST(value));
@@ -795,7 +795,7 @@ props_advance(props_t *props, LV2_Atom_Forge *forge, uint32_t frames,
 			const LV2_Atom *value = &prop->value;
 
 			props_impl_t *impl = _props_impl_get(props, property);
-			if(impl && (impl->access == props->urid.patch_writable) )
+			if(impl)
 			{
 				_props_impl_set(props, impl, value->type, value->size,
 					LV2_ATOM_BODY_CONST(value));
