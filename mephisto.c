@@ -179,11 +179,17 @@ struct _dsp_t {
 typedef enum _job_type_t {
 	JOB_TYPE_INIT,
 	JOB_TYPE_DEINIT,
+	JOB_TYPE_ERROR_CLEAR,
+	JOB_TYPE_ERROR_APPEND,
+	JOB_TYPE_ERROR_FREE
 } job_type_t;
 
 struct _job_t {
 	job_type_t type;
-	dsp_t *dsp;
+	union {
+		dsp_t *dsp;
+		char *error;
+	};
 };
 
 struct _plughandle_t {
@@ -215,6 +221,9 @@ struct _plughandle_t {
 
 	uint32_t srate;
 	char bundle_path [PATH_MAX];
+
+	LV2_URID mephisto_error;
+	bool dirty;
 
 	bool play;
 	dsp_t *dsp [2];
@@ -280,32 +289,6 @@ _intercept_code(void *data, int64_t frames __attribute__((unused)),
 	{
 		lv2_log_trace(&handle->logger, "[%s] ringbuffer overflow\n", __func__);
 	}
-}
-
-static void
-_intercept_error(void *data, int64_t frames __attribute__((unused)),
-	props_impl_t *impl)
-{
-	plughandle_t *handle = data;
-
-#if 0
-	char *code;
-	if( (code = varchunk_write_request(handle->to_worker, impl->value.size)) )
-	{
-		memcpy(code, handle->state.code, impl->value.size);
-
-		varchunk_write_advance(handle->to_worker, impl->value.size);
-
-		const job_t job = {
-			.type = JOB_TYPE_INIT
-		};
-		handle->sched->schedule_work(handle->sched->handle, sizeof(job), &job);
-	}
-	else if(handle->log)
-	{
-		lv2_log_trace(&handle->logger, "[%s] ringbuffer overflow\n", __func__);
-	}
-#endif
 }
 
 static void
@@ -458,7 +441,6 @@ static const props_def_t defs [MAX_NPROPS] = {
 		.access = LV2_PATCH__readable,
 		.offset = offsetof(plugstate_t, error),
 		.type = LV2_ATOM__String,
-		.event_cb = _intercept_error,
 		.max_size = ERROR_SIZE
 	},
 	CONTROL(1),
@@ -690,6 +672,8 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		free(handle);
 		return NULL;
 	}
+
+	handle->mephisto_error = props_map(&handle->props, MEPHISTO__error);
 
 	handle->to_worker = varchunk_new(BUF_SIZE, true);
 	handle->xfade_max = rate; //FIXME make this configurable
@@ -1112,6 +1096,15 @@ run(LV2_Handle instance, uint32_t nsamples)
 	}
 
 	_play(handle, last_t, nsamples);
+
+	// send error if applicable
+	if(handle->dirty)
+	{
+		props_set(&handle->props, &handle->forge, nsamples-1, handle->mephisto_error,
+			&handle->ref);
+
+		handle->dirty = false;
+	}
 
 	if(handle->ref)
 	{
@@ -1565,7 +1558,8 @@ _ui_init(dsp_t *dsp)
 }
 
 static int
-_dsp_init(plughandle_t *handle, dsp_t *dsp, const char *code)
+_dsp_init(plughandle_t *handle, dsp_t *dsp, const char *code,
+	LV2_Worker_Respond_Function respond, LV2_Worker_Respond_Handle target)
 {
 #define ARGC 5
 	char err [4096];
@@ -1574,6 +1568,15 @@ _dsp_init(plughandle_t *handle, dsp_t *dsp, const char *code)
 		"-vec",
 		"-lv", "1"
 	};
+
+	{
+		const job_t job = {
+			.type = JOB_TYPE_ERROR_CLEAR,
+			.error = NULL
+		};
+
+		respond(target, sizeof(job), &job);
+	}
 
 	dsp->handle = handle;
 
@@ -1585,6 +1588,13 @@ _dsp_init(plughandle_t *handle, dsp_t *dsp, const char *code)
 		if(handle->log)
 		{
 			lv2_log_error(&handle->logger, "[%s] %s", __func__, err);
+
+			const job_t job = {
+				.type = JOB_TYPE_ERROR_APPEND,
+				.error = strdup(err)
+			};
+
+			respond(target, sizeof(job), &job);
 		}
 
 		goto fail;
@@ -1768,7 +1778,7 @@ _work(LV2_Handle instance,
 			while( (code= varchunk_read_request(handle->to_worker, &size)) )
 			{
 				dsp_t *dsp = calloc(1, sizeof(dsp_t));
-				if(dsp && (_dsp_init(handle, dsp, code) == 0) )
+				if(dsp && (_dsp_init(handle, dsp, code, respond, target) == 0) )
 				{
 					const job_t job2 = {
 						.type = JOB_TYPE_INIT,
@@ -1785,6 +1795,26 @@ _work(LV2_Handle instance,
 		{
 			_dsp_deinit(handle, job->dsp);
 		} break;
+
+		case JOB_TYPE_ERROR_CLEAR:
+		{
+			// never reached
+		} break;
+		case JOB_TYPE_ERROR_APPEND:
+		{
+			// never reached
+		} break;
+		case JOB_TYPE_ERROR_FREE:
+		{
+			if(job->error)
+			{
+				free(job->error);
+			}
+		} break;
+		default:
+		{
+			// never reached
+		} return LV2_WORKER_ERR_UNKNOWN;
 	}
 
 	return LV2_WORKER_SUCCESS;
@@ -1863,6 +1893,47 @@ _work_response(LV2_Handle instance, uint32_t size, const void *body)
 		{
 			// never reached
 		} break;
+		case JOB_TYPE_ERROR_CLEAR:
+		{
+			props_impl_t *impl = _props_impl_get(&handle->props, handle->mephisto_error);
+
+			if(impl)
+			{
+				static const char *empty = "";
+
+				strncpy(handle->state.error, empty, impl->def->max_size);
+				impl->value.size = strlen(handle->state.error);
+
+				handle->dirty = true;
+			}
+		} break;
+		case JOB_TYPE_ERROR_APPEND:
+		{
+			props_impl_t *impl = _props_impl_get(&handle->props, handle->mephisto_error);
+
+			if(impl)
+			{
+				strncat(handle->state.error, job->error, impl->def->max_size);
+				impl->value.size = strlen(handle->state.error);
+
+				handle->dirty = true;
+
+				const job_t job2 = {
+					.type = JOB_TYPE_ERROR_FREE,
+					.error = job->error
+				};
+
+				handle->sched->schedule_work(handle->sched->handle, sizeof(job2), &job2);
+			}
+		} break;
+		case JOB_TYPE_ERROR_FREE:
+		{
+			// never reached
+		} break;
+		default:
+		{
+			// never reached
+		} return LV2_WORKER_ERR_UNKNOWN;
 	}
 
 	return LV2_WORKER_SUCCESS;

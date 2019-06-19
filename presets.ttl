@@ -32,7 +32,9 @@ mephisto:bank-filter_through
 	state:state [
 		mephisto:code """import("stdfaust.lib");
 
-process = _, _;""" ;
+process = _, _;
+
+// vim: set syntax=faust:""" ;
 	] .
 
 mephisto:bank-instrument_osc
@@ -48,5 +50,7 @@ gate = button("gate");
 
 inst = os.osc(freq) * gain;
 
-process = inst, inst;""" ;
+process = inst, inst;
+
+// vim: set syntax=faust:""" ;
 	] .

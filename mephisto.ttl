@@ -262,7 +262,10 @@ mephisto:mono
 	state:state [
 		mephisto:code """import("stdfaust.lib");
 
-process = _;""" ;
+process = _;
+
+// vim: set syntax=faust:""" ;
+
 		mephisto:control_1 "0.5"^^xsd:float ;
 		mephisto:control_2 "0.5"^^xsd:float ;
 		mephisto:control_3 "0.5"^^xsd:float ;
@@ -364,7 +367,9 @@ mephisto:stereo
 	state:state [
 		mephisto:code """import("stdfaust.lib");
 
-process = _, _;""" ;
+process = _, _;
+
+// vim: set syntax=faust:""" ;
 		mephisto:control_1 "0.5"^^xsd:float ;
 		mephisto:control_2 "0.5"^^xsd:float ;
 		mephisto:control_3 "0.5"^^xsd:float ;
