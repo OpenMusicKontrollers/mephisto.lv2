@@ -244,6 +244,20 @@ struct _plughandle_t {
 
 static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
+#if 0
+#	define DBG(HANDLE, FMT, ...) \
+	if((HANDLE)->log) \
+	{ \
+		lv2_log_note(&((HANDLE)->logger), (FMT), __VA_ARGS__); \
+	}
+#else
+#	define DBG(HANDLE, FMT, ...) \
+	if(!(HANDLE)) \
+	{ \
+		lv2_log_note(&((HANDLE)->logger), (FMT), __VA_ARGS__); \
+	}
+#endif
+
 static inline voice_t *
 _voice_begin(dsp_t *dsp)
 {
@@ -1127,11 +1141,7 @@ _meta_declare(void *iface, const char *key, const char *val)
 	dsp_t *dsp = iface;
 	plughandle_t *handle = dsp->handle;
 
-	if(handle->log)
-	{
-		lv2_log_note(&handle->logger, "[%s] %s %s", __func__,
-			key, val);
-	}
+	DBG(handle, "[%s] %s %s", __func__, key, val);
 
 	if(!strcmp(key, "options"))
 	{
@@ -1247,11 +1257,7 @@ _ui_open_tab_box(void* iface, const char* label)
 	dsp_t *dsp = iface;
 	plughandle_t *handle = dsp->handle;
 
-	if(handle->log)
-	{
-		lv2_log_note(&handle->logger, "[%s] %s", __func__,
-			label);
-	}
+	DBG(handle, "[%s] %s", __func__, label);
 }
 
 static void
@@ -1260,11 +1266,7 @@ _ui_open_horizontal_box(void* iface, const char* label)
 	dsp_t *dsp = iface;
 	plughandle_t *handle = dsp->handle;
 
-	if(handle->log)
-	{
-		lv2_log_note(&handle->logger, "[%s] %s", __func__,
-			label);
-	}
+	DBG(handle, "[%s] %s", __func__, label);
 }
 
 static void
@@ -1273,11 +1275,7 @@ _ui_open_vertical_box(void* iface, const char* label)
 	dsp_t *dsp = iface;
 	plughandle_t *handle = dsp->handle;
 
-	if(handle->log)
-	{
-		lv2_log_note(&handle->logger, "[%s] %s", __func__,
-			label);
-	}
+	DBG(handle, "[%s] %s", __func__, label);
 }
 
 static void
@@ -1286,10 +1284,7 @@ _ui_close_box(void* iface)
 	dsp_t *dsp = iface;
 	plughandle_t *handle = dsp->handle;
 
-	if(handle->log)
-	{
-		lv2_log_note(&handle->logger, "[%s]", __func__);
-	}
+	DBG(handle, "[%s]", __func__);
 }
 
 static void
@@ -1298,11 +1293,7 @@ _ui_add_button(void* iface, const char* label, FAUSTFLOAT* zone)
 	dsp_t *dsp = iface;
 	plughandle_t *handle = dsp->handle;
 
-	if(handle->log)
-	{
-		lv2_log_note(&handle->logger, "[%s] %s %f", __func__,
-			label, *zone);
-	}
+	DBG(handle, "[%s] %s %f", __func__, label, *zone);
 
 	cntrl_t *cntrl = _ui_next_cntrl(dsp, CNTRL_BUTTON, label);
 	if(!cntrl)
@@ -1319,11 +1310,7 @@ _ui_add_check_button(void* iface, const char* label, FAUSTFLOAT* zone)
 	dsp_t *dsp = iface;
 	plughandle_t *handle = dsp->handle;
 
-	if(handle->log)
-	{
-		lv2_log_note(&handle->logger, "[%s] %s %f", __func__,
-			label, *zone);
-	}
+	DBG(handle, "[%s] %s %f", __func__, label, *zone);
 
 	cntrl_t *cntrl = _ui_next_cntrl(dsp, CNTRL_CHECK_BUTTON, label);
 	if(!cntrl)
@@ -1341,11 +1328,8 @@ _ui_add_vertical_slider(void* iface, const char* label, FAUSTFLOAT* zone,
 	dsp_t *dsp = iface;
 	plughandle_t *handle = dsp->handle;
 
-	if(handle->log)
-	{
-		lv2_log_note(&handle->logger, "[%s] %s %f %f %f %f %f", __func__,
-			label, *zone, init, min, max, step);
-	}
+	DBG(handle, "[%s] %s %f %f %f %f %f", __func__,
+		label, *zone, init, min, max, step);
 
 	cntrl_t *cntrl = _ui_next_cntrl(dsp, CNTRL_VERTICAL_SLIDER, label);
 	if(!cntrl)
@@ -1368,11 +1352,8 @@ _ui_add_horizontal_slider(void* iface, const char* label, FAUSTFLOAT* zone,
 	dsp_t *dsp = iface;
 	plughandle_t *handle = dsp->handle;
 
-	if(handle->log)
-	{
-		lv2_log_note(&handle->logger, "[%s] %s %f %f %f %f %f", __func__,
-			label, *zone, init, min, max, step);
-	}
+	DBG(handle, "[%s] %s %f %f %f %f %f", __func__,
+		label, *zone, init, min, max, step);
 
 	cntrl_t *cntrl = _ui_next_cntrl(dsp, CNTRL_HORIZONTAL_SLIDER, label);
 	if(!cntrl)
@@ -1395,11 +1376,8 @@ _ui_add_num_entry(void* iface, const char* label, FAUSTFLOAT* zone,
 	dsp_t *dsp = iface;
 	plughandle_t *handle = dsp->handle;
 
-	if(handle->log)
-	{
-		lv2_log_note(&handle->logger, "[%s] %s %f %f %f %f %f", __func__,
-			label, *zone, init, min, max, step);
-	}
+	DBG(handle, "[%s] %s %f %f %f %f %f", __func__,
+		label, *zone, init, min, max, step);
 
 	cntrl_t *cntrl = _ui_next_cntrl(dsp, CNTRL_NUM_ENTRY, label);
 	if(!cntrl)
@@ -1422,11 +1400,8 @@ _ui_add_horizontal_bargraph(void* iface, const char* label, FAUSTFLOAT* zone,
 	dsp_t *dsp = iface;
 	plughandle_t *handle = dsp->handle;
 
-	if(handle->log)
-	{
-		lv2_log_note(&handle->logger, "[%s] %s %f %f %f", __func__,
-			label, *zone, min, max);
-	}
+	DBG(handle, "[%s] %s %f %f %f", __func__,
+		label, *zone, min, max);
 
 	cntrl_t *cntrl = _ui_next_cntrl(dsp, CNTRL_HORIZONTAL_BARGRAPH, label);
 	if(!cntrl)
@@ -1446,11 +1421,8 @@ _ui_add_vertical_bargraph(void* iface, const char* label, FAUSTFLOAT* zone,
 	dsp_t *dsp = iface;
 	plughandle_t *handle = dsp->handle;
 
-	if(handle->log)
-	{
-		lv2_log_note(&handle->logger, "[%s] %s %f %f %f", __func__,
-			label, *zone, min, max);
-	}
+	DBG(handle, "[%s] %s %f %f %f", __func__,
+		label, *zone, min, max);
 
 	cntrl_t *cntrl = _ui_next_cntrl(dsp, CNTRL_VERTICAL_BARGRAPH, label);
 	if(!cntrl)
@@ -1470,11 +1442,8 @@ _ui_add_sound_file(void* iface, const char* label, const char* filename,
 	dsp_t *dsp = iface;
 	plughandle_t *handle = dsp->handle;
 
-	if(handle->log)
-	{
-		lv2_log_note(&handle->logger, "[%s] %s %s", __func__,
-			label, filename);
-	}
+	DBG(handle, "[%s] %s %s", __func__,
+		label, filename);
 
 	cntrl_t *cntrl = _ui_next_cntrl(dsp, CNTRL_SOUND_FILE, label);
 	if(!cntrl)
@@ -1491,11 +1460,8 @@ _ui_declare(void* iface, FAUSTFLOAT* zone, const char* key, const char* value)
 	dsp_t *dsp = iface;
 	plughandle_t *handle = dsp->handle;
 
-	if(handle->log)
-	{
-		lv2_log_note(&handle->logger, "[%s] %s %s", __func__,
-			key, value);
-	}
+	DBG(handle, "[%s] %s %s", __func__,
+		key, value);
 
 	//FIXME
 	(void)zone;
@@ -1633,12 +1599,6 @@ _dsp_init(plughandle_t *handle, dsp_t *dsp, const char *code,
 
 	if(dsp->is_instrument)
 	{
-		if(handle->log)
-		{
-			lv2_log_note(&handle->logger, "[%s] is an instrument (%u) ", __func__,
-				dsp->nvoices);
-		}
-
 		VOICE_FOREACH(dsp, voice)
 		{
 			if(voice == base_voice) // skip base voice
@@ -1678,8 +1638,9 @@ _dsp_init(plughandle_t *handle, dsp_t *dsp, const char *code,
 
 	if(handle->log)
 	{
-		lv2_log_note(&handle->logger, "[%s] compilation succeeded (%u:%u)",
-			__func__, dsp->nins, dsp->nouts);
+		lv2_log_note(&handle->logger,
+			"[%s] compilation succeeded (ins: %u, outs: %u, type: %s)", __func__,
+			dsp->nins, dsp->nouts, dsp->is_instrument ? "instrument" : "filter");
 	}
 
 	pthread_mutex_unlock(&lock);
