@@ -86,18 +86,18 @@ after code changes.
 
 This plugin features an external LV2 plugin GUI, which does nothing else than
 just opening the plugin's FAUST source in your favorite editor and monitor its
-modification state.
+modification state. Additionally it opens a log file to write compile errors to.
 
 Currently, the editor has to be defined via an environment variable. You can
 use either the environment varialbe *EDITOR* or *MEPHISTO_EDITOR*, whereby the
 latter will take precedence over the former.
 
-    export EDITOR='urxvt -e nvim'
+    export MEPHISTO_EDITOR='urxvt -e nvim -o2'
 
 If no environment variable is defined, the default fallback invocation commands
 are defined as follows:
 
-* 'xterm -e vi' (Unix)
+* 'xterm -e vim -o2' (Unix)
 * 'open -nW' (MacOS)
 * 'cmd /c start /wait' (Windows)
 
