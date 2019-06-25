@@ -193,7 +193,8 @@ mephisto:control_16
 
 mephisto:mono
 	a lv2:Plugin ,
-		lv2:ConverterPlugin ;
+		#lv2:FilterPlugin ,
+		lv2:InstrumentPlugin ;
 	doap:name "Mephisto Mono" ;
 	doap:license lic:Artistic-2.0 ;
 	lv2:project proj:mephisto ;
@@ -287,7 +288,8 @@ process = _;
 
 mephisto:stereo
 	a lv2:Plugin ,
-		lv2:ConverterPlugin ;
+		#lv2:FilterPlugin ,
+		lv2:InstrumentPlugin ;
 	doap:name "Mephisto Stereo" ;
 	doap:license lic:Artistic-2.0 ;
 	lv2:project proj:mephisto ;
