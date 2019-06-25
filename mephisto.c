@@ -480,14 +480,19 @@ _play(plughandle_t *handle, int64_t from, int64_t to)
 {
 	const uint32_t nsamples = to - from;
 
-	FAUSTFLOAT *audio_in [2] = {
-		handle->faudio_in[0],
-		handle->nchannel > 1 ? handle->faudio_in[1] : NULL
-	};
-	FAUSTFLOAT *audio_out [2] = {
-		handle->faudio_out[0],
-		handle->nchannel > 1 ? handle->faudio_out[1] : NULL
-	};
+	FAUSTFLOAT *audio_in [32];
+	FAUSTFLOAT *audio_out [32];
+
+	// libFAUST does not check for valid audio buffer pointers,
+	// so we must provide a plethora (32) of them in case the user makes a patch
+	// with more than 2 ins and outs
+	for(uint32_t i = 0; i < 32; i++)
+	{
+		const uint32_t idx = i % handle->nchannel;
+
+		audio_in[i] = handle->faudio_in[idx];
+		audio_out[i] = handle->faudio_out[idx];
+	}
 
 	// fill audio in, clear audio out
 	for(uint32_t n = 0; n < handle->nchannel; n++)
