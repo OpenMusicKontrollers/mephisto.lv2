@@ -104,6 +104,11 @@ are defined as follows:
 Whenever you save the FAUST source, the plugin will try to just-in-time compile and
 inject it. Potential warnings and errors are reported in the plugin host's log.
 
+Example command line to run it in [Jalv](https://drobilla.net/software/jalv):
+
+    export MEPHISTO_EDITOR='xterm -e vim -o2'
+    jalv -d -t -s http://open-music-kontrollers.ch/lv2/mephisto#stereo
+
 #### Controls
 
 The plugin supports up to 16 controls implemented as LV2
