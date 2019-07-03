@@ -29,6 +29,7 @@
 
 #include <mephisto.h>
 #include <props.h>
+#include <timely.h>
 #include <varchunk.h>
 
 #include <faust/dsp/llvm-c-dsp.h>
@@ -41,6 +42,7 @@ typedef union _hash_t hash_t;
 typedef struct _voice_t voice_t;
 typedef struct _dsp_t dsp_t;
 typedef struct _job_t job_t;
+typedef struct _pos_t pos_t;
 typedef struct _plughandle_t plughandle_t;
 
 typedef struct _cntrl_button_t cntrl_button_t;
@@ -192,6 +194,11 @@ struct _job_t {
 	};
 };
 
+struct _pos_t {
+	FAUSTFLOAT speed;
+	//FIXME more to implement
+};
+
 struct _plughandle_t {
 	LV2_URID_Map *map;
 	LV2_Worker_Schedule *sched;
@@ -237,6 +244,9 @@ struct _plughandle_t {
 	float bend [0x10];
 	float range [0x10];
 	bool sustain [0x10];
+
+	timely_t timely;
+	pos_t pos;
 
 	FAUSTFLOAT *faudio_in [MAX_CHANNEL];
 	FAUSTFLOAT *faudio_out [MAX_CHANNEL];
@@ -585,6 +595,14 @@ _play(plughandle_t *handle, int64_t from, int64_t to)
 	}
 }
 
+static void
+_timely_cb(timely_t *timely __attribute__((unused)),
+	int64_t frames __attribute__((unused)), LV2_URID type __attribute__((unused)),
+	void *data __attribute__((unused)))
+{
+	// nothing to do
+}
+
 static LV2_Handle
 instantiate(const LV2_Descriptor* descriptor, double rate,
 	const char *bundle_path, const LV2_Feature *const *features)
@@ -702,6 +720,10 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 	{
 		handle->range[chn] = 48.f; // semitones
 	}
+
+	const timely_mask_t mask = 0;
+	timely_init(&handle->timely, handle->map, rate, mask, _timely_cb, handle);
+	timely_set_multiplier(&handle->timely, 1.f);
 
 	return handle;
 }
@@ -1077,9 +1099,10 @@ run(LV2_Handle instance, uint32_t nsamples)
 
 	props_idle(&handle->props, &handle->forge, 0, &handle->ref);
 
-	int64_t last_t = 0;
+	int64_t from = 0;
 	LV2_ATOM_SEQUENCE_FOREACH(handle->control, ev)
 	{
+		const int64_t to = ev->time.frames;
 		const LV2_Atom *atom = &ev->body;
 		const LV2_Atom_Object *obj = (const LV2_Atom_Object *)&ev->body;
 
@@ -1099,22 +1122,24 @@ run(LV2_Handle instance, uint32_t nsamples)
 					continue;
 				}
 
-				_handle_midi(handle, dsp, ev->time.frames, LV2_ATOM_BODY_CONST(atom),
+				_handle_midi(handle, dsp, to, LV2_ATOM_BODY_CONST(atom),
 					atom->size);
 			}
 		}
 		else
 		{
-			props_advance(&handle->props, &handle->forge, ev->time.frames, obj,
+			props_advance(&handle->props, &handle->forge, to, obj,
 				&handle->ref);
 		}
 
-		_play(handle, last_t, ev->time.frames);
+		timely_advance(&handle->timely, obj, from, to);
+		_play(handle, from, to);
 
-		last_t = ev->time.frames;
+		from = to;
 	}
 
-	_play(handle, last_t, nsamples);
+	timely_advance(&handle->timely, NULL, from, nsamples);
+	_play(handle, from, nsamples);
 
 	// send error if applicable
 	if(handle->dirty)
@@ -1160,7 +1185,7 @@ _meta_declare(void *iface, const char *key, const char *val)
 					dsp->nvoices = MAX_VOICES;
 				}
 			}
-			else if(strstr(ptr, "[midi:on]") == ptr)
+			else if(strcasestr(ptr, "[midi:on]") == ptr)
 			{
 				dsp->midi_on = true;
 			}
@@ -1468,8 +1493,56 @@ _ui_declare(void* iface, FAUSTFLOAT* zone, const char* key, const char* value)
 	DBG(handle, "[%s] %s %s", __func__,
 		key, value);
 
-	//FIXME
-	(void)zone;
+	if(!strcasecmp(value, ""))
+	{
+		char *endptr = NULL;
+		const long int idx = strtol(key, &endptr, 10);
+
+		if(endptr != key)
+		{
+			//FIXME this is a valid index
+			(void)idx;
+		}
+	}
+	else if(!strcasecmp(key, "time"))
+	{
+		fprintf(stderr, "[%s] %s:%s\n", __func__,
+			key, value);
+
+		if(!strcasecmp(value, "barBeat"))
+		{
+			//FIXME
+		}
+		else if(!strcasecmp(value, "bar"))
+		{
+			//FIXME
+		}
+		else if(!strcasecmp(value, "beatUnit"))
+		{
+			//FIXME
+		}
+		else if(!strcasecmp(value, "beatsPerBar"))
+		{
+			//FIXME
+		}
+		else if(!strcasecmp(value, "beatsPerMinute"))
+		{
+			//FIXME
+		}
+		else if(!strcasecmp(value, "frame"))
+		{
+			//FIXME
+		}
+		else if(!strcasecmp(value, "framesPerSecond"))
+		{
+			//FIXME
+		}
+		else if(!strcasecmp(value, "speed"))
+		{
+			*zone = handle->pos.speed;
+			//FIXME
+		}
+	}
 }
 
 static int

@@ -209,6 +209,7 @@ mephisto:mono
 		atom:bufferType atom:Sequence ;
 		atom:supports time:Position ,
 			midi:MidiEvent ,
+			time:Position ,
 			patch:Message ;
 		lv2:index 0 ;
 		lv2:symbol "control" ;
@@ -304,6 +305,7 @@ mephisto:stereo
 		atom:bufferType atom:Sequence ;
 		atom:supports time:Position ,
 			midi:MidiEvent ,
+			time:Position ,
 			patch:Message ;
 		lv2:index 0 ;
 		lv2:symbol "control" ;

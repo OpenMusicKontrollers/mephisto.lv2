@@ -31,9 +31,10 @@ faust_dep = cc.find_library('faust')
 dsp_deps = [m_dep, lv2_dep, faust_dep]
 
 props_inc = include_directories('props.lv2')
+timely_inc = include_directories('timely.lv2')
 ser_inc = include_directories('ser_atom.lv2')
 varchunk_inc = include_directories('varchunk')
-inc_dir = [props_inc, ser_inc, varchunk_inc]
+inc_dir = [props_inc, timely_inc, ser_inc, varchunk_inc]
 
 inst_dir = join_paths(get_option('libdir'), 'lv2', meson.project_name())
 
