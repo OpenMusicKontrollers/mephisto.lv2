@@ -144,6 +144,17 @@ union _hash_t {
 	uint16_t id;
 };
 
+struct _pos_t {
+	cntrl_t bar_beat;
+	cntrl_t bar;
+	cntrl_t beat_unit;
+	cntrl_t beats_per_bar;
+	cntrl_t beats_per_minute;
+	cntrl_t frame;
+	cntrl_t frames_per_second;
+	cntrl_t speed;
+};
+
 struct _voice_t {
 	llvm_dsp *instance;
 
@@ -158,6 +169,8 @@ struct _voice_t {
 
 	uint32_t ncntrls;
 	cntrl_t cntrls [NCONTROLS];
+
+	pos_t pos;
 
 	voice_state_t state;
 	int32_t remaining;
@@ -176,6 +189,8 @@ struct _dsp_t {
 	voice_t voices [MAX_VOICES];
 	bool midi_on;
 	bool is_instrument;
+	timely_mask_t timely_mask;
+	int32_t idx;
 };
 
 typedef enum _job_type_t {
@@ -192,11 +207,6 @@ struct _job_t {
 		dsp_t *dsp;
 		char *error;
 	};
-};
-
-struct _pos_t {
-	FAUSTFLOAT speed;
-	//FIXME more to implement
 };
 
 struct _plughandle_t {
@@ -246,7 +256,6 @@ struct _plughandle_t {
 	bool sustain [0x10];
 
 	timely_t timely;
-	pos_t pos;
 
 	FAUSTFLOAT *faudio_in [MAX_CHANNEL];
 	FAUSTFLOAT *faudio_out [MAX_CHANNEL];
@@ -438,6 +447,45 @@ _refresh_value(plughandle_t *handle, uint32_t idx)
 			}
 
 			_cntrl_refresh_value_rel(cntrl, val);
+		}
+	}
+}
+
+static void
+_refresh_time_position(plughandle_t *handle)
+{
+	const bool off [2] = {
+		handle->play,
+		!handle->play
+	};
+
+	for(uint32_t d = 0; d < 2; d++)
+	{
+		dsp_t *dsp = handle->dsp[off[d]];
+
+		if(!dsp)
+		{
+			continue;
+		}
+
+		VOICE_FOREACH(dsp, voice)
+		{
+			_cntrl_refresh_value_abs(&voice->pos.bar_beat,
+				TIMELY_BAR_BEAT(&handle->timely));
+			_cntrl_refresh_value_abs(&voice->pos.bar,
+				TIMELY_BAR(&handle->timely));
+			_cntrl_refresh_value_abs(&voice->pos.beat_unit,
+				TIMELY_BEAT_UNIT(&handle->timely));
+			_cntrl_refresh_value_abs(&voice->pos.beats_per_bar,
+				TIMELY_BEATS_PER_BAR(&handle->timely));
+			_cntrl_refresh_value_abs(&voice->pos.beats_per_minute,
+				TIMELY_BEATS_PER_MINUTE(&handle->timely));
+			_cntrl_refresh_value_abs(&voice->pos.frame,
+				TIMELY_FRAME(&handle->timely));
+			_cntrl_refresh_value_abs(&voice->pos.frames_per_second,
+				TIMELY_FRAMES_PER_SECOND(&handle->timely));
+			_cntrl_refresh_value_abs(&voice->pos.speed,
+				TIMELY_SPEED(&handle->timely));
 		}
 	}
 }
@@ -1133,12 +1181,14 @@ run(LV2_Handle instance, uint32_t nsamples)
 		}
 
 		timely_advance(&handle->timely, obj, from, to);
+		_refresh_time_position(handle);
 		_play(handle, from, to);
 
 		from = to;
 	}
 
 	timely_advance(&handle->timely, NULL, from, nsamples);
+	_refresh_time_position(handle);
 	_play(handle, from, nsamples);
 
 	// send error if applicable
@@ -1265,9 +1315,62 @@ _ui_next_cntrl(dsp_t *dsp, cntrl_type_t type, const char *label)
 	{
 		cntrl = &voice->timbre;
 	}
-	else if(voice->ncntrls < NCONTROLS)
+	else if(dsp->timely_mask)
 	{
-		cntrl = &voice->cntrls[voice->ncntrls++];
+		switch(dsp->timely_mask)
+		{
+			case TIMELY_MASK_BAR_BEAT:
+			{
+				cntrl = &voice->pos.bar_beat;
+			} break;
+			case TIMELY_MASK_BAR:
+			{
+				cntrl = &voice->pos.bar;
+			} break;
+			case TIMELY_MASK_BEAT_UNIT:
+			{
+				cntrl = &voice->pos.beat_unit;
+			} break;
+			case TIMELY_MASK_BEATS_PER_BAR:
+			{
+				cntrl = &voice->pos.beats_per_bar;
+			} break;
+			case TIMELY_MASK_BEATS_PER_MINUTE:
+			{
+				cntrl = &voice->pos.beats_per_minute;
+			} break;
+			case TIMELY_MASK_FRAME:
+			{
+				cntrl = &voice->pos.frame;
+			} break;
+			case TIMELY_MASK_FRAMES_PER_SECOND:
+			{
+				cntrl = &voice->pos.frames_per_second;
+			} break;
+			case TIMELY_MASK_SPEED:
+			{
+				cntrl = &voice->pos.speed;
+			} break;
+			case TIMELY_MASK_BAR_BEAT_WHOLE:
+			{
+				// not used
+			} break;
+			case TIMELY_MASK_BAR_WHOLE:
+			{
+				// not used
+			} break;
+		}
+
+		dsp->timely_mask = 0; // reset flag
+	}
+	else if(dsp->idx >= 0)
+	{
+		if(voice->ncntrls < NCONTROLS)
+		{
+			cntrl = &voice->cntrls[voice->ncntrls++];
+		}
+
+		dsp->idx = -1;
 	}
 
 	if(!cntrl)
@@ -1485,7 +1588,8 @@ _ui_add_sound_file(void* iface, const char* label, const char* filename,
 }
 
 static void
-_ui_declare(void* iface, FAUSTFLOAT* zone, const char* key, const char* value)
+_ui_declare(void* iface, FAUSTFLOAT* zone __attribute__((unused)),
+	const char* key, const char* value)
 {
 	dsp_t *dsp = iface;
 	plughandle_t *handle = dsp->handle;
@@ -1500,48 +1604,58 @@ _ui_declare(void* iface, FAUSTFLOAT* zone, const char* key, const char* value)
 
 		if(endptr != key)
 		{
-			//FIXME this is a valid index
-			(void)idx;
+			dsp->idx = idx;
+		}
+		else if(handle->log)
+		{
+			lv2_log_error(&handle->logger, "[%s] invalid index key %s",
+				__func__, key);
 		}
 	}
 	else if(!strcasecmp(key, "time"))
 	{
-		fprintf(stderr, "[%s] %s:%s\n", __func__,
-			key, value);
-
 		if(!strcasecmp(value, "barBeat"))
 		{
-			//FIXME
+			dsp->timely_mask = TIMELY_MASK_BAR_BEAT;
 		}
 		else if(!strcasecmp(value, "bar"))
 		{
-			//FIXME
+			dsp->timely_mask = TIMELY_MASK_BAR;
 		}
 		else if(!strcasecmp(value, "beatUnit"))
 		{
-			//FIXME
+			dsp->timely_mask = TIMELY_MASK_BEAT_UNIT;
 		}
 		else if(!strcasecmp(value, "beatsPerBar"))
 		{
-			//FIXME
+			dsp->timely_mask = TIMELY_MASK_BEATS_PER_BAR;
 		}
 		else if(!strcasecmp(value, "beatsPerMinute"))
 		{
-			//FIXME
+			dsp->timely_mask = TIMELY_MASK_BEATS_PER_MINUTE;
 		}
 		else if(!strcasecmp(value, "frame"))
 		{
-			//FIXME
+			dsp->timely_mask = TIMELY_MASK_FRAME;
 		}
 		else if(!strcasecmp(value, "framesPerSecond"))
 		{
-			//FIXME
+			dsp->timely_mask = TIMELY_MASK_FRAMES_PER_SECOND;
 		}
 		else if(!strcasecmp(value, "speed"))
 		{
-			*zone = handle->pos.speed;
-			//FIXME
+			dsp->timely_mask = TIMELY_MASK_SPEED;
 		}
+		else if(handle->log)
+		{
+			lv2_log_error(&handle->logger, "[%s] invalid time value %s",
+				__func__, value);
+		}
+	}
+	else if(handle->log)
+	{
+			lv2_log_note(&handle->logger, "[%s] unknown key:value pair %s:%s",
+				__func__, key, value);
 	}
 }
 
@@ -1555,6 +1669,8 @@ _meta_init(dsp_t *dsp, voice_t *base_voice)
 	glue->declare = _meta_declare;
 
 	dsp->nvoices = 1; // assume we're a filter by default
+	dsp->timely_mask = 0;
+	dsp->idx = -1;
 
 	metadataCDSPInstance(base_voice->instance, glue);
 
