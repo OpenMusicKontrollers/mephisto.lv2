@@ -188,6 +188,7 @@ struct _dsp_t {
 	uint32_t cvoices;
 	voice_t voices [MAX_VOICES];
 	bool midi_on;
+	bool time_on;
 	bool is_instrument;
 	timely_mask_t timely_mask;
 	int32_t idx;
@@ -463,7 +464,7 @@ _refresh_time_position(plughandle_t *handle)
 	{
 		dsp_t *dsp = handle->dsp[off[d]];
 
-		if(!dsp)
+		if(!dsp || !dsp->time_on)
 		{
 			continue;
 		}
@@ -960,7 +961,7 @@ _handle_midi(plughandle_t *handle, dsp_t *dsp,
 	const uint8_t cmd = msg[0] & 0xf0;
 	const uint8_t chn = msg[0] & 0x0f;
 
-	if(!dsp || !dsp->is_instrument)
+	if(!dsp || !dsp->is_instrument || !dsp->midi_on)
 	{
 		return;
 	}
@@ -1238,6 +1239,10 @@ _meta_declare(void *iface, const char *key, const char *val)
 			else if(strcasestr(ptr, "[midi:on]") == ptr)
 			{
 				dsp->midi_on = true;
+			}
+			else if(strcasestr(ptr, "[time:on]") == ptr)
+			{
+				dsp->time_on = true;
 			}
 		}
 	}
