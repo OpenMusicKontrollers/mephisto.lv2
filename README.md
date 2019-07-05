@@ -136,6 +136,23 @@ The plugin supports building instruments with
     cntrl2 = hslider("[2]Control 2", 5.0, 1.0, 10.0, 1.0);
     cntrl3 = hslider("[3]Control 3", 0.5, 0.0, 1.0, 0.1);
 
+#### Time
+
+The plugin supports LV2 [time position](http://lv2plug.in/ns/ext/time/time.html#Position)
+events. To have access to them, simply use one of FAUST's active control
+structures with the corresponding time metadata in their labels in your DPS code:
+
+    declare options("[time:on]");
+
+    barBeat = hslider("barBeat[time:barBeat]", 0.0, 0.0, 32.0, 1.0);
+    bar = hslider("bar[time:bar]", 0.0, 0.0, 400.0, 1.0);
+    beatUnit = hslider("beatUnit[time:beatUnit]", 1.0, 1.0, 32.0, 1.0);
+    beatsPerBar = hslider("beatsPerBar[time:beatsPerBar]", 1.0, 1.0, 32.0, 1.0);
+    beatsPerMinute = hslider("beatsPerMinute[time:beatsPerMinute]", 1.0, 1.0, 400.0, 1.0);
+    frame = hslider("frame[time:frame]", 1.0, 1.0, 400.0, 1.0);
+    framesPerSecond = hslider("framesPerSecond[time:framesPerSecond]", 1.0, 1.0, 96000.0, 1.0);
+    speed = button("speed[time:speed]");
+
 #### License
 
 Copyright (c) 2019 Hanspeter Portner (dev@open-music-kontrollers.ch)
