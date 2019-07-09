@@ -119,3 +119,10 @@ if lv2lint.found()
 			'http://open-music-kontrollers.ch/lv2/mephisto#mono',
 			'http://open-music-kontrollers.ch/lv2/mephisto#stereo'])
 endif
+
+if faust.found()
+	test('FAUST bank-filter_through', faust,
+		args : ['../bank-filter_through.dsp']) #FIXME path
+	test('FAUST bank-instrument_osc', faust,
+		args : ['../bank-instrument_osc.dsp']) #FIXME path
+endif
