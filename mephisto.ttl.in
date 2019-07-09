@@ -263,15 +263,10 @@ mephisto:mono
 		mephisto:control_16 ;
 
 	state:state [
-		mephisto:code """import("stdfaust.lib");
-
-process = _;
-
-// vim: set syntax=faust:""" ;
-
-		mephisto:control_1 "0.5"^^xsd:float ;
-		mephisto:control_2 "0.5"^^xsd:float ;
-		mephisto:control_3 "0.5"^^xsd:float ;
+		mephisto:code """@BANK-FILTER_THROUGH@""" ;
+		mephisto:control_1 "0.0"^^xsd:float ;
+		mephisto:control_2 "0.0"^^xsd:float ;
+		mephisto:control_3 "0.0"^^xsd:float ;
 		mephisto:control_4 "0.0"^^xsd:float ;
 		mephisto:control_5 "0.0"^^xsd:float ;
 		mephisto:control_6 "0.0"^^xsd:float ;
@@ -371,14 +366,10 @@ mephisto:stereo
 		mephisto:control_16 ;
 
 	state:state [
-		mephisto:code """import("stdfaust.lib");
-
-process = _, _;
-
-// vim: set syntax=faust:""" ;
-		mephisto:control_1 "0.5"^^xsd:float ;
-		mephisto:control_2 "0.5"^^xsd:float ;
-		mephisto:control_3 "0.5"^^xsd:float ;
+		mephisto:code """@BANK-FILTER_THROUGH@""" ;
+		mephisto:control_1 "0.0"^^xsd:float ;
+		mephisto:control_2 "0.0"^^xsd:float ;
+		mephisto:control_3 "0.0"^^xsd:float ;
 		mephisto:control_4 "0.0"^^xsd:float ;
 		mephisto:control_5 "0.0"^^xsd:float ;
 		mephisto:control_6 "0.0"^^xsd:float ;

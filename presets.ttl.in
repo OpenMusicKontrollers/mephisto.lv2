@@ -30,27 +30,44 @@ mephisto:bank-filter_through
 	a pset:Preset ;
 	doap:license lic:Artistic-2.0 ;
 	state:state [
-		mephisto:code """import("stdfaust.lib");
-
-process = _, _;
-
-// vim: set syntax=faust:""" ;
+		mephisto:code """@BANK-FILTER_THROUGH@""" ;
+		mephisto:control_1 "0.0"^^xsd:float ;
+		mephisto:control_2 "0.0"^^xsd:float ;
+		mephisto:control_3 "0.0"^^xsd:float ;
+		mephisto:control_4 "0.0"^^xsd:float ;
+		mephisto:control_5 "0.0"^^xsd:float ;
+		mephisto:control_6 "0.0"^^xsd:float ;
+		mephisto:control_7 "0.0"^^xsd:float ;
+		mephisto:control_8 "0.0"^^xsd:float ;
+		mephisto:control_9 "0.0"^^xsd:float ;
+		mephisto:control_10 "0.0"^^xsd:float ;
+		mephisto:control_11 "0.0"^^xsd:float ;
+		mephisto:control_12 "0.0"^^xsd:float ;
+		mephisto:control_13 "0.0"^^xsd:float ;
+		mephisto:control_14 "0.0"^^xsd:float ;
+		mephisto:control_15 "0.0"^^xsd:float ;
+		mephisto:control_16 "0.0"^^xsd:float ;
 	] .
 
 mephisto:bank-instrument_osc
 	a pset:Preset ;
 	doap:license lic:Artistic-2.0 ;
 	state:state [
-		mephisto:code """import("stdfaust.lib");
-declare options "[nvoices:48]";
-
-freq = hslider("freq", 20, 20, 20000, 1);
-gain = hslider("gain", 0, 0, 1, 0.01);
-gate = button("gate");
-
-inst = os.osc(freq) * gain;
-
-process = inst, inst;
-
-// vim: set syntax=faust:""" ;
+		mephisto:code """@BANK-INSTRUMENT_OSC@""" ;
+		mephisto:control_1 "0.0"^^xsd:float ;
+		mephisto:control_2 "0.0"^^xsd:float ;
+		mephisto:control_3 "0.0"^^xsd:float ;
+		mephisto:control_4 "0.0"^^xsd:float ;
+		mephisto:control_5 "0.0"^^xsd:float ;
+		mephisto:control_6 "0.0"^^xsd:float ;
+		mephisto:control_7 "0.0"^^xsd:float ;
+		mephisto:control_8 "0.0"^^xsd:float ;
+		mephisto:control_9 "0.0"^^xsd:float ;
+		mephisto:control_10 "0.0"^^xsd:float ;
+		mephisto:control_11 "0.0"^^xsd:float ;
+		mephisto:control_12 "0.0"^^xsd:float ;
+		mephisto:control_13 "0.0"^^xsd:float ;
+		mephisto:control_14 "0.0"^^xsd:float ;
+		mephisto:control_15 "0.0"^^xsd:float ;
+		mephisto:control_16 "0.0"^^xsd:float ;
 	] .

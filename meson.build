@@ -74,29 +74,37 @@ conf_data.set('MAJOR_VERSION', version[0])
 conf_data.set('MINOR_VERSION', version[1])
 conf_data.set('MICRO_VERSION', version[2])
 
+bank_filter_through = run_command('cat', 'bank-filter_through.dsp').stdout()
+conf_data.set('BANK-FILTER_THROUGH', bank_filter_through)
+
+bank_instrument_osc = run_command('cat', 'bank-instrument_osc.dsp').stdout()
+conf_data.set('BANK-INSTRUMENT_OSC', bank_instrument_osc)
+
 suffix = mod.full_path().strip().split('.')[-1]
 conf_data.set('MODULE_SUFFIX', '.' + suffix)
 
-manifest_ttl = configure_file(input : 'manifest.ttl.in', output : 'manifest.ttl',
+manifest_ttl = configure_file(
+	input : 'manifest.ttl.in',
+	output : 'manifest.ttl',
 	configuration : conf_data,
 	install : true,
 	install_dir : inst_dir)
-dsp_ttl = custom_target('mephisto_ttl',
-	input : 'mephisto.ttl',
+dsp_ttl = configure_file(
+	input : 'mephisto.ttl.in',
 	output : 'mephisto.ttl',
-	command : clone,
+	configuration : conf_data,
 	install : true,
 	install_dir : inst_dir)
-ui_ttl = custom_target('mephisto_ui_ttl',
+ui_ttl = configure_file(
 	input : 'mephisto_ui.ttl',
 	output : 'mephisto_ui.ttl',
-	command : clone,
+	copy: true,
 	install : true,
 	install_dir : inst_dir)
-pset_ttl = custom_target('presets.ttl',
-	input : 'presets.ttl',
+pset_ttl = configure_file(
+	input : 'presets.ttl.in',
 	output : 'presets.ttl',
-	command : clone,
+	configuration : conf_data,
 	install : true,
 	install_dir : inst_dir)
 
