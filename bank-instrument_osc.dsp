@@ -1,5 +1,5 @@
 import("stdfaust.lib");
-declare options "[nvoices:48]";
+declare options "[nvoices:48][midi:on]";
 
 freq = hslider("freq", 20, 20, 20000, 1);
 gain = hslider("gain", 0, 0, 1, 0.01);
