@@ -77,6 +77,12 @@ conf_data.set('MICRO_VERSION', version[2])
 bank_filter_through = run_command('cat', 'bank-filter_through.dsp').stdout()
 conf_data.set('BANK-FILTER_THROUGH', bank_filter_through)
 
+bank_filter_gain = run_command('cat', 'bank-filter_gain.dsp').stdout()
+conf_data.set('BANK-FILTER_GAIN', bank_filter_gain)
+
+bank_time_lfo = run_command('cat', 'bank-time_lfo.dsp').stdout()
+conf_data.set('BANK-TIME_LFO', bank_time_lfo)
+
 bank_instrument_osc = run_command('cat', 'bank-instrument_osc.dsp').stdout()
 conf_data.set('BANK-INSTRUMENT_OSC', bank_instrument_osc)
 
@@ -123,6 +129,10 @@ endif
 if faust.found()
 	test('FAUST bank-filter_through', faust,
 		args : ['../bank-filter_through.dsp']) #FIXME path
+	test('FAUST bank-filter_gain', faust,
+		args : ['../bank-filter_gain.dsp']) #FIXME path
+	test('FAUST bank-time_lfo', faust,
+		args : ['../bank-time_lfo.dsp']) #FIXME path
 	test('FAUST bank-instrument_osc', faust,
 		args : ['../bank-instrument_osc.dsp']) #FIXME path
 endif

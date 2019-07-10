@@ -1,11 +1,14 @@
-import("stdfaust.lib");
 declare options "[nvoices:48][midi:on]";
 
-freq = hslider("freq", 20, 20, 20000, 1);
-gain = hslider("gain", 0, 0, 1, 0.01);
-gate = button("gate");
+import("stdfaust.lib");
 
-inst = os.osc(freq) * gain;
+freq = hslider("synth/freq", 20, 20, 20000, 1);
+gain = hslider("synth/gain", 0, 0, 1, 0.01);
+gate = button("synth/gate");
+
+env = en.adsr(0.01, 1.0, 0.8, 0.1, gate) * gain;
+
+inst = os.triangle(freq) * env;
 
 process = inst, inst;
 

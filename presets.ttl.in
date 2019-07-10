@@ -49,6 +49,52 @@ mephisto:bank-filter_through
 		mephisto:control_16 "0.0"^^xsd:float ;
 	] .
 
+mephisto:bank-filter_gain
+	a pset:Preset ;
+	doap:license lic:Artistic-2.0 ;
+	state:state [
+		mephisto:code """@BANK-FILTER_GAIN@""" ;
+		mephisto:control_1 "0.0"^^xsd:float ;
+		mephisto:control_2 "0.0"^^xsd:float ;
+		mephisto:control_3 "0.0"^^xsd:float ;
+		mephisto:control_4 "0.0"^^xsd:float ;
+		mephisto:control_5 "0.0"^^xsd:float ;
+		mephisto:control_6 "0.0"^^xsd:float ;
+		mephisto:control_7 "0.0"^^xsd:float ;
+		mephisto:control_8 "0.0"^^xsd:float ;
+		mephisto:control_9 "0.0"^^xsd:float ;
+		mephisto:control_10 "0.0"^^xsd:float ;
+		mephisto:control_11 "0.0"^^xsd:float ;
+		mephisto:control_12 "0.0"^^xsd:float ;
+		mephisto:control_13 "0.0"^^xsd:float ;
+		mephisto:control_14 "0.0"^^xsd:float ;
+		mephisto:control_15 "0.0"^^xsd:float ;
+		mephisto:control_16 "0.0"^^xsd:float ;
+	] .
+
+mephisto:bank-time_lfo
+	a pset:Preset ;
+	doap:license lic:Artistic-2.0 ;
+	state:state [
+		mephisto:code """@BANK-TIME_LFO@""" ;
+		mephisto:control_1 "0.0"^^xsd:float ;
+		mephisto:control_2 "0.0"^^xsd:float ;
+		mephisto:control_3 "0.0"^^xsd:float ;
+		mephisto:control_4 "0.0"^^xsd:float ;
+		mephisto:control_5 "0.0"^^xsd:float ;
+		mephisto:control_6 "0.0"^^xsd:float ;
+		mephisto:control_7 "0.0"^^xsd:float ;
+		mephisto:control_8 "0.0"^^xsd:float ;
+		mephisto:control_9 "0.0"^^xsd:float ;
+		mephisto:control_10 "0.0"^^xsd:float ;
+		mephisto:control_11 "0.0"^^xsd:float ;
+		mephisto:control_12 "0.0"^^xsd:float ;
+		mephisto:control_13 "0.0"^^xsd:float ;
+		mephisto:control_14 "0.0"^^xsd:float ;
+		mephisto:control_15 "0.0"^^xsd:float ;
+		mephisto:control_16 "0.0"^^xsd:float ;
+	] .
+
 mephisto:bank-instrument_osc
 	a pset:Preset ;
 	doap:license lic:Artistic-2.0 ;

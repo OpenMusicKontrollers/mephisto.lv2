@@ -66,6 +66,9 @@ mephisto:bank-filter
 mephisto:bank-instrument
 	a pset:Bank ;
 	rdfs:label "Instrument bank" .
+mephisto:bank-time
+	a pset:Bank ;
+	rdfs:label "Time bank" .
 
 # Filter bank
 mephisto:bank-filter_through
@@ -73,14 +76,30 @@ mephisto:bank-filter_through
 	lv2:appliesTo mephisto:mono ,
 		mephisto:stereo ;
 	pset:bank mephisto:bank-filter ;
-	rdfs:label "Through" ;
+	rdfs:label "[Filter] Through" ;
+	rdfs:seeAlso <presets.ttl> .
+mephisto:bank-filter_gain
+	a pset:Preset ;
+	lv2:appliesTo mephisto:mono ,
+		mephisto:stereo ;
+	pset:bank mephisto:bank-filter ;
+	rdfs:label "[Filter] Gain" ;
 	rdfs:seeAlso <presets.ttl> .
 
-# Filter bank
+# Time bank
+mephisto:bank-time_lfo
+	a pset:Preset ;
+	lv2:appliesTo mephisto:mono ,
+		mephisto:stereo ;
+	pset:bank mephisto:bank-time ;
+	rdfs:label "[Time] Simple LFO" ;
+	rdfs:seeAlso <presets.ttl> .
+
+# Instrument bank
 mephisto:bank-instrument_osc
 	a pset:Preset ;
 	lv2:appliesTo mephisto:mono ,
 		mephisto:stereo ;
 	pset:bank mephisto:bank-instrument ;
-	rdfs:label "Oscillator" ;
+	rdfs:label "[Instrument] Simple Oscillator" ;
 	rdfs:seeAlso <presets.ttl> .
