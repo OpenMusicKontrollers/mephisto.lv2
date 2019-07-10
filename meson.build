@@ -19,11 +19,17 @@ clone = [cp, '@INPUT@', '@OUTPUT@']
 
 # get FAUST version
 r = run_command(faust, '--version')
-faust_ver = r.stdout().split('Version')[1].split()[0].strip().split('.')
-message(faust_ver)
-add_project_arguments('-DFAUST_MAJOR_VERSION=' + faust_ver[0], language : 'c')
-add_project_arguments('-DFAUST_MINOR_VERSION=' + faust_ver[1], language : 'c')
-add_project_arguments('-DFAUST_MICRO_VERSION=' + faust_ver[2], language : 'c')
+faust_ver = r.stdout().split('Version')[1].split()[0].strip()
+faust_arr = faust_ver.split('.')
+add_project_arguments('-DFAUST_MAJOR_VERSION=' + faust_arr[0], language : 'c')
+add_project_arguments('-DFAUST_MINOR_VERSION=' + faust_arr[1], language : 'c')
+add_project_arguments('-DFAUST_MICRO_VERSION=' + faust_arr[2], language : 'c')
+
+if faust_ver.version_compare('>=2.14.4')
+	message('supported FAUST version found ' + faust_ver)
+else
+	error('unsupported FAUST version found ' + faust_ver)
+endif
 
 m_dep = cc.find_library('m')
 lv2_dep = dependency('lv2', version : '>=1.14.0')
