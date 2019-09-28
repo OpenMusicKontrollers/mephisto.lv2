@@ -50,16 +50,19 @@ x86_64-linux-gnu:
   <<: *universal_linux_definition
 
 i686-linux-gnu:
+  before_script:
     - apt-get update
     - apt-get install -y faust:i386
   <<: *universal_linux_definition
 
 arm-linux-gnueabihf:
+  before_script:
     - apt-get update
     - apt-get install -y faust:armhf
   <<: *arm_linux_definition
 
 aarch64-linux-gnu:
+  before_script:
     - apt-get update
     - apt-get install -y faust:arm64
   <<: *arm_linux_definition
