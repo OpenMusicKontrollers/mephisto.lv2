@@ -44,25 +44,34 @@ stages:
 
 # building in docker
 x86_64-linux-gnu:
+  before_script:
+    - apt-get update
+    - apt-get install -y faust
   <<: *universal_linux_definition
 
 i686-linux-gnu:
+    - apt-get update
+    - apt-get install -y faust:i386
   <<: *universal_linux_definition
 
 arm-linux-gnueabihf:
+    - apt-get update
+    - apt-get install -y faust:armhf
   <<: *arm_linux_definition
 
 aarch64-linux-gnu:
+    - apt-get update
+    - apt-get install -y faust:arm64
   <<: *arm_linux_definition
 
-x86_64-w64-mingw32:
-  <<: *universal_w64_definition
+#x86_64-w64-mingw32:
+#  <<: *universal_w64_definition
 
-i686-w64-mingw32:
-  <<: *universal_w64_definition
+#i686-w64-mingw32:
+#  <<: *universal_w64_definition
 
-universal-apple-darwin:
-  <<: *universal_apple_definition
+#universal-apple-darwin:
+#  <<: *universal_apple_definition
 
 pack:
   <<: *variables_definition
