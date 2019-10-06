@@ -815,8 +815,20 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 	const size_t buflen = sizeof(FAUSTFLOAT) * max_block_length;
 	for(uint32_t n = 0; n < handle->nchannel; n++)
 	{
-		handle->faudio_in[n] = malloc(buflen); //FIXME check
-		handle->faudio_out[n] = malloc(buflen); //FIXME check
+		handle->faudio_in[n] = malloc(buflen);
+		handle->faudio_out[n] = malloc(buflen);
+
+		if(!handle->faudio_in[n] || !handle->faudio_out[n])
+		{
+			for(n = 0; n < handle->nchannel; n++)
+			{
+				free(handle->faudio_in[n]);
+				free(handle->faudio_out[n]);
+			}
+
+			free(handle);
+			return NULL;
+		}
 	}
 
 	if(!props_init(&handle->props, descriptor->URI,
