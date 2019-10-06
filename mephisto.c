@@ -45,8 +45,6 @@ typedef struct _job_t job_t;
 typedef struct _pos_t pos_t;
 typedef struct _plughandle_t plughandle_t;
 
-typedef struct _cntrl_button_t cntrl_button_t;
-typedef struct _cntrl_check_button_t cntrl_check_button_t;
 typedef struct _cntrl_vertical_slider_t cntrl_vertical_slider_t;
 typedef struct _cntrl_horizontal_slider_t cntrl_horizontal_slider_t;
 typedef struct _cntrl_num_entry_t cntrl_num_entry_t;
@@ -66,14 +64,6 @@ typedef enum _cntrl_type_t {
 	CNTRL_VERTICAL_BARGRAPH,
 	CNTRL_SOUND_FILE
 } cntrl_type_t;
-
-struct _cntrl_button_t {
-	uint32_t dummy; //FIXME
-};
-
-struct _cntrl_check_button_t {
-	uint32_t dummy; //FIXME
-};
 
 struct _cntrl_vertical_slider_t {
 	float init;
@@ -118,8 +108,6 @@ struct _cntrl_t {
 	cntrl_type_t type;
 	float *zone;
 	union {
-		cntrl_button_t button;
-		cntrl_check_button_t check_button;
 		cntrl_vertical_slider_t vertical_slider;
 		cntrl_horizontal_slider_t horizontal_slider;
 		cntrl_num_entry_t num_entry;
