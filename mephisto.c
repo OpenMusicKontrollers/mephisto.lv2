@@ -92,11 +92,13 @@ struct _cntrl_num_entry_t {
 struct _cntrl_horizontal_bargraph_t {
 	float min;
 	float max;
+	float ran_1;
 };
 
 struct _cntrl_vertical_bargraph_t {
 	float min;
 	float max;
+	float ran_1;
 };
 
 struct _cntrl_sound_file_t {
@@ -393,15 +395,16 @@ _cntrl_refresh_value_rel(cntrl_t *cntrl, float val)
 				*cntrl->zone = val;
 			}
 		} break;
+		case CNTRL_SOUND_FILE:
+		{
+			//FIXME
+		} break;
+
 		case CNTRL_HORIZONTAL_BARGRAPH:
 		{
 			//FIXME
 		} break;
 		case CNTRL_VERTICAL_BARGRAPH:
-		{
-			//FIXME
-		} break;
-		case CNTRL_SOUND_FILE:
 		{
 			//FIXME
 		} break;
@@ -1618,6 +1621,7 @@ _ui_add_horizontal_bargraph(void* iface, const char* label, FAUSTFLOAT* zone,
 	cntrl->zone = zone;
 	cntrl->horizontal_bargraph.min = min;
 	cntrl->horizontal_bargraph.max = max;
+	cntrl->horizontal_bargraph.ran_1 = 1.f / (max - min);
 }
 
 static void
@@ -1639,6 +1643,7 @@ _ui_add_vertical_bargraph(void* iface, const char* label, FAUSTFLOAT* zone,
 	cntrl->zone = zone;
 	cntrl->vertical_bargraph.min = min;
 	cntrl->vertical_bargraph.max = max;
+	cntrl->vertical_bargraph.ran_1 = 1.f / (max - min);
 }
 
 static void
