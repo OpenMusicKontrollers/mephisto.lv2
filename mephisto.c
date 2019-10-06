@@ -1737,16 +1737,39 @@ _ui_init(dsp_t *dsp)
 }
 
 static int
+_dsp_dir(char *buf, size_t len)
+{
+	FILE *fin = popen("faust -dspdir", "r");
+	if(!fin)
+	{
+		return -1;
+	}
+
+	const size_t sz = fread(buf, 1, len, fin);
+	pclose(fin);
+
+	if(sz == 0)
+	{
+		return 1;
+	}
+
+	buf[sz] = '\0';
+
+	char *esc = strpbrk(buf, "\n\r");
+	if(esc)
+	{
+		*esc = '\0';
+	}
+
+	return 0;
+}
+
+static int
 _dsp_init(plughandle_t *handle, dsp_t *dsp, const char *code,
 	LV2_Worker_Respond_Function respond, LV2_Worker_Respond_Handle target)
 {
 #define ARGC 5
 	char err [4096];
-	const char *argv [ARGC] = {
-		"-I", "/usr/share/faust", //FIXME
-		"-vec",
-		"-lv", "1"
-	};
 
 	{
 		const job_t job = {
@@ -1760,6 +1783,18 @@ _dsp_init(plughandle_t *handle, dsp_t *dsp, const char *code,
 	dsp->handle = handle;
 
 	pthread_mutex_lock(&lock);
+
+	char dsp_dir [FILENAME_MAX];
+	if(_dsp_dir(dsp_dir, sizeof(dsp_dir)) != 0)
+	{
+		goto fail;
+	}
+
+	const char *argv [ARGC] = {
+		"-I", dsp_dir,
+		"-vec",
+		"-lv", "1"
+	};
 
 	dsp->factory = createCDSPFactoryFromString("mephisto", code, ARGC, argv, "", err, -1);
 	if(!dsp->factory)
