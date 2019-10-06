@@ -62,6 +62,14 @@ mephisto:error
 	rdfs:range atom:String ;
 	rdfs:label "Error" ;
 	rdfs:comment "Compilation error" .
+mephisto:xfadeDuration
+	a lv2:Parameter ;
+	rdfs:range atom:Int ;
+	rdfs:label "Crossfade duration" ;
+	rdfs:comment "get/set crossfade duration in ms" ;
+	lv2:minimum 10 ;
+	lv2:maximum 1000 ;
+	units:unit units:ms .
 mephisto:control_1
 	a lv2:Parameter ;
 	rdfs:range atom:Float ;
@@ -241,10 +249,11 @@ mephisto:mono
 	] ;
 
 	patch:readable
-		mephisto:code ;
+		mephisto:error ;
 
 	patch:writable
 		mephisto:code ,
+		mephisto:xfadeDuration ,
 		mephisto:control_1 ,
 		mephisto:control_2 ,
 		mephisto:control_3 ,
@@ -264,6 +273,7 @@ mephisto:mono
 
 	state:state [
 		mephisto:code """@BANK-FILTER_THROUGH@""" ;
+		mephisto:xfadeDuration "100"^^xsd:int ;
 		mephisto:control_1 "0.0"^^xsd:float ;
 		mephisto:control_2 "0.0"^^xsd:float ;
 		mephisto:control_3 "0.0"^^xsd:float ;
@@ -348,6 +358,7 @@ mephisto:stereo
 
 	patch:writable
 		mephisto:code ,
+		mephisto:xfadeDuration ,
 		mephisto:control_1 ,
 		mephisto:control_2 ,
 		mephisto:control_3 ,
@@ -367,6 +378,7 @@ mephisto:stereo
 
 	state:state [
 		mephisto:code """@BANK-FILTER_THROUGH@""" ;
+		mephisto:xfadeDuration "100"^^xsd:int ;
 		mephisto:control_1 "0.0"^^xsd:float ;
 		mephisto:control_2 "0.0"^^xsd:float ;
 		mephisto:control_3 "0.0"^^xsd:float ;

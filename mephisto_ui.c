@@ -158,6 +158,11 @@ static const props_def_t defs [MAX_NPROPS] = {
 		.event_cb = _intercept_error,
 		.max_size = ERROR_SIZE
 	},
+	{
+		.property = MEPHISTO__xfadeDuration,
+		.offset = offsetof(plugstate_t, xfade_dur),
+		.type = LV2_ATOM__Int
+	},
 	CONTROL(1),
 	CONTROL(2),
 	CONTROL(3),

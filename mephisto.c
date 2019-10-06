@@ -492,6 +492,15 @@ _refresh_time_position(plughandle_t *handle)
 }
 
 static void
+_intercept_xfade_duration(void *data, int64_t frames __attribute__((unused)),
+	props_impl_t *impl __attribute__((unused)))
+{
+	plughandle_t *handle = data;
+
+	handle->xfade_max = handle->srate * handle->state.xfade_dur / 1000;
+}
+
+static void
 _intercept_control(void *data, int64_t frames __attribute__((unused)),
 	props_impl_t *impl)
 {
@@ -515,6 +524,12 @@ static const props_def_t defs [MAX_NPROPS] = {
 		.offset = offsetof(plugstate_t, error),
 		.type = LV2_ATOM__String,
 		.max_size = ERROR_SIZE
+	},
+	{
+		.property = MEPHISTO__xfadeDuration,
+		.offset = offsetof(plugstate_t, xfade_dur),
+		.type = LV2_ATOM__Int,
+		.event_cb = _intercept_xfade_duration
 	},
 	CONTROL(1),
 	CONTROL(2),
@@ -762,7 +777,6 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 	handle->mephisto_error = props_map(&handle->props, MEPHISTO__error);
 
 	handle->to_worker = varchunk_new(BUF_SIZE, true);
-	handle->xfade_max = rate; //FIXME make this configurable
 	handle->srate = rate;
 
 	for(uint32_t chn = 0; chn < 0x10; chn++)
