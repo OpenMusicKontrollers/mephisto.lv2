@@ -55,6 +55,7 @@
 #define MEPHISTO__code          MEPHISTO_PREFIX "code"
 #define MEPHISTO__error         MEPHISTO_PREFIX "error"
 #define MEPHISTO__xfadeDuration MEPHISTO_PREFIX "xfadeDuration"
+#define MEPHISTO__releaseDuration MEPHISTO_PREFIX "releaseDuration"
 #define MEPHISTO__control_1     MEPHISTO_PREFIX "control_1"
 #define MEPHISTO__control_2     MEPHISTO_PREFIX "control_2"
 #define MEPHISTO__control_3     MEPHISTO_PREFIX "control_3"
@@ -73,7 +74,7 @@
 #define MEPHISTO__control_16    MEPHISTO_PREFIX "control_16"
 
 #define NCONTROLS 16
-#define MAX_NPROPS (3 + NCONTROLS)
+#define MAX_NPROPS (4 + NCONTROLS)
 #define CODE_SIZE 0x10000 // 64 K
 #define ERROR_SIZE 0x400 // 1 K
 #define BUF_SIZE (CODE_SIZE * 4)
@@ -93,6 +94,7 @@ struct _plugstate_t {
 	char error [ERROR_SIZE];
 	float control [NCONTROLS];
 	int32_t xfade_dur;
+	int32_t release_dur;
 };
 
 #endif // _MEPHISTO_LV2_H

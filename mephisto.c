@@ -238,6 +238,7 @@ struct _plughandle_t {
 
 	uint32_t xfade_max;
 	uint32_t xfade_cur;
+	uint32_t release_max;
 
 	uint32_t srate;
 	char bundle_path [PATH_MAX];
@@ -503,6 +504,15 @@ _intercept_xfade_duration(void *data, int64_t frames __attribute__((unused)),
 }
 
 static void
+_intercept_release_duration(void *data, int64_t frames __attribute__((unused)),
+	props_impl_t *impl __attribute__((unused)))
+{
+	plughandle_t *handle = data;
+
+	handle->release_max = handle->srate * handle->state.release_dur;
+}
+
+static void
 _intercept_control(void *data, int64_t frames __attribute__((unused)),
 	props_impl_t *impl)
 {
@@ -532,6 +542,12 @@ static const props_def_t defs [MAX_NPROPS] = {
 		.offset = offsetof(plugstate_t, xfade_dur),
 		.type = LV2_ATOM__Int,
 		.event_cb = _intercept_xfade_duration
+	},
+	{
+		.property = MEPHISTO__releaseDuration,
+		.offset = offsetof(plugstate_t, release_dur),
+		.type = LV2_ATOM__Int,
+		.event_cb = _intercept_release_duration
 	},
 	CONTROL(1),
 	CONTROL(2),
@@ -991,7 +1007,7 @@ _voice_off(plughandle_t *handle, voice_t *voice)
 		_cntrl_refresh_value_abs(&voice->gate, 0.f);
 
 		voice->state |= VOICE_STATE_DEACTIVATING;
-		voice->remaining = handle->srate; //FIXME how long ?
+		voice->remaining = handle->release_max;
 	}
 }
 

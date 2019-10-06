@@ -163,6 +163,11 @@ static const props_def_t defs [MAX_NPROPS] = {
 		.offset = offsetof(plugstate_t, xfade_dur),
 		.type = LV2_ATOM__Int
 	},
+	{
+		.property = MEPHISTO__releaseDuration,
+		.offset = offsetof(plugstate_t, release_dur),
+		.type = LV2_ATOM__Int
+	},
 	CONTROL(1),
 	CONTROL(2),
 	CONTROL(3),

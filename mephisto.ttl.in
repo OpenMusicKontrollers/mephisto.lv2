@@ -70,6 +70,14 @@ mephisto:xfadeDuration
 	lv2:minimum 10 ;
 	lv2:maximum 1000 ;
 	units:unit units:ms .
+mephisto:releaseDuration
+	a lv2:Parameter ;
+	rdfs:range atom:Int ;
+	rdfs:label "Release duration" ;
+	rdfs:comment "get/set note release duration in s" ;
+	lv2:minimum 0 ;
+	lv2:maximum 100 ;
+	units:unit units:s .
 mephisto:control_1
 	a lv2:Parameter ;
 	rdfs:range atom:Float ;
@@ -254,6 +262,7 @@ mephisto:mono
 	patch:writable
 		mephisto:code ,
 		mephisto:xfadeDuration ,
+		mephisto:releaseDuration ,
 		mephisto:control_1 ,
 		mephisto:control_2 ,
 		mephisto:control_3 ,
@@ -274,6 +283,7 @@ mephisto:mono
 	state:state [
 		mephisto:code """@BANK-FILTER_THROUGH@""" ;
 		mephisto:xfadeDuration "100"^^xsd:int ;
+		mephisto:releaseDuration "10"^^xsd:int ;
 		mephisto:control_1 "0.0"^^xsd:float ;
 		mephisto:control_2 "0.0"^^xsd:float ;
 		mephisto:control_3 "0.0"^^xsd:float ;
@@ -359,6 +369,7 @@ mephisto:stereo
 	patch:writable
 		mephisto:code ,
 		mephisto:xfadeDuration ,
+		mephisto:releaseDuration ,
 		mephisto:control_1 ,
 		mephisto:control_2 ,
 		mephisto:control_3 ,
@@ -379,6 +390,7 @@ mephisto:stereo
 	state:state [
 		mephisto:code """@BANK-FILTER_THROUGH@""" ;
 		mephisto:xfadeDuration "100"^^xsd:int ;
+		mephisto:releaseDuration "10"^^xsd:int ;
 		mephisto:control_1 "0.0"^^xsd:float ;
 		mephisto:control_2 "0.0"^^xsd:float ;
 		mephisto:control_3 "0.0"^^xsd:float ;
