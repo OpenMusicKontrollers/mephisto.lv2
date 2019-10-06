@@ -221,6 +221,8 @@ struct _plughandle_t {
 
 	LV2_URID midi_MidiEvent;
 
+	char dsp_dir [FILENAME_MAX];
+
 	plugstate_t state;
 	plugstate_t stash;
 
@@ -667,6 +669,34 @@ _timely_cb(timely_t *timely __attribute__((unused)),
 	// nothing to do
 }
 
+static int
+_dsp_dir(char *buf, size_t len)
+{
+	FILE *fin = popen("faust -dspdir", "r");
+	if(!fin)
+	{
+		return -1;
+	}
+
+	const size_t sz = fread(buf, 1, len, fin);
+	pclose(fin);
+
+	if(sz == 0)
+	{
+		return 1;
+	}
+
+	buf[sz] = '\0';
+
+	char *esc = strpbrk(buf, "\n\r");
+	if(esc)
+	{
+		*esc = '\0';
+	}
+
+	return 0;
+}
+
 static LV2_Handle
 instantiate(const LV2_Descriptor* descriptor, double rate,
 	const char *bundle_path, const LV2_Feature *const *features)
@@ -719,6 +749,14 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 	{
 		fprintf(stderr,
 			"%s: Host does not support work:sched\n", descriptor->URI);
+		free(handle);
+		return NULL;
+	}
+
+	if(_dsp_dir(handle->dsp_dir, sizeof(handle->dsp_dir)) != 0)
+	{
+		fprintf(stderr,
+			"%s: failed to get FAUST DSP directory\n", descriptor->URI);
 		free(handle);
 		return NULL;
 	}
@@ -1737,39 +1775,17 @@ _ui_init(dsp_t *dsp)
 }
 
 static int
-_dsp_dir(char *buf, size_t len)
-{
-	FILE *fin = popen("faust -dspdir", "r");
-	if(!fin)
-	{
-		return -1;
-	}
-
-	const size_t sz = fread(buf, 1, len, fin);
-	pclose(fin);
-
-	if(sz == 0)
-	{
-		return 1;
-	}
-
-	buf[sz] = '\0';
-
-	char *esc = strpbrk(buf, "\n\r");
-	if(esc)
-	{
-		*esc = '\0';
-	}
-
-	return 0;
-}
-
-static int
 _dsp_init(plughandle_t *handle, dsp_t *dsp, const char *code,
 	LV2_Worker_Respond_Function respond, LV2_Worker_Respond_Handle target)
 {
 #define ARGC 5
 	char err [4096];
+
+	const char *argv [ARGC] = {
+		"-I", handle->dsp_dir,
+		"-vec",
+		"-lv", "1"
+	};
 
 	{
 		const job_t job = {
@@ -1783,18 +1799,6 @@ _dsp_init(plughandle_t *handle, dsp_t *dsp, const char *code,
 	dsp->handle = handle;
 
 	pthread_mutex_lock(&lock);
-
-	char dsp_dir [FILENAME_MAX];
-	if(_dsp_dir(dsp_dir, sizeof(dsp_dir)) != 0)
-	{
-		goto fail;
-	}
-
-	const char *argv [ARGC] = {
-		"-I", dsp_dir,
-		"-vec",
-		"-lv", "1"
-	};
 
 	dsp->factory = createCDSPFactoryFromString("mephisto", code, ARGC, argv, "", err, -1);
 	if(!dsp->factory)
