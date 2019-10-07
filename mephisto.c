@@ -1156,7 +1156,7 @@ _handle_midi(plughandle_t *handle, dsp_t *dsp,
 				case LV2_MIDI_CTL_MSB_DATA_ENTRY:
 				{
 					// pitch-bend range
-					if( (handle->rpn_msb[chn] == 0x0) && (handle->rpn_lsb[chn] == 0x1) )
+					if( (handle->rpn_msb[chn] == 0x0) && (handle->rpn_lsb[chn] == 0x0) )
 					{
 						const uint8_t semi = val;
 						const uint8_t cent = handle->data_lsb[chn];
