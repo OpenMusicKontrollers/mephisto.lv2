@@ -302,6 +302,101 @@ mephisto:mono
 		mephisto:control_16 "0.0"^^xsd:float ;
 	] .
 
+mephisto:cv
+	a lv2:Plugin ,
+		#lv2:FilterPlugin ,
+		lv2:InstrumentPlugin ;
+	doap:name "Mephisto CV" ;
+	doap:license lic:Artistic-2.0 ;
+	lv2:project proj:mephisto ;
+	lv2:requiredFeature urid:map, state:loadDefaultState, work:schedule, opts:options ;
+	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, state:threadSafeRestore, log:log ;
+	lv2:extensionData	state:interface, work:interface ;
+	opts:requiredOption bufsz:maxBlockLength ;
+
+	lv2:port [
+	  a lv2:InputPort ,
+			atom:AtomPort ;
+		atom:bufferType atom:Sequence ;
+		atom:supports time:Position ,
+			midi:MidiEvent ,
+			time:Position ,
+			patch:Message ;
+		lv2:index 0 ;
+		lv2:symbol "control" ;
+		lv2:name "Control" ;
+		rsz:minimumSize 131072 ;
+		lv2:designation lv2:control ;
+	] , [
+	  a lv2:OutputPort ,
+			atom:AtomPort ;
+		atom:bufferType atom:Sequence ;
+		atom:supports patch:Message ;
+		lv2:index 1 ;
+		lv2:symbol "notify" ;
+		lv2:name "Notify" ;
+		rsz:minimumSize 131072 ;
+		lv2:designation lv2:control ;
+	] , [
+	  a lv2:InputPort ,
+			lv2:CVPort;
+		lv2:index 2 ;
+		lv2:symbol "cv_in_1" ;
+		lv2:name "CV In 1" ;
+	] , [
+	  a lv2:OutputPort,
+			lv2:CVPort;
+		lv2:index 3 ;
+		lv2:symbol "cv_out_1" ;
+		lv2:name "CV Out 1" ;
+	] ;
+
+	patch:readable
+		mephisto:error ;
+
+	patch:writable
+		mephisto:code ,
+		mephisto:xfadeDuration ,
+		mephisto:releaseDuration ,
+		mephisto:control_1 ,
+		mephisto:control_2 ,
+		mephisto:control_3 ,
+		mephisto:control_4 ,
+		mephisto:control_5 ,
+		mephisto:control_6 ,
+		mephisto:control_7 ,
+		mephisto:control_8 ,
+		mephisto:control_9 ,
+		mephisto:control_10 ,
+		mephisto:control_11 ,
+		mephisto:control_12 ,
+		mephisto:control_13 ,
+		mephisto:control_14 ,
+		mephisto:control_15 ,
+		mephisto:control_16 ;
+
+	state:state [
+		mephisto:code """@BANK-FILTER_THROUGH@""" ;
+		mephisto:xfadeDuration "100"^^xsd:int ;
+		mephisto:releaseDuration "10"^^xsd:int ;
+		mephisto:control_1 "0.0"^^xsd:float ;
+		mephisto:control_2 "0.0"^^xsd:float ;
+		mephisto:control_3 "0.0"^^xsd:float ;
+		mephisto:control_4 "0.0"^^xsd:float ;
+		mephisto:control_5 "0.0"^^xsd:float ;
+		mephisto:control_6 "0.0"^^xsd:float ;
+		mephisto:control_7 "0.0"^^xsd:float ;
+		mephisto:control_8 "0.0"^^xsd:float ;
+		mephisto:control_9 "0.0"^^xsd:float ;
+		mephisto:control_10 "0.0"^^xsd:float ;
+		mephisto:control_11 "0.0"^^xsd:float ;
+		mephisto:control_12 "0.0"^^xsd:float ;
+		mephisto:control_13 "0.0"^^xsd:float ;
+		mephisto:control_14 "0.0"^^xsd:float ;
+		mephisto:control_15 "0.0"^^xsd:float ;
+		mephisto:control_16 "0.0"^^xsd:float ;
+	] .
+
 mephisto:stereo
 	a lv2:Plugin ,
 		#lv2:FilterPlugin ,

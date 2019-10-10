@@ -2225,6 +2225,17 @@ static const LV2_Descriptor mephisto_stereo = {
 	.extension_data	= extension_data
 };
 
+static const LV2_Descriptor mephisto_cv = {
+	.URI						= MEPHISTO__cv,
+	.instantiate		= instantiate,
+	.connect_port		= connect_port,
+	.activate				= NULL,
+	.run						= run,
+	.deactivate			= NULL,
+	.cleanup				= cleanup,
+	.extension_data	= extension_data
+};
+
 LV2_SYMBOL_EXPORT const LV2_Descriptor*
 lv2_descriptor(uint32_t index)
 {
@@ -2234,6 +2245,8 @@ lv2_descriptor(uint32_t index)
 			return &mephisto_mono;
 		case 1:
 			return &mephisto_stereo;
+		case 2:
+			return &mephisto_cv;
 		default:
 			return NULL;
 	}

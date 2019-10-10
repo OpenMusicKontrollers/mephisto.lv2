@@ -46,6 +46,7 @@
 // plugin uris
 #define MEPHISTO__mono          MEPHISTO_PREFIX "mono"
 #define MEPHISTO__stereo        MEPHISTO_PREFIX "stereo"
+#define MEPHISTO__cv            MEPHISTO_PREFIX "cv"
 
 // plugin UI uris
 #define MEPHISTO__showUI        MEPHISTO_PREFIX "showUI"

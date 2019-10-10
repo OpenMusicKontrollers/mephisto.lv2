@@ -29,7 +29,7 @@ kx:Widget
 kx:Host
 	a lv2:Feature .
 
-# MBedC Mono
+# Mephisto Mono
 mephisto:mono
 	a lv2:Plugin ;
 	lv2:minorVersion @MINOR_VERSION@ ;
@@ -39,8 +39,18 @@ mephisto:mono
 	lv2:binary <mephisto@MODULE_SUFFIX@> ;
 	rdfs:seeAlso <mephisto.ttl> .
 
-# MBedC Mono
+# Mephisto Mono
 mephisto:stereo
+	a lv2:Plugin ;
+	lv2:minorVersion @MINOR_VERSION@ ;
+	lv2:microVersion @MICRO_VERSION@ ;
+	ui:ui mephisto:showUI ;
+	#ui:ui mephisto:kxUI ;
+	lv2:binary <mephisto@MODULE_SUFFIX@> ;
+	rdfs:seeAlso <mephisto.ttl> .
+
+# Mephisto CV
+mephisto:cv
 	a lv2:Plugin ;
 	lv2:minorVersion @MINOR_VERSION@ ;
 	lv2:microVersion @MICRO_VERSION@ ;

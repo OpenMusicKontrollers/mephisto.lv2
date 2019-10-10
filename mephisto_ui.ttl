@@ -31,6 +31,10 @@ mephisto:showUI
 		ui:plugin mephisto:stereo;
 		lv2:symbol "notify" ;
 		ui:protocol atom:eventTransfer ;
+	] , [
+		ui:plugin mephisto:cv ;
+		lv2:symbol "notify" ;
+		ui:protocol atom:eventTransfer ;
 	] ;
 	lv2:requiredFeature ui:idleInterface, ui:portMap, urid:map ;
 	lv2:extensionData ui:idleInterface, ui:showInterface .
@@ -42,6 +46,10 @@ mephisto:kxUI
 		ui:protocol atom:eventTransfer ;
 	] , [
 		ui:plugin mephisto:stereo ;
+		lv2:symbol "notify" ;
+		ui:protocol atom:eventTransfer ;
+	] , [
+		ui:plugin mephisto:cv ;
 		lv2:symbol "notify" ;
 		ui:protocol atom:eventTransfer ;
 	] ;
