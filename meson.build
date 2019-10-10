@@ -10,7 +10,6 @@ add_project_arguments('-D_GNU_SOURCE', language : 'c')
 conf_data = configuration_data()
 cc = meson.get_compiler('c')
 
-cp = find_program('cp')
 lv2_validate = find_program('lv2_validate', native : true, required : false)
 sord_validate = find_program('sord_validate', native : true, required : false)
 lv2lint = find_program('lv2lint', required : false)
