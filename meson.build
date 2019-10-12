@@ -5,6 +5,8 @@ project('mephisto.lv2', 'c', default_options : [
 	'b_lto=false',
 	'c_std=c11'])
 
+source_root = meson.source_root()
+
 add_project_arguments('-D_GNU_SOURCE', language : 'c')
 
 conf_data = configuration_data()
@@ -49,14 +51,6 @@ ui_srcs = ['mephisto_ui.c']
 c_args = ['-fvisibility=hidden',
 	'-ffast-math']
 
-if host_machine.system() == 'windows'
-	# nothing
-elif host_machine.system() == 'darwin'
-	# nothing
-else
-	# nothing
-endif
-
 mod = shared_module('mephisto', dsp_srcs,
 	c_args : c_args,
 	include_directories : inc_dir,
@@ -99,18 +93,21 @@ manifest_ttl = configure_file(
 	configuration : conf_data,
 	install : true,
 	install_dir : inst_dir)
+
 dsp_ttl = configure_file(
 	input : 'mephisto.ttl.in',
 	output : 'mephisto.ttl',
 	configuration : conf_data,
 	install : true,
 	install_dir : inst_dir)
+
 ui_ttl = configure_file(
 	input : 'mephisto_ui.ttl',
 	output : 'mephisto_ui.ttl',
 	copy: true,
 	install : true,
 	install_dir : inst_dir)
+
 pset_ttl = configure_file(
 	input : 'presets.ttl.in',
 	output : 'presets.ttl',
@@ -137,12 +134,16 @@ if lv2lint.found()
 endif
 
 if faust.found()
-	test('FAUST bank-filter_through', faust,
-		args : ['../bank-filter_through.dsp']) #FIXME path
-	test('FAUST bank-filter_gain', faust,
-		args : ['../bank-filter_gain.dsp']) #FIXME path
-	test('FAUST bank-time_lfo', faust,
-		args : ['../bank-time_lfo.dsp']) #FIXME path
-	test('FAUST bank-instrument_osc', faust,
-		args : ['../bank-instrument_osc.dsp']) #FIXME path
+	test('FAUST bank-filter_through', faust, args : [
+		join_paths(source_root, 'bank-filter_through.dsp')
+	])
+	test('FAUST bank-filter_gain', faust, args : [
+		join_paths(source_root, 'bank-filter_gain.dsp')
+	])
+	test('FAUST bank-time_lfo', faust, args : [
+		join_paths(source_root, 'bank-time_lfo.dsp')
+	])
+	test('FAUST bank-instrument_osc', faust, args : [
+		join_paths(source_root, 'bank-instrument_osc.dsp')
+	])
 endif
