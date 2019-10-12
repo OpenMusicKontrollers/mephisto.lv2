@@ -266,13 +266,11 @@ _show_cb(LV2UI_Handle instance)
 	const char *command = "open -nW";
 #else // Linux/BSD
 	//const char *command = "xdg-open";
-	const char *command = "xterm -e vim -o2";
+	const char *command = "xterm -e vi";
 #endif
 
 	// get default editor from environment
 	const char *editor = getenv("MEPHISTO_EDITOR");
-	if(!editor)
-		editor = getenv("EDITOR");
 	if(!editor)
 		editor = command;
 	char *dup = strdup(editor);
@@ -568,7 +566,7 @@ static const LV2UI_Descriptor simple_kx = {
 	.instantiate		= instantiate,
 	.cleanup				= cleanup,
 	.port_event			= port_event,
-	.extension_data	= NULL
+	.extension_data	= ui_extension_data
 };
 
 LV2_SYMBOL_EXPORT const LV2UI_Descriptor*

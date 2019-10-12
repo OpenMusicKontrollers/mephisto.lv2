@@ -89,15 +89,15 @@ just opening the plugin's FAUST source in your favorite editor and monitor its
 modification state. Additionally it opens a log file to write compile errors to.
 
 Currently, the editor has to be defined via an environment variable. You can
-use either the environment varialbe *EDITOR* or *MEPHISTO_EDITOR*, whereby the
+use either the environment varialbe *MEPHISTO_EDITOR*, whereby the
 latter will take precedence over the former.
 
-    export MEPHISTO_EDITOR='urxvt -e nvim -o2'
+    export MEPHISTO_EDITOR='xterm -e nvim -o2'
 
 If no environment variable is defined, the default fallback invocation commands
 are defined as follows:
 
-* 'xterm -e vim -o2' (Unix)
+* 'xterm -e vi' (Unix)
 * 'open -nW' (MacOS)
 * 'cmd /c start /wait' (Windows)
 
@@ -106,7 +106,7 @@ inject it. Potential warnings and errors are reported in the plugin host's log.
 
 Example command line to run it in [Jalv](https://drobilla.net/software/jalv):
 
-    export MEPHISTO_EDITOR='xterm -e vim -o2'
+    export MEPHISTO_EDITOR='xterm -e nvim -o2'
     jalv -d -t -s http://open-music-kontrollers.ch/lv2/mephisto#stereo
 
 #### Controls
