@@ -8,8 +8,7 @@
 
 ### Binaries
 
-For GNU/Linux (64-bit, 32-bit, armv7), Windows (64-bit, 32-bit) and MacOS
-(64/32-bit univeral).
+For GNU/Linux (64-bit, 32-bit, armv7, arm64).
 
 To install the plugin bundle on your system, simply copy the __mephisto.lv2__
 folder out of the platform folder of the downloaded package into your
@@ -18,7 +17,7 @@ folder out of the platform folder of the downloaded package into your
 <!--
 #### Stable release
 
-* [mephisto.lv2-0.16.0.zip](https://dl.open-music-kontrollers.ch/mephisto.lv2/stable/mephisto.lv2-0.16.0.zip) ([sig](https://dl.open-music-kontrollers.ch/mephisto.lv2/stable/mephisto.lv2-0.16.0.zip.sig))
+* [mephisto.lv2-0.2.0.zip](https://dl.open-music-kontrollers.ch/mephisto.lv2/stable/mephisto.lv2-0.2.0.zip) ([sig](https://dl.open-music-kontrollers.ch/mephisto.lv2/stable/mephisto.lv2-0.2.0.zip.sig))
 -->
 
 #### Unstable (nightly) release
@@ -30,7 +29,7 @@ folder out of the platform folder of the downloaded package into your
 <!--
 #### Stable release
 
-* [mephisto.lv2-0.16.0.tar.xz](https://git.open-music-kontrollers.ch/lv2/mephisto.lv2/snapshot/mephisto.lv2-0.16.0.tar.xz)
+* [mephisto.lv2-0.2.0.tar.xz](https://git.open-music-kontrollers.ch/lv2/mephisto.lv2/snapshot/mephisto.lv2-0.2.0.tar.xz)
 -->
 
 #### Git repository
@@ -46,32 +45,78 @@ folder out of the platform folder of the downloaded package into your
 ### Bugs and feature requests
 
 * [Gitlab](https://gitlab.com/OpenMusicKontrollers/mephisto.lv2)
-<!--
 * [Github](https://github.com/OpenMusicKontrollers/mephisto.lv2)
--->
 
 #### Plugins
 
-##### Mono
+##### Audio 1x1
 
-Mono version of the plugin.
+1x1 Audio version of the plugin.
 
 Prototype new audio filters and instruments in [FAUST](https://faust.grame.fr)
 directly in your favorite running host, without the need to restart the latter
 after code changes.
 
-##### Stereo
+##### Audio 2x2
 
-Stereo version of plugin.
+2x2 Audio version of the plugin.
 
 Prototype new audio filters and instruments in [FAUST](https://faust.grame.fr)
+directly in your favorite running host, without the need to restart the latter
+after code changes.
+
+##### Audio 4x4
+
+4x4 Audio version of the plugin.
+
+Prototype new audio filters and instruments in [FAUST](https://faust.grame.fr)
+directly in your favorite running host, without the need to restart the latter
+after code changes.
+
+##### Audio 8x8
+
+8x8 Audio version of the plugin.
+
+Prototype new audio filters and instruments in [FAUST](https://faust.grame.fr)
+directly in your favorite running host, without the need to restart the latter
+after code changes.
+
+##### CV 1x1
+
+1x1 CV version of the plugin.
+
+Prototype new CV filters and instruments in [FAUST](https://faust.grame.fr)
+directly in your favorite running host, without the need to restart the latter
+after code changes.
+
+##### CV 2x2
+
+2x2 CV version of the plugin.
+
+Prototype new CV filters and instruments in [FAUST](https://faust.grame.fr)
+directly in your favorite running host, without the need to restart the latter
+after code changes.
+
+##### CV 4x4
+
+4x4 CV version of the plugin.
+
+Prototype new CV filters and instruments in [FAUST](https://faust.grame.fr)
+directly in your favorite running host, without the need to restart the latter
+after code changes.
+
+##### CV 8x8
+
+8x8 CV version of the plugin.
+
+Prototype new CV filters and instruments in [FAUST](https://faust.grame.fr)
 directly in your favorite running host, without the need to restart the latter
 after code changes.
 
 #### Dependencies
 
 * [LV2](http://lv2plug.in) (LV2 Plugin Standard)
-* [FAUST](https://faust.grame.fr/) (Faust Programming Language)
+* [FAUST](https://faust.grame.fr/) (Faust Programming Language >=2.14.4)
 
 #### Build / install
 
@@ -81,6 +126,7 @@ after code changes.
 	cd build
 	ninja -j4
 	sudo ninja install
+	ninja test
 
 #### GUI
 
@@ -88,9 +134,8 @@ This plugin features an external LV2 plugin GUI, which does nothing else than
 just opening the plugin's FAUST source in your favorite editor and monitor its
 modification state. Additionally it opens a log file to write compile errors to.
 
-Currently, the editor has to be defined via an environment variable. You can
-use either the environment varialbe *MEPHISTO_EDITOR*, whereby the
-latter will take precedence over the former.
+Currently, the editor has to be defined via the environment variable
+*MEPHISTO_EDITOR*.
 
     export MEPHISTO_EDITOR='xterm -e nvim -o2'
 
@@ -98,16 +143,14 @@ If no environment variable is defined, the default fallback invocation commands
 are defined as follows:
 
 * 'xterm -e vi' (Unix)
+<!--
 * 'open -nW' (MacOS)
 * 'cmd /c start /wait' (Windows)
+-->
 
 Whenever you save the FAUST source, the plugin will try to just-in-time compile and
-inject it. Potential warnings and errors are reported in the plugin host's log.
-
-Example command line to run it in [Jalv](https://drobilla.net/software/jalv):
-
-    export MEPHISTO_EDITOR='xterm -e nvim -o2'
-    jalv -d -t -s http://open-music-kontrollers.ch/lv2/mephisto#audio_2x2
+inject it. Potential warnings and errors are reported in the plugin host's log
+and the log file.
 
 #### Controls
 
@@ -125,6 +168,17 @@ in their labels in your DSP code:
 
 The plugin supports building instruments with
 [MIDI polyphony](https://faust.grame.fr/doc/manual/index.html#midi-polyphony-support).
+For this to work you have to enable the MIDI option and declare amount of polyphony
+(maximum polyphony is 64).
+
+The plugin automatically derives the 3 control signals:
+
+* gate (NoteOn vs NoteOff),
+* freq (NoteOn note + PitchBend), honouring PitchBend range RPN 0/0
+* gain (NoteOn velocity).
+
+Other MIDI events are not supported as of today and thus should be
+automated via the plugin host to one of the 16 control slots.
 
     declare options("[midi:on][nvoices:32]");
 
@@ -140,7 +194,8 @@ The plugin supports building instruments with
 
 The plugin supports LV2 [time position](http://lv2plug.in/ns/ext/time/time.html#Position)
 events. To have access to them, simply use one of FAUST's active control
-structures with the corresponding time metadata in their labels in your DPS code:
+structures with the corresponding time metadata in their labels in your DPS code
+and additionally enable the time option:
 
     declare options("[time:on]");
 
