@@ -124,9 +124,6 @@ _intercept_error(void *data, int64_t frames __attribute__((unused)),
 		}
 
 		fclose(f);
-
-		if(stat(ui->err, &ui->stat) < 0) // update modification timestamp
-			lv2_log_error(&ui->logger, "simple_ui: stat failed\n");
 	}
 	else if(ui->log)
 	{
@@ -456,7 +453,6 @@ instantiate(const LV2UI_Descriptor *descriptor, const char *plugin_uri,
 	ui->writer = write_function;
 	ui->controller = controller;
 
-	char *tmp_template;
 #if defined(_WIN32)
 	char tmp_dir[MAX_PATH + 1];
 	GetTempPath(MAX_PATH + 1, tmp_dir);
@@ -465,28 +461,51 @@ instantiate(const LV2UI_Descriptor *descriptor, const char *plugin_uri,
 	const char *tmp_dir = P_tmpdir;
 	const char *sep = tmp_dir[strlen(tmp_dir) - 1] == '/' ? "" : "/";
 #endif
-	asprintf(&tmp_template, "%s%sjit_XXXXXX", tmp_dir, sep);
 
-	if(!tmp_template)
+	char *jit_template = NULL;
+	asprintf(&jit_template, "%s%sjit_XXXXXX", tmp_dir, sep);
+
+	char *err_template = NULL;
+	asprintf(&err_template, "%s%serr_XXXXXX", tmp_dir, sep);
+
+	if(!jit_template)
 	{
 		fprintf(stderr, "%s: out of memory\n", descriptor->URI);
 		free(ui);
 		return NULL;
 	}
 
-	int fd = mkstemps(tmp_template, 0);
-	if(fd)
-		close(fd);
-
-	snprintf(ui->path, sizeof(ui->path), "%s", tmp_template);
-	snprintf(ui->err, sizeof(ui->err), "%s", tmp_template);
-	char *match = strstr(ui->err, "jit_");
-	if(match)
+	if(!err_template)
 	{
-		match[0] = 'e';
-		match[1] = 'r';
-		match[2] = 'r';
+		fprintf(stderr, "%s: out of memory\n", descriptor->URI);
+		free(ui);
+		return NULL;
 	}
+
+	const char *msg = "loading...";
+
+	const int jit_fd = mkstemp(jit_template);
+	if(jit_fd == -1)
+	{
+		fprintf(stderr, "%s: mkstemp '%s'\n", descriptor->URI, strerror(errno));
+		free(ui);
+		return NULL;
+	}
+	write(jit_fd, msg, strlen(msg));
+	close(jit_fd);
+
+	const int err_fd = mkstemp(err_template);
+	if(err_fd == -1)
+	{
+		fprintf(stderr, "%s: mkstemp '%s'\n", descriptor->URI, strerror(errno));
+		free(ui);
+		return NULL;
+	}
+	write(jit_fd, msg, strlen(msg));
+	close(err_fd);
+
+	snprintf(ui->path, sizeof(ui->path), "%s", jit_template);
+	snprintf(ui->err, sizeof(ui->err), "%s", err_template);
 
 	if(ui->log)
 		lv2_log_note(&ui->logger, "simple_ui: opening %s\n", ui->path);
@@ -494,7 +513,8 @@ instantiate(const LV2UI_Descriptor *descriptor, const char *plugin_uri,
 	if(stat(ui->path, &ui->stat) < 0) // update modification timestamp
 		lv2_log_error(&ui->logger, "simple_ui: stat failed\n");
 
-	free(tmp_template);
+	free(jit_template);
+	free(err_template);
 
 	_message_send(ui, ui->urid_code, NULL, 0);
 	_message_send(ui, ui->urid_error, NULL, 0);

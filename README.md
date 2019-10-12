@@ -2,6 +2,14 @@
 
 ### a Just-in-Time FAUST compiler embedded in an LV2 plugin
 
+Write LV2 audio/cv instruments/filters directly in your host in FAUST
+DSP language without any need to restart/reload host or plugin upon code changes.
+
+Use it for one-off instruments/filters, prototyping, experimenting or
+glueing stuff together.
+
+*Note: needs a fairly recent libFAUST and/or bleeding edge GNU/Linux distribution*
+
 #### Build status
 
 [![build status](https://gitlab.com/OpenMusicKontrollers/mephisto.lv2/badges/master/build.svg)](https://gitlab.com/OpenMusicKontrollers/mephisto.lv2/commits/master)
@@ -137,7 +145,9 @@ modification state. Additionally it opens a log file to write compile errors to.
 Currently, the editor has to be defined via the environment variable
 *MEPHISTO_EDITOR*.
 
-    export MEPHISTO_EDITOR='xterm -e nvim -o2'
+    export MEPHISTO_EDITOR='gedit'
+    export MEPHISTO_EDITOR='xterm -e emacs'
+    export MEPHISTO_EDITOR='urxvt -e vim -o2'
 
 If no environment variable is defined, the default fallback invocation commands
 are defined as follows:
@@ -164,7 +174,7 @@ in their labels in your DSP code:
     cntrl2 = hslider("[2]Control 2", 5.0, 1.0, 10.0, 1.0);
     cntrl3 = hslider("[3]Control 3", 0.5, 0.0, 1.0, 0.1);
 
-#### Instruments
+#### Instruments (MIDI polyphony)
 
 The plugin supports building instruments with
 [MIDI polyphony](https://faust.grame.fr/doc/manual/index.html#midi-polyphony-support).
