@@ -56,17 +56,17 @@ i686-linux-gnu-bullseye:
     - apt-get install -y faust:i386 faust-common:i386 libfaust2:i386
   <<: *universal_linux_definition_bullseye
 
-arm-linux-gnueabihf-bullseye:
-  before_script:
-    - apt-get update
-    - apt-get install -y faust:armhf faust-common:armhf libfaust2:armhf
-  <<: *arm_linux_definition_bullseye
+#arm-linux-gnueabihf-bullseye:
+#  before_script:
+#    - apt-get update
+#    - apt-get install -y faust:armhf faust-common:armhf libfaust2:armhf
+#  <<: *arm_linux_definition_bullseye
 
-aarch64-linux-gnu-bullseye:
-  before_script:
-    - apt-get update
-    - apt-get install -y faust:arm64 faust-common:arm64 libfaust2:arm64
-  <<: *arm_linux_definition_bullseye
+#aarch64-linux-gnu-bullseye:
+#  before_script:
+#    - apt-get update
+#    - apt-get install -y faust:arm64 faust-common:arm64 libfaust2:arm64
+#  <<: *arm_linux_definition_bullseye
 
 #x86_64-w64-mingw32:
 #  <<: *universal_w64_definition
