@@ -19,7 +19,7 @@ stages:
 .build_template: &build_definition
   <<: *common_definition
   script:
-    - meson --prefix="/opt/${CI_BUILD_NAME}" --libdir="lib" --cross-file "${CI_BUILD_NAME}" build
+    - meson --prefix="/opt/${CI_BUILD_NAME}" --libdir="lib" --cross-file "${CI_BUILD_NAME}" -Dwerror=true build
     - sed -i -e '/framework/s/-Wl,-O1//g' -e '/framework/s/-Wl,--start-group//g' -e '/framework/s/-Wl,--end-group//g' -e '/framework/s/-Wl,-soname,.*dylib//g' build/build.ninja
     - ninja -C build
     - ninja -C build install
@@ -31,8 +31,8 @@ stages:
   image: ventosus/universal-linux-gnu:bullseye
   <<: *build_definition
 
-.arm_linux_template: &arm_linux_definition
-  image: ventosus/arm-linux-gnueabihf
+.arm_linux_template_bullseye: &arm_linux_definition_bullseye
+  image: ventosus/arm-linux-gnueabihf:bullseye
   <<: *build_definition
 
 .universal_w64_template: &universal_w64_definition
@@ -56,17 +56,17 @@ i686-linux-gnu-bullseye:
     - apt-get install -y faust:i386 faust-common:i386 libfaust2:i386
   <<: *universal_linux_definition_bullseye
 
-#arm-linux-gnueabihf:
-#  before_script:
-#    - apt-get update
-#    - apt-get install -y faust:armhf faust-common:armhf libfaust2:armhf
-#  <<: *arm_linux_definition
+arm-linux-gnueabihf-bullseye:
+  before_script:
+    - apt-get update
+    - apt-get install -y faust:armhf faust-common:armhf libfaust2:armhf
+  <<: *arm_linux_definition_bullseye
 
-#aarch64-linux-gnu:
-#  before_script:
-#    - apt-get update
-#    - apt-get install -y faust:arm64 faust-common:arm64 libfaust2:arm64
-#  <<: *arm_linux_definition
+aarch64-linux-gnu-bullseye:
+  before_script:
+    - apt-get update
+    - apt-get install -y faust:arm64 faust-common:arm64 libfaust2:arm64
+  <<: *arm_linux_definition_bullseye
 
 #x86_64-w64-mingw32:
 #  <<: *universal_w64_definition
