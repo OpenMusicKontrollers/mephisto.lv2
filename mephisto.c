@@ -280,7 +280,9 @@ _voice_begin(dsp_t *dsp)
 static inline bool
 _voice_not_end(dsp_t *dsp, voice_t *voice)
 {
-	return (voice - dsp->voices) < dsp->nvoices;
+	const uint32_t voice_offset = voice - dsp->voices;
+
+	return voice_offset < dsp->nvoices;
 }
 
 static inline voice_t *
