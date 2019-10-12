@@ -44,9 +44,14 @@
 #define MEPHISTO_PREFIX MEPHISTO_URI "#"
 
 // plugin uris
-#define MEPHISTO__mono          MEPHISTO_PREFIX "mono"
-#define MEPHISTO__stereo        MEPHISTO_PREFIX "stereo"
-#define MEPHISTO__cv            MEPHISTO_PREFIX "cv"
+#define MEPHISTO__audio_1x1     MEPHISTO_PREFIX "audio_1x1"
+#define MEPHISTO__audio_2x2     MEPHISTO_PREFIX "audio_2x2"
+#define MEPHISTO__audio_4x4     MEPHISTO_PREFIX "audio_4x4"
+#define MEPHISTO__audio_8x8     MEPHISTO_PREFIX "audio_8x8"
+#define MEPHISTO__cv_1x1        MEPHISTO_PREFIX "cv_1x1"
+#define MEPHISTO__cv_2x2        MEPHISTO_PREFIX "cv_2x2"
+#define MEPHISTO__cv_4x4        MEPHISTO_PREFIX "cv_4x4"
+#define MEPHISTO__cv_8x8        MEPHISTO_PREFIX "cv_8x8"
 
 // plugin UI uris
 #define MEPHISTO__showUI        MEPHISTO_PREFIX "showUI"

@@ -34,7 +34,7 @@
 
 #include <faust/dsp/llvm-c-dsp.h>
 
-#define MAX_CHANNEL 2
+#define MAX_CHANNEL 8
 #define MAX_LABEL 32
 #define MAX_VOICES 64
 
@@ -718,9 +718,20 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 	mlock(handle, sizeof(plughandle_t));
 
 	handle->nchannel = 1;
-	if(!strcmp(descriptor->URI, MEPHISTO__stereo))
+	if(  !strcmp(descriptor->URI, MEPHISTO__audio_2x2)
+		|| !strcmp(descriptor->URI, MEPHISTO__cv_2x2) )
 	{
 		handle->nchannel = 2;
+	}
+	else if(!strcmp(descriptor->URI, MEPHISTO__audio_4x4)
+		|| !strcmp(descriptor->URI, MEPHISTO__cv_4x4) )
+	{
+		handle->nchannel = 4;
+	}
+	else if(!strcmp(descriptor->URI, MEPHISTO__audio_8x8)
+		|| !strcmp(descriptor->URI, MEPHISTO__cv_8x8) )
+	{
+		handle->nchannel = 8;
 	}
 
 	strncpy(handle->bundle_path, bundle_path, sizeof(handle->bundle_path) - 1);
@@ -863,18 +874,63 @@ connect_port(LV2_Handle instance, uint32_t port, void *data)
 		case 1:
 			handle->notify = (LV2_Atom_Sequence *)data;
 			break;
+
 		case 2:
 			handle->audio_in[0] = (const float *)data;
 			break;
 		case 3:
 			handle->audio_out[0] = (float *)data;
 			break;
+
 		case 4:
 			handle->audio_in[1] = (const float *)data;
 			break;
 		case 5:
 			handle->audio_out[1] = (float *)data;
 			break;
+
+		case 6:
+			handle->audio_in[2] = (const float *)data;
+			break;
+		case 7:
+			handle->audio_out[2] = (float *)data;
+			break;
+
+		case 8:
+			handle->audio_in[3] = (const float *)data;
+			break;
+		case 9:
+			handle->audio_out[3] = (float *)data;
+			break;
+
+		case 10:
+			handle->audio_in[4] = (const float *)data;
+			break;
+		case 11:
+			handle->audio_out[4] = (float *)data;
+			break;
+
+		case 12:
+			handle->audio_in[5] = (const float *)data;
+			break;
+		case 13:
+			handle->audio_out[5] = (float *)data;
+			break;
+
+		case 14:
+			handle->audio_in[6] = (const float *)data;
+			break;
+		case 15:
+			handle->audio_out[6] = (float *)data;
+			break;
+
+		case 16:
+			handle->audio_in[7] = (const float *)data;
+			break;
+		case 17:
+			handle->audio_out[7] = (float *)data;
+			break;
+
 		default:
 			break;
 	}
@@ -2205,8 +2261,8 @@ extension_data(const char* uri)
 	return NULL;
 }
 
-static const LV2_Descriptor mephisto_mono = {
-	.URI						= MEPHISTO__mono,
+static const LV2_Descriptor mephisto_audio_1x1 = {
+	.URI						= MEPHISTO__audio_1x1,
 	.instantiate		= instantiate,
 	.connect_port		= connect_port,
 	.activate				= NULL,
@@ -2216,8 +2272,8 @@ static const LV2_Descriptor mephisto_mono = {
 	.extension_data	= extension_data
 };
 
-static const LV2_Descriptor mephisto_stereo = {
-	.URI						= MEPHISTO__stereo,
+static const LV2_Descriptor mephisto_audio_2x2 = {
+	.URI						= MEPHISTO__audio_2x2,
 	.instantiate		= instantiate,
 	.connect_port		= connect_port,
 	.activate				= NULL,
@@ -2227,8 +2283,63 @@ static const LV2_Descriptor mephisto_stereo = {
 	.extension_data	= extension_data
 };
 
-static const LV2_Descriptor mephisto_cv = {
-	.URI						= MEPHISTO__cv,
+static const LV2_Descriptor mephisto_audio_4x4 = {
+	.URI						= MEPHISTO__audio_4x4,
+	.instantiate		= instantiate,
+	.connect_port		= connect_port,
+	.activate				= NULL,
+	.run						= run,
+	.deactivate			= NULL,
+	.cleanup				= cleanup,
+	.extension_data	= extension_data
+};
+
+static const LV2_Descriptor mephisto_audio_8x8 = {
+	.URI						= MEPHISTO__audio_8x8,
+	.instantiate		= instantiate,
+	.connect_port		= connect_port,
+	.activate				= NULL,
+	.run						= run,
+	.deactivate			= NULL,
+	.cleanup				= cleanup,
+	.extension_data	= extension_data
+};
+
+static const LV2_Descriptor mephisto_cv_1x1 = {
+	.URI						= MEPHISTO__cv_1x1,
+	.instantiate		= instantiate,
+	.connect_port		= connect_port,
+	.activate				= NULL,
+	.run						= run,
+	.deactivate			= NULL,
+	.cleanup				= cleanup,
+	.extension_data	= extension_data
+};
+
+static const LV2_Descriptor mephisto_cv_2x2 = {
+	.URI						= MEPHISTO__cv_2x2,
+	.instantiate		= instantiate,
+	.connect_port		= connect_port,
+	.activate				= NULL,
+	.run						= run,
+	.deactivate			= NULL,
+	.cleanup				= cleanup,
+	.extension_data	= extension_data
+};
+
+static const LV2_Descriptor mephisto_cv_4x4 = {
+	.URI						= MEPHISTO__cv_4x4,
+	.instantiate		= instantiate,
+	.connect_port		= connect_port,
+	.activate				= NULL,
+	.run						= run,
+	.deactivate			= NULL,
+	.cleanup				= cleanup,
+	.extension_data	= extension_data
+};
+
+static const LV2_Descriptor mephisto_cv_8x8 = {
+	.URI						= MEPHISTO__cv_8x8,
 	.instantiate		= instantiate,
 	.connect_port		= connect_port,
 	.activate				= NULL,
@@ -2244,11 +2355,23 @@ lv2_descriptor(uint32_t index)
 	switch(index)
 	{
 		case 0:
-			return &mephisto_mono;
+			return &mephisto_audio_1x1;
 		case 1:
-			return &mephisto_stereo;
+			return &mephisto_audio_2x2;
 		case 2:
-			return &mephisto_cv;
+			return &mephisto_audio_4x4;
+		case 3:
+			return &mephisto_audio_8x8;
+
+		case 4:
+			return &mephisto_cv_1x1;
+		case 5:
+			return &mephisto_cv_2x2;
+		case 6:
+			return &mephisto_cv_4x4;
+		case 7:
+			return &mephisto_cv_8x8;
+
 		default:
 			return NULL;
 	}

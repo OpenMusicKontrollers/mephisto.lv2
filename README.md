@@ -107,7 +107,7 @@ inject it. Potential warnings and errors are reported in the plugin host's log.
 Example command line to run it in [Jalv](https://drobilla.net/software/jalv):
 
     export MEPHISTO_EDITOR='xterm -e nvim -o2'
-    jalv -d -t -s http://open-music-kontrollers.ch/lv2/mephisto#stereo
+    jalv -d -t -s http://open-music-kontrollers.ch/lv2/mephisto#audio_2x2
 
 #### Controls
 

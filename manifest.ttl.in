@@ -29,8 +29,8 @@ kx:Widget
 kx:Host
 	a lv2:Feature .
 
-# Mephisto Mono
-mephisto:mono
+# Mephisto Audio 1x1
+mephisto:audio_1x1
 	a lv2:Plugin ;
 	lv2:minorVersion @MINOR_VERSION@ ;
 	lv2:microVersion @MICRO_VERSION@ ;
@@ -39,8 +39,8 @@ mephisto:mono
 	lv2:binary <mephisto@MODULE_SUFFIX@> ;
 	rdfs:seeAlso <mephisto.ttl> .
 
-# Mephisto Mono
-mephisto:stereo
+# Mephisto Audio 2x2
+mephisto:audio_2x2
 	a lv2:Plugin ;
 	lv2:minorVersion @MINOR_VERSION@ ;
 	lv2:microVersion @MICRO_VERSION@ ;
@@ -49,8 +49,58 @@ mephisto:stereo
 	lv2:binary <mephisto@MODULE_SUFFIX@> ;
 	rdfs:seeAlso <mephisto.ttl> .
 
-# Mephisto CV
-mephisto:cv
+# Mephisto Audio 4x4
+mephisto:audio_4x4
+	a lv2:Plugin ;
+	lv2:minorVersion @MINOR_VERSION@ ;
+	lv2:microVersion @MICRO_VERSION@ ;
+	ui:ui mephisto:showUI ;
+	ui:ui mephisto:kxUI ;
+	lv2:binary <mephisto@MODULE_SUFFIX@> ;
+	rdfs:seeAlso <mephisto.ttl> .
+
+# Mephisto Audio 8x8
+mephisto:audio_8x8
+	a lv2:Plugin ;
+	lv2:minorVersion @MINOR_VERSION@ ;
+	lv2:microVersion @MICRO_VERSION@ ;
+	ui:ui mephisto:showUI ;
+	ui:ui mephisto:kxUI ;
+	lv2:binary <mephisto@MODULE_SUFFIX@> ;
+	rdfs:seeAlso <mephisto.ttl> .
+
+# Mephisto CV 1x1
+mephisto:cv_1x1
+	a lv2:Plugin ;
+	lv2:minorVersion @MINOR_VERSION@ ;
+	lv2:microVersion @MICRO_VERSION@ ;
+	ui:ui mephisto:showUI ;
+	ui:ui mephisto:kxUI ;
+	lv2:binary <mephisto@MODULE_SUFFIX@> ;
+	rdfs:seeAlso <mephisto.ttl> .
+
+# Mephisto CV 2x2
+mephisto:cv_2x2
+	a lv2:Plugin ;
+	lv2:minorVersion @MINOR_VERSION@ ;
+	lv2:microVersion @MICRO_VERSION@ ;
+	ui:ui mephisto:showUI ;
+	ui:ui mephisto:kxUI ;
+	lv2:binary <mephisto@MODULE_SUFFIX@> ;
+	rdfs:seeAlso <mephisto.ttl> .
+
+# Mephisto CV 4x4
+mephisto:cv_4x4
+	a lv2:Plugin ;
+	lv2:minorVersion @MINOR_VERSION@ ;
+	lv2:microVersion @MICRO_VERSION@ ;
+	ui:ui mephisto:showUI ;
+	ui:ui mephisto:kxUI ;
+	lv2:binary <mephisto@MODULE_SUFFIX@> ;
+	rdfs:seeAlso <mephisto.ttl> .
+
+# Mephisto CV 8x8
+mephisto:cv_8x8
 	a lv2:Plugin ;
 	lv2:minorVersion @MINOR_VERSION@ ;
 	lv2:microVersion @MICRO_VERSION@ ;
@@ -83,15 +133,19 @@ mephisto:bank-time
 # Filter bank
 mephisto:bank-filter_through
 	a pset:Preset ;
-	lv2:appliesTo mephisto:mono ,
-		mephisto:stereo ;
+	lv2:appliesTo mephisto:audio_1x1 ,
+		mephisto:audio_2x2 ,
+		mephisto:audio_4x4 ,
+		mephisto:audio_8x8 ;
 	pset:bank mephisto:bank-filter ;
 	rdfs:label "[Filter] Through" ;
 	rdfs:seeAlso <presets.ttl> .
 mephisto:bank-filter_gain
 	a pset:Preset ;
-	lv2:appliesTo mephisto:mono ,
-		mephisto:stereo ;
+	lv2:appliesTo mephisto:audio_1x1 ,
+		mephisto:audio_2x2 ,
+		mephisto:audio_4x4 ,
+		mephisto:audio_8x8 ;
 	pset:bank mephisto:bank-filter ;
 	rdfs:label "[Filter] Gain" ;
 	rdfs:seeAlso <presets.ttl> .
@@ -99,8 +153,10 @@ mephisto:bank-filter_gain
 # Time bank
 mephisto:bank-time_lfo
 	a pset:Preset ;
-	lv2:appliesTo mephisto:mono ,
-		mephisto:stereo ;
+	lv2:appliesTo mephisto:audio_1x1 ,
+		mephisto:audio_2x2 ,
+		mephisto:audio_4x4 ,
+		mephisto:audio_8x8 ;
 	pset:bank mephisto:bank-time ;
 	rdfs:label "[Time] Simple LFO" ;
 	rdfs:seeAlso <presets.ttl> .
@@ -108,8 +164,10 @@ mephisto:bank-time_lfo
 # Instrument bank
 mephisto:bank-instrument_osc
 	a pset:Preset ;
-	lv2:appliesTo mephisto:mono ,
-		mephisto:stereo ;
+	lv2:appliesTo mephisto:audio_1x1 ,
+		mephisto:audio_2x2 ,
+		mephisto:audio_4x4 ,
+		mephisto:audio_8x8 ;
 	pset:bank mephisto:bank-instrument ;
 	rdfs:label "[Instrument] Simple Oscillator" ;
 	rdfs:seeAlso <presets.ttl> .

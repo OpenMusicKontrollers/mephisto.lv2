@@ -207,11 +207,11 @@ mephisto:control_16
 	lv2:maximum 1.0 ;
 	lv2:default 0.0 .
 
-mephisto:mono
+mephisto:audio_1x1
 	a lv2:Plugin ,
 		#lv2:FilterPlugin ,
 		lv2:InstrumentPlugin ;
-	doap:name "Mephisto Mono" ;
+	doap:name "Mephisto Audio 1x1" ;
 	doap:license lic:Artistic-2.0 ;
 	lv2:project proj:mephisto ;
 	lv2:requiredFeature urid:map, state:loadDefaultState, work:schedule, opts:options ;
@@ -302,11 +302,428 @@ mephisto:mono
 		mephisto:control_16 "0.0"^^xsd:float ;
 	] .
 
-mephisto:cv
+mephisto:audio_2x2
 	a lv2:Plugin ,
 		#lv2:FilterPlugin ,
 		lv2:InstrumentPlugin ;
-	doap:name "Mephisto CV" ;
+	doap:name "Mephisto Audio 2x2" ;
+	doap:license lic:Artistic-2.0 ;
+	lv2:project proj:mephisto ;
+	lv2:requiredFeature urid:map, state:loadDefaultState, work:schedule, opts:options ;
+	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, state:threadSafeRestore, log:log ;
+	lv2:extensionData	state:interface, work:interface ;
+	opts:requiredOption bufsz:maxBlockLength ;
+
+	lv2:port [
+	  a lv2:InputPort ,
+			atom:AtomPort ;
+		atom:bufferType atom:Sequence ;
+		atom:supports time:Position ,
+			midi:MidiEvent ,
+			time:Position ,
+			patch:Message ;
+		lv2:index 0 ;
+		lv2:symbol "control" ;
+		lv2:name "Control" ;
+		rsz:minimumSize 131072 ;
+		lv2:designation lv2:control ;
+	] , [
+	  a lv2:OutputPort ,
+			atom:AtomPort ;
+		atom:bufferType atom:Sequence ;
+		atom:supports patch:Message ;
+		lv2:index 1 ;
+		lv2:symbol "notify" ;
+		lv2:name "Notify" ;
+		rsz:minimumSize 131072 ;
+		lv2:designation lv2:control ;
+	] , [
+	  a lv2:InputPort ,
+			lv2:AudioPort;
+		lv2:index 2 ;
+		lv2:symbol "audio_in_1" ;
+		lv2:name "Audio In 1" ;
+	] , [
+	  a lv2:OutputPort,
+			lv2:AudioPort;
+		lv2:index 3 ;
+		lv2:symbol "audio_out_1" ;
+		lv2:name "Audio Out 1" ;
+	] , [
+	  a lv2:InputPort ,
+			lv2:AudioPort;
+		lv2:index 4 ;
+		lv2:symbol "audio_in_2" ;
+		lv2:name "Audio In 2" ;
+	] , [
+	  a lv2:OutputPort,
+			lv2:AudioPort;
+		lv2:index 5 ;
+		lv2:symbol "audio_out_2" ;
+		lv2:name "Audio Out 2" ;
+	] ;
+
+	patch:readable
+		mephisto:error ;
+
+	patch:writable
+		mephisto:code ,
+		mephisto:xfadeDuration ,
+		mephisto:releaseDuration ,
+		mephisto:control_1 ,
+		mephisto:control_2 ,
+		mephisto:control_3 ,
+		mephisto:control_4 ,
+		mephisto:control_5 ,
+		mephisto:control_6 ,
+		mephisto:control_7 ,
+		mephisto:control_8 ,
+		mephisto:control_9 ,
+		mephisto:control_10 ,
+		mephisto:control_11 ,
+		mephisto:control_12 ,
+		mephisto:control_13 ,
+		mephisto:control_14 ,
+		mephisto:control_15 ,
+		mephisto:control_16 ;
+
+	state:state [
+		mephisto:code """@BANK-FILTER_THROUGH@""" ;
+		mephisto:xfadeDuration "100"^^xsd:int ;
+		mephisto:releaseDuration "10"^^xsd:int ;
+		mephisto:control_1 "0.0"^^xsd:float ;
+		mephisto:control_2 "0.0"^^xsd:float ;
+		mephisto:control_3 "0.0"^^xsd:float ;
+		mephisto:control_4 "0.0"^^xsd:float ;
+		mephisto:control_5 "0.0"^^xsd:float ;
+		mephisto:control_6 "0.0"^^xsd:float ;
+		mephisto:control_7 "0.0"^^xsd:float ;
+		mephisto:control_8 "0.0"^^xsd:float ;
+		mephisto:control_9 "0.0"^^xsd:float ;
+		mephisto:control_10 "0.0"^^xsd:float ;
+		mephisto:control_11 "0.0"^^xsd:float ;
+		mephisto:control_12 "0.0"^^xsd:float ;
+		mephisto:control_13 "0.0"^^xsd:float ;
+		mephisto:control_14 "0.0"^^xsd:float ;
+		mephisto:control_15 "0.0"^^xsd:float ;
+		mephisto:control_16 "0.0"^^xsd:float ;
+	] .
+
+mephisto:audio_4x4
+	a lv2:Plugin ,
+		#lv2:FilterPlugin ,
+		lv2:InstrumentPlugin ;
+	doap:name "Mephisto Audio 4x4" ;
+	doap:license lic:Artistic-2.0 ;
+	lv2:project proj:mephisto ;
+	lv2:requiredFeature urid:map, state:loadDefaultState, work:schedule, opts:options ;
+	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, state:threadSafeRestore, log:log ;
+	lv2:extensionData	state:interface, work:interface ;
+	opts:requiredOption bufsz:maxBlockLength ;
+
+	lv2:port [
+	  a lv2:InputPort ,
+			atom:AtomPort ;
+		atom:bufferType atom:Sequence ;
+		atom:supports time:Position ,
+			midi:MidiEvent ,
+			time:Position ,
+			patch:Message ;
+		lv2:index 0 ;
+		lv2:symbol "control" ;
+		lv2:name "Control" ;
+		rsz:minimumSize 131072 ;
+		lv2:designation lv2:control ;
+	] , [
+	  a lv2:OutputPort ,
+			atom:AtomPort ;
+		atom:bufferType atom:Sequence ;
+		atom:supports patch:Message ;
+		lv2:index 1 ;
+		lv2:symbol "notify" ;
+		lv2:name "Notify" ;
+		rsz:minimumSize 131072 ;
+		lv2:designation lv2:control ;
+	] , [
+	  a lv2:InputPort ,
+			lv2:AudioPort;
+		lv2:index 2 ;
+		lv2:symbol "audio_in_1" ;
+		lv2:name "Audio In 1" ;
+	] , [
+	  a lv2:OutputPort,
+			lv2:AudioPort;
+		lv2:index 3 ;
+		lv2:symbol "audio_out_1" ;
+		lv2:name "Audio Out 1" ;
+	] , [
+	  a lv2:InputPort ,
+			lv2:AudioPort;
+		lv2:index 4 ;
+		lv2:symbol "audio_in_2" ;
+		lv2:name "Audio In 2" ;
+	] , [
+	  a lv2:OutputPort,
+			lv2:AudioPort;
+		lv2:index 5 ;
+		lv2:symbol "audio_out_2" ;
+		lv2:name "Audio Out 2" ;
+	] , [
+	  a lv2:InputPort ,
+			lv2:AudioPort;
+		lv2:index 6 ;
+		lv2:symbol "audio_in_3" ;
+		lv2:name "Audio In 3" ;
+	] , [
+	  a lv2:OutputPort,
+			lv2:AudioPort;
+		lv2:index 7 ;
+		lv2:symbol "audio_out_3" ;
+		lv2:name "Audio Out 3" ;
+	] , [
+	  a lv2:InputPort ,
+			lv2:AudioPort;
+		lv2:index 8 ;
+		lv2:symbol "audio_in_4" ;
+		lv2:name "Audio In 4" ;
+	] , [
+	  a lv2:OutputPort,
+			lv2:AudioPort;
+		lv2:index 9 ;
+		lv2:symbol "audio_out_4" ;
+		lv2:name "Audio Out 4" ;
+	] ;
+
+	patch:readable
+		mephisto:error ;
+
+	patch:writable
+		mephisto:code ,
+		mephisto:xfadeDuration ,
+		mephisto:releaseDuration ,
+		mephisto:control_1 ,
+		mephisto:control_2 ,
+		mephisto:control_3 ,
+		mephisto:control_4 ,
+		mephisto:control_5 ,
+		mephisto:control_6 ,
+		mephisto:control_7 ,
+		mephisto:control_8 ,
+		mephisto:control_9 ,
+		mephisto:control_10 ,
+		mephisto:control_11 ,
+		mephisto:control_12 ,
+		mephisto:control_13 ,
+		mephisto:control_14 ,
+		mephisto:control_15 ,
+		mephisto:control_16 ;
+
+	state:state [
+		mephisto:code """@BANK-FILTER_THROUGH@""" ;
+		mephisto:xfadeDuration "100"^^xsd:int ;
+		mephisto:releaseDuration "10"^^xsd:int ;
+		mephisto:control_1 "0.0"^^xsd:float ;
+		mephisto:control_2 "0.0"^^xsd:float ;
+		mephisto:control_3 "0.0"^^xsd:float ;
+		mephisto:control_4 "0.0"^^xsd:float ;
+		mephisto:control_5 "0.0"^^xsd:float ;
+		mephisto:control_6 "0.0"^^xsd:float ;
+		mephisto:control_7 "0.0"^^xsd:float ;
+		mephisto:control_8 "0.0"^^xsd:float ;
+		mephisto:control_9 "0.0"^^xsd:float ;
+		mephisto:control_10 "0.0"^^xsd:float ;
+		mephisto:control_11 "0.0"^^xsd:float ;
+		mephisto:control_12 "0.0"^^xsd:float ;
+		mephisto:control_13 "0.0"^^xsd:float ;
+		mephisto:control_14 "0.0"^^xsd:float ;
+		mephisto:control_15 "0.0"^^xsd:float ;
+		mephisto:control_16 "0.0"^^xsd:float ;
+	] .
+
+mephisto:audio_8x8
+	a lv2:Plugin ,
+		#lv2:FilterPlugin ,
+		lv2:InstrumentPlugin ;
+	doap:name "Mephisto Audio 8x8" ;
+	doap:license lic:Artistic-2.0 ;
+	lv2:project proj:mephisto ;
+	lv2:requiredFeature urid:map, state:loadDefaultState, work:schedule, opts:options ;
+	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, state:threadSafeRestore, log:log ;
+	lv2:extensionData	state:interface, work:interface ;
+	opts:requiredOption bufsz:maxBlockLength ;
+
+	lv2:port [
+	  a lv2:InputPort ,
+			atom:AtomPort ;
+		atom:bufferType atom:Sequence ;
+		atom:supports time:Position ,
+			midi:MidiEvent ,
+			time:Position ,
+			patch:Message ;
+		lv2:index 0 ;
+		lv2:symbol "control" ;
+		lv2:name "Control" ;
+		rsz:minimumSize 131072 ;
+		lv2:designation lv2:control ;
+	] , [
+	  a lv2:OutputPort ,
+			atom:AtomPort ;
+		atom:bufferType atom:Sequence ;
+		atom:supports patch:Message ;
+		lv2:index 1 ;
+		lv2:symbol "notify" ;
+		lv2:name "Notify" ;
+		rsz:minimumSize 131072 ;
+		lv2:designation lv2:control ;
+	] , [
+	  a lv2:InputPort ,
+			lv2:AudioPort;
+		lv2:index 2 ;
+		lv2:symbol "audio_in_1" ;
+		lv2:name "Audio In 1" ;
+	] , [
+	  a lv2:OutputPort,
+			lv2:AudioPort;
+		lv2:index 3 ;
+		lv2:symbol "audio_out_1" ;
+		lv2:name "Audio Out 1" ;
+	] , [
+	  a lv2:InputPort ,
+			lv2:AudioPort;
+		lv2:index 4 ;
+		lv2:symbol "audio_in_2" ;
+		lv2:name "Audio In 2" ;
+	] , [
+	  a lv2:OutputPort,
+			lv2:AudioPort;
+		lv2:index 5 ;
+		lv2:symbol "audio_out_2" ;
+		lv2:name "Audio Out 2" ;
+	] , [
+	  a lv2:InputPort ,
+			lv2:AudioPort;
+		lv2:index 6 ;
+		lv2:symbol "audio_in_3" ;
+		lv2:name "Audio In 3" ;
+	] , [
+	  a lv2:OutputPort,
+			lv2:AudioPort;
+		lv2:index 7 ;
+		lv2:symbol "audio_out_3" ;
+		lv2:name "Audio Out 3" ;
+	] , [
+	  a lv2:InputPort ,
+			lv2:AudioPort;
+		lv2:index 8 ;
+		lv2:symbol "audio_in_4" ;
+		lv2:name "Audio In 4" ;
+	] , [
+	  a lv2:OutputPort,
+			lv2:AudioPort;
+		lv2:index 9 ;
+		lv2:symbol "audio_out_4" ;
+		lv2:name "Audio Out 4" ;
+	] , [
+	  a lv2:InputPort ,
+			lv2:AudioPort;
+		lv2:index 10 ;
+		lv2:symbol "audio_in_5" ;
+		lv2:name "Audio In 5" ;
+	] , [
+	  a lv2:OutputPort,
+			lv2:AudioPort;
+		lv2:index 11 ;
+		lv2:symbol "audio_out_5" ;
+		lv2:name "Audio Out 5" ;
+	] , [
+	  a lv2:InputPort ,
+			lv2:AudioPort;
+		lv2:index 12 ;
+		lv2:symbol "audio_in_6" ;
+		lv2:name "Audio In 6" ;
+	] , [
+	  a lv2:OutputPort,
+			lv2:AudioPort;
+		lv2:index 13 ;
+		lv2:symbol "audio_out_6" ;
+		lv2:name "Audio Out 6" ;
+	] , [
+	  a lv2:InputPort ,
+			lv2:AudioPort;
+		lv2:index 14 ;
+		lv2:symbol "audio_in_7" ;
+		lv2:name "Audio In 7" ;
+	] , [
+	  a lv2:OutputPort,
+			lv2:AudioPort;
+		lv2:index 15 ;
+		lv2:symbol "audio_out_7" ;
+		lv2:name "Audio Out 7" ;
+	] , [
+	  a lv2:InputPort ,
+			lv2:AudioPort;
+		lv2:index 16 ;
+		lv2:symbol "audio_in_8" ;
+		lv2:name "Audio In 8" ;
+	] , [
+	  a lv2:OutputPort,
+			lv2:AudioPort;
+		lv2:index 17 ;
+		lv2:symbol "audio_out_8" ;
+		lv2:name "Audio Out 8" ;
+	] ;
+
+	patch:readable
+		mephisto:error ;
+
+	patch:writable
+		mephisto:code ,
+		mephisto:xfadeDuration ,
+		mephisto:releaseDuration ,
+		mephisto:control_1 ,
+		mephisto:control_2 ,
+		mephisto:control_3 ,
+		mephisto:control_4 ,
+		mephisto:control_5 ,
+		mephisto:control_6 ,
+		mephisto:control_7 ,
+		mephisto:control_8 ,
+		mephisto:control_9 ,
+		mephisto:control_10 ,
+		mephisto:control_11 ,
+		mephisto:control_12 ,
+		mephisto:control_13 ,
+		mephisto:control_14 ,
+		mephisto:control_15 ,
+		mephisto:control_16 ;
+
+	state:state [
+		mephisto:code """@BANK-FILTER_THROUGH@""" ;
+		mephisto:xfadeDuration "100"^^xsd:int ;
+		mephisto:releaseDuration "10"^^xsd:int ;
+		mephisto:control_1 "0.0"^^xsd:float ;
+		mephisto:control_2 "0.0"^^xsd:float ;
+		mephisto:control_3 "0.0"^^xsd:float ;
+		mephisto:control_4 "0.0"^^xsd:float ;
+		mephisto:control_5 "0.0"^^xsd:float ;
+		mephisto:control_6 "0.0"^^xsd:float ;
+		mephisto:control_7 "0.0"^^xsd:float ;
+		mephisto:control_8 "0.0"^^xsd:float ;
+		mephisto:control_9 "0.0"^^xsd:float ;
+		mephisto:control_10 "0.0"^^xsd:float ;
+		mephisto:control_11 "0.0"^^xsd:float ;
+		mephisto:control_12 "0.0"^^xsd:float ;
+		mephisto:control_13 "0.0"^^xsd:float ;
+		mephisto:control_14 "0.0"^^xsd:float ;
+		mephisto:control_15 "0.0"^^xsd:float ;
+		mephisto:control_16 "0.0"^^xsd:float ;
+	] .
+
+mephisto:cv_1x1
+	a lv2:Plugin ,
+		#lv2:FilterPlugin ,
+		lv2:InstrumentPlugin ;
+	doap:name "Mephisto CV 1x1" ;
 	doap:license lic:Artistic-2.0 ;
 	lv2:project proj:mephisto ;
 	lv2:requiredFeature urid:map, state:loadDefaultState, work:schedule, opts:options ;
@@ -400,11 +817,11 @@ mephisto:cv
 		mephisto:control_16 "0.0"^^xsd:float ;
 	] .
 
-mephisto:stereo
+mephisto:cv_2x2
 	a lv2:Plugin ,
 		#lv2:FilterPlugin ,
 		lv2:InstrumentPlugin ;
-	doap:name "Mephisto Stereo" ;
+	doap:name "Mephisto CV 2x2" ;
 	doap:license lic:Artistic-2.0 ;
 	lv2:project proj:mephisto ;
 	lv2:requiredFeature urid:map, state:loadDefaultState, work:schedule, opts:options ;
@@ -437,28 +854,380 @@ mephisto:stereo
 		lv2:designation lv2:control ;
 	] , [
 	  a lv2:InputPort ,
-			lv2:AudioPort;
+			lv2:CVPort;
 		lv2:index 2 ;
-		lv2:symbol "audio_in_1" ;
-		lv2:name "Audio In 1" ;
+		lv2:default 0.0 ;
+		lv2:minimum -1.0 ;
+		lv2:maximum 1.0 ;
+		lv2:symbol "cv_in_1" ;
+		lv2:name "CV In 1" ;
 	] , [
 	  a lv2:OutputPort,
-			lv2:AudioPort;
+			lv2:CVPort;
 		lv2:index 3 ;
-		lv2:symbol "audio_out_1" ;
-		lv2:name "Audio Out 1" ;
+		lv2:symbol "cv_out_1" ;
+		lv2:name "CV Out 1" ;
 	] , [
 	  a lv2:InputPort ,
-			lv2:AudioPort;
+			lv2:CVPort;
 		lv2:index 4 ;
-		lv2:symbol "audio_in_2" ;
-		lv2:name "Audio In 2" ;
+		lv2:default 0.0 ;
+		lv2:minimum -1.0 ;
+		lv2:maximum 1.0 ;
+		lv2:symbol "cv_in_2" ;
+		lv2:name "CV In 2" ;
 	] , [
 	  a lv2:OutputPort,
-			lv2:AudioPort;
+			lv2:CVPort;
 		lv2:index 5 ;
-		lv2:symbol "audio_out_2" ;
-		lv2:name "Audio Out 2" ;
+		lv2:symbol "cv_out_2" ;
+		lv2:name "CV Out 2" ;
+	] ;
+
+	patch:readable
+		mephisto:error ;
+
+	patch:writable
+		mephisto:code ,
+		mephisto:xfadeDuration ,
+		mephisto:releaseDuration ,
+		mephisto:control_1 ,
+		mephisto:control_2 ,
+		mephisto:control_3 ,
+		mephisto:control_4 ,
+		mephisto:control_5 ,
+		mephisto:control_6 ,
+		mephisto:control_7 ,
+		mephisto:control_8 ,
+		mephisto:control_9 ,
+		mephisto:control_10 ,
+		mephisto:control_11 ,
+		mephisto:control_12 ,
+		mephisto:control_13 ,
+		mephisto:control_14 ,
+		mephisto:control_15 ,
+		mephisto:control_16 ;
+
+	state:state [
+		mephisto:code """@BANK-FILTER_THROUGH@""" ;
+		mephisto:xfadeDuration "100"^^xsd:int ;
+		mephisto:releaseDuration "10"^^xsd:int ;
+		mephisto:control_1 "0.0"^^xsd:float ;
+		mephisto:control_2 "0.0"^^xsd:float ;
+		mephisto:control_3 "0.0"^^xsd:float ;
+		mephisto:control_4 "0.0"^^xsd:float ;
+		mephisto:control_5 "0.0"^^xsd:float ;
+		mephisto:control_6 "0.0"^^xsd:float ;
+		mephisto:control_7 "0.0"^^xsd:float ;
+		mephisto:control_8 "0.0"^^xsd:float ;
+		mephisto:control_9 "0.0"^^xsd:float ;
+		mephisto:control_10 "0.0"^^xsd:float ;
+		mephisto:control_11 "0.0"^^xsd:float ;
+		mephisto:control_12 "0.0"^^xsd:float ;
+		mephisto:control_13 "0.0"^^xsd:float ;
+		mephisto:control_14 "0.0"^^xsd:float ;
+		mephisto:control_15 "0.0"^^xsd:float ;
+		mephisto:control_16 "0.0"^^xsd:float ;
+	] .
+
+mephisto:cv_4x4
+	a lv2:Plugin ,
+		#lv2:FilterPlugin ,
+		lv2:InstrumentPlugin ;
+	doap:name "Mephisto CV 4x4" ;
+	doap:license lic:Artistic-2.0 ;
+	lv2:project proj:mephisto ;
+	lv2:requiredFeature urid:map, state:loadDefaultState, work:schedule, opts:options ;
+	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, state:threadSafeRestore, log:log ;
+	lv2:extensionData	state:interface, work:interface ;
+	opts:requiredOption bufsz:maxBlockLength ;
+
+	lv2:port [
+	  a lv2:InputPort ,
+			atom:AtomPort ;
+		atom:bufferType atom:Sequence ;
+		atom:supports time:Position ,
+			midi:MidiEvent ,
+			time:Position ,
+			patch:Message ;
+		lv2:index 0 ;
+		lv2:symbol "control" ;
+		lv2:name "Control" ;
+		rsz:minimumSize 131072 ;
+		lv2:designation lv2:control ;
+	] , [
+	  a lv2:OutputPort ,
+			atom:AtomPort ;
+		atom:bufferType atom:Sequence ;
+		atom:supports patch:Message ;
+		lv2:index 1 ;
+		lv2:symbol "notify" ;
+		lv2:name "Notify" ;
+		rsz:minimumSize 131072 ;
+		lv2:designation lv2:control ;
+	] , [
+	  a lv2:InputPort ,
+			lv2:CVPort;
+		lv2:index 2 ;
+		lv2:default 0.0 ;
+		lv2:minimum -1.0 ;
+		lv2:maximum 1.0 ;
+		lv2:symbol "cv_in_1" ;
+		lv2:name "CV In 1" ;
+	] , [
+	  a lv2:OutputPort,
+			lv2:CVPort;
+		lv2:index 3 ;
+		lv2:symbol "cv_out_1" ;
+		lv2:name "CV Out 1" ;
+	] , [
+	  a lv2:InputPort ,
+			lv2:CVPort;
+		lv2:index 4 ;
+		lv2:default 0.0 ;
+		lv2:minimum -1.0 ;
+		lv2:maximum 1.0 ;
+		lv2:symbol "cv_in_2" ;
+		lv2:name "CV In 2" ;
+	] , [
+	  a lv2:OutputPort,
+			lv2:CVPort;
+		lv2:index 5 ;
+		lv2:symbol "cv_out_2" ;
+		lv2:name "CV Out 2" ;
+	] , [
+	  a lv2:InputPort ,
+			lv2:CVPort;
+		lv2:index 6 ;
+		lv2:default 0.0 ;
+		lv2:minimum -1.0 ;
+		lv2:maximum 1.0 ;
+		lv2:symbol "cv_in_3" ;
+		lv2:name "CV In 3" ;
+	] , [
+	  a lv2:OutputPort,
+			lv2:CVPort;
+		lv2:index 7 ;
+		lv2:symbol "cv_out_3" ;
+		lv2:name "CV Out 3" ;
+	] , [
+	  a lv2:InputPort ,
+			lv2:CVPort;
+		lv2:index 8 ;
+		lv2:default 0.0 ;
+		lv2:minimum -1.0 ;
+		lv2:maximum 1.0 ;
+		lv2:symbol "cv_in_4" ;
+		lv2:name "CV In 4" ;
+	] , [
+	  a lv2:OutputPort,
+			lv2:CVPort;
+		lv2:index 9 ;
+		lv2:symbol "cv_out_4" ;
+		lv2:name "CV Out 4" ;
+	] ;
+
+	patch:readable
+		mephisto:error ;
+
+	patch:writable
+		mephisto:code ,
+		mephisto:xfadeDuration ,
+		mephisto:releaseDuration ,
+		mephisto:control_1 ,
+		mephisto:control_2 ,
+		mephisto:control_3 ,
+		mephisto:control_4 ,
+		mephisto:control_5 ,
+		mephisto:control_6 ,
+		mephisto:control_7 ,
+		mephisto:control_8 ,
+		mephisto:control_9 ,
+		mephisto:control_10 ,
+		mephisto:control_11 ,
+		mephisto:control_12 ,
+		mephisto:control_13 ,
+		mephisto:control_14 ,
+		mephisto:control_15 ,
+		mephisto:control_16 ;
+
+	state:state [
+		mephisto:code """@BANK-FILTER_THROUGH@""" ;
+		mephisto:xfadeDuration "100"^^xsd:int ;
+		mephisto:releaseDuration "10"^^xsd:int ;
+		mephisto:control_1 "0.0"^^xsd:float ;
+		mephisto:control_2 "0.0"^^xsd:float ;
+		mephisto:control_3 "0.0"^^xsd:float ;
+		mephisto:control_4 "0.0"^^xsd:float ;
+		mephisto:control_5 "0.0"^^xsd:float ;
+		mephisto:control_6 "0.0"^^xsd:float ;
+		mephisto:control_7 "0.0"^^xsd:float ;
+		mephisto:control_8 "0.0"^^xsd:float ;
+		mephisto:control_9 "0.0"^^xsd:float ;
+		mephisto:control_10 "0.0"^^xsd:float ;
+		mephisto:control_11 "0.0"^^xsd:float ;
+		mephisto:control_12 "0.0"^^xsd:float ;
+		mephisto:control_13 "0.0"^^xsd:float ;
+		mephisto:control_14 "0.0"^^xsd:float ;
+		mephisto:control_15 "0.0"^^xsd:float ;
+		mephisto:control_16 "0.0"^^xsd:float ;
+	] .
+
+mephisto:cv_8x8
+	a lv2:Plugin ,
+		#lv2:FilterPlugin ,
+		lv2:InstrumentPlugin ;
+	doap:name "Mephisto CV 8x8" ;
+	doap:license lic:Artistic-2.0 ;
+	lv2:project proj:mephisto ;
+	lv2:requiredFeature urid:map, state:loadDefaultState, work:schedule, opts:options ;
+	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, state:threadSafeRestore, log:log ;
+	lv2:extensionData	state:interface, work:interface ;
+	opts:requiredOption bufsz:maxBlockLength ;
+
+	lv2:port [
+	  a lv2:InputPort ,
+			atom:AtomPort ;
+		atom:bufferType atom:Sequence ;
+		atom:supports time:Position ,
+			midi:MidiEvent ,
+			time:Position ,
+			patch:Message ;
+		lv2:index 0 ;
+		lv2:symbol "control" ;
+		lv2:name "Control" ;
+		rsz:minimumSize 131072 ;
+		lv2:designation lv2:control ;
+	] , [
+	  a lv2:OutputPort ,
+			atom:AtomPort ;
+		atom:bufferType atom:Sequence ;
+		atom:supports patch:Message ;
+		lv2:index 1 ;
+		lv2:symbol "notify" ;
+		lv2:name "Notify" ;
+		rsz:minimumSize 131072 ;
+		lv2:designation lv2:control ;
+	] , [
+	  a lv2:InputPort ,
+			lv2:CVPort;
+		lv2:index 2 ;
+		lv2:default 0.0 ;
+		lv2:minimum -1.0 ;
+		lv2:maximum 1.0 ;
+		lv2:symbol "cv_in_1" ;
+		lv2:name "CV In 1" ;
+	] , [
+	  a lv2:OutputPort,
+			lv2:CVPort;
+		lv2:index 3 ;
+		lv2:symbol "cv_out_1" ;
+		lv2:name "CV Out 1" ;
+	] , [
+	  a lv2:InputPort ,
+			lv2:CVPort;
+		lv2:index 4 ;
+		lv2:default 0.0 ;
+		lv2:minimum -1.0 ;
+		lv2:maximum 1.0 ;
+		lv2:symbol "cv_in_2" ;
+		lv2:name "CV In 2" ;
+	] , [
+	  a lv2:OutputPort,
+			lv2:CVPort;
+		lv2:index 5 ;
+		lv2:symbol "cv_out_2" ;
+		lv2:name "CV Out 2" ;
+	] , [
+	  a lv2:InputPort ,
+			lv2:CVPort;
+		lv2:index 6 ;
+		lv2:default 0.0 ;
+		lv2:minimum -1.0 ;
+		lv2:maximum 1.0 ;
+		lv2:symbol "cv_in_3" ;
+		lv2:name "CV In 3" ;
+	] , [
+	  a lv2:OutputPort,
+			lv2:CVPort;
+		lv2:index 7 ;
+		lv2:symbol "cv_out_3" ;
+		lv2:name "CV Out 3" ;
+	] , [
+	  a lv2:InputPort ,
+			lv2:CVPort;
+		lv2:index 8 ;
+		lv2:default 0.0 ;
+		lv2:minimum -1.0 ;
+		lv2:maximum 1.0 ;
+		lv2:symbol "cv_in_4" ;
+		lv2:name "CV In 4" ;
+	] , [
+	  a lv2:OutputPort,
+			lv2:CVPort;
+		lv2:index 9 ;
+		lv2:symbol "cv_out_4" ;
+		lv2:name "CV Out 4" ;
+	] , [
+	  a lv2:InputPort ,
+			lv2:CVPort;
+		lv2:index 10 ;
+		lv2:default 0.0 ;
+		lv2:minimum -1.0 ;
+		lv2:maximum 1.0 ;
+		lv2:symbol "cv_in_5" ;
+		lv2:name "CV In 5" ;
+	] , [
+	  a lv2:OutputPort,
+			lv2:CVPort;
+		lv2:index 11 ;
+		lv2:symbol "cv_out_5" ;
+		lv2:name "CV Out 5" ;
+	] , [
+	  a lv2:InputPort ,
+			lv2:CVPort;
+		lv2:index 12 ;
+		lv2:default 0.0 ;
+		lv2:minimum -1.0 ;
+		lv2:maximum 1.0 ;
+		lv2:symbol "cv_in_6" ;
+		lv2:name "CV In 6" ;
+	] , [
+	  a lv2:OutputPort,
+			lv2:CVPort;
+		lv2:index 13 ;
+		lv2:symbol "cv_out_6" ;
+		lv2:name "CV Out 6" ;
+	] , [
+	  a lv2:InputPort ,
+			lv2:CVPort;
+		lv2:index 14 ;
+		lv2:default 0.0 ;
+		lv2:minimum -1.0 ;
+		lv2:maximum 1.0 ;
+		lv2:symbol "cv_in_7" ;
+		lv2:name "CV In 7" ;
+	] , [
+	  a lv2:OutputPort,
+			lv2:CVPort;
+		lv2:index 15 ;
+		lv2:symbol "cv_out_7" ;
+		lv2:name "CV Out 7" ;
+	] , [
+	  a lv2:InputPort ,
+			lv2:CVPort;
+		lv2:index 16 ;
+		lv2:default 0.0 ;
+		lv2:minimum -1.0 ;
+		lv2:maximum 1.0 ;
+		lv2:symbol "cv_in_8" ;
+		lv2:name "CV In 8" ;
+	] , [
+	  a lv2:OutputPort,
+			lv2:CVPort;
+		lv2:index 17 ;
+		lv2:symbol "cv_out_8" ;
+		lv2:name "CV Out 8" ;
 	] ;
 
 	patch:readable

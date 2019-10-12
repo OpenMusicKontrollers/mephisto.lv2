@@ -24,15 +24,35 @@
 
 mephisto:showUI
 	ui:portNotification [
-		ui:plugin mephisto:mono;
+		ui:plugin mephisto:audio_1x1;
 		lv2:symbol "notify" ;
 		ui:protocol atom:eventTransfer ;
 	] , [
-		ui:plugin mephisto:stereo;
+		ui:plugin mephisto:audio_2x2;
 		lv2:symbol "notify" ;
 		ui:protocol atom:eventTransfer ;
 	] , [
-		ui:plugin mephisto:cv ;
+		ui:plugin mephisto:audio_4x4;
+		lv2:symbol "notify" ;
+		ui:protocol atom:eventTransfer ;
+	] , [
+		ui:plugin mephisto:audio_8x8;
+		lv2:symbol "notify" ;
+		ui:protocol atom:eventTransfer ;
+	] , [
+		ui:plugin mephisto:cv_1x1 ;
+		lv2:symbol "notify" ;
+		ui:protocol atom:eventTransfer ;
+	] , [
+		ui:plugin mephisto:cv_2x2 ;
+		lv2:symbol "notify" ;
+		ui:protocol atom:eventTransfer ;
+	] , [
+		ui:plugin mephisto:cv_4x4 ;
+		lv2:symbol "notify" ;
+		ui:protocol atom:eventTransfer ;
+	] , [
+		ui:plugin mephisto:cv_8x8 ;
 		lv2:symbol "notify" ;
 		ui:protocol atom:eventTransfer ;
 	] ;
@@ -41,15 +61,35 @@ mephisto:showUI
 
 mephisto:kxUI
 	ui:portNotification [
-		ui:plugin mephisto:mono;
+		ui:plugin mephisto:audio_1x1;
 		lv2:symbol "notify" ;
 		ui:protocol atom:eventTransfer ;
 	] , [
-		ui:plugin mephisto:stereo ;
+		ui:plugin mephisto:audio_2x2 ;
 		lv2:symbol "notify" ;
 		ui:protocol atom:eventTransfer ;
 	] , [
-		ui:plugin mephisto:cv ;
+		ui:plugin mephisto:audio_4x4 ;
+		lv2:symbol "notify" ;
+		ui:protocol atom:eventTransfer ;
+	] , [
+		ui:plugin mephisto:audio_8x8 ;
+		lv2:symbol "notify" ;
+		ui:protocol atom:eventTransfer ;
+	] , [
+		ui:plugin mephisto:cv_1x1 ;
+		lv2:symbol "notify" ;
+		ui:protocol atom:eventTransfer ;
+	] , [
+		ui:plugin mephisto:cv_2x2 ;
+		lv2:symbol "notify" ;
+		ui:protocol atom:eventTransfer ;
+	] , [
+		ui:plugin mephisto:cv_4x4 ;
+		lv2:symbol "notify" ;
+		ui:protocol atom:eventTransfer ;
+	] , [
+		ui:plugin mephisto:cv_8x8 ;
 		lv2:symbol "notify" ;
 		ui:protocol atom:eventTransfer ;
 	] ;
