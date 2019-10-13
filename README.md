@@ -23,11 +23,9 @@ To install the plugin bundle on your system, simply copy the __mephisto.lv2__
 folder out of the platform folder of the downloaded package into your
 [LV2 path](http://lv2plug.in/pages/filesystem-hierarchy-standard.html).
 
-<!--
 #### Stable release
 
 * [mephisto.lv2-0.2.0.zip](https://dl.open-music-kontrollers.ch/mephisto.lv2/stable/mephisto.lv2-0.2.0.zip) ([sig](https://dl.open-music-kontrollers.ch/mephisto.lv2/stable/mephisto.lv2-0.2.0.zip.sig))
--->
 
 #### Unstable (nightly) release
 
@@ -35,11 +33,9 @@ folder out of the platform folder of the downloaded package into your
 
 ### Sources
 
-<!--
 #### Stable release
 
 * [mephisto.lv2-0.2.0.tar.xz](https://git.open-music-kontrollers.ch/lv2/mephisto.lv2/snapshot/mephisto.lv2-0.2.0.tar.xz)
--->
 
 #### Git repository
 
