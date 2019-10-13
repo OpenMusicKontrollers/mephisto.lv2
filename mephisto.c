@@ -38,6 +38,8 @@
 #define MAX_LABEL 32
 #define MAX_VOICES 64
 
+//#define MDI_MPE
+
 typedef union _hash_t hash_t;
 typedef struct _voice_t voice_t;
 typedef struct _dsp_t dsp_t;
@@ -242,7 +244,6 @@ struct _plughandle_t {
 	uint16_t rpn_lsb [0x10];
 	uint16_t rpn_msb [0x10];
 	uint16_t data_lsb [0x10];
-	uint16_t gain [0x10];
 	uint16_t pressure [0x10];
 	uint16_t timbre [0x10];
 	float bend [0x10];
@@ -1006,23 +1007,6 @@ _update_frequency(plughandle_t *handle, dsp_t *dsp, uint8_t chn)
 }
 
 static inline void
-_update_gain(plughandle_t *handle, dsp_t *dsp, uint8_t chn)
-{
-	VOICE_FOREACH(dsp, voice)
-	{
-		if(voice->state & VOICE_STATE_ACTIVE)
-		{
-			if(voice->hash.chn == chn)
-			{
-				const float gain = handle->gain[chn] * 0x1p-14;
-
-				_cntrl_refresh_value_abs(&voice->gain, gain);
-			}
-		}
-	}
-}
-
-static inline void
 _update_pressure(plughandle_t *handle, dsp_t *dsp, uint8_t chn)
 {
 	VOICE_FOREACH(dsp, voice)
@@ -1168,8 +1152,7 @@ _handle_midi(plughandle_t *handle, dsp_t *dsp,
 			{
 				case LV2_MIDI_CTL_SUSTAIN:
 				{
-					//handle->sustain[chn] = (val > 0x3f)
-					handle->sustain[chn] = (val < 0x3f)
+					handle->sustain[chn] = (val > 0x3f)
 						? true
 						: false;
 
@@ -1224,18 +1207,6 @@ _handle_midi(plughandle_t *handle, dsp_t *dsp,
 					}
 				} break;
 
-				case LV2_MIDI_CTL_LSB_MAIN_VOLUME:
-				{
-					handle->gain[chn] &= 0x7f;
-					handle->gain[chn] |= val;
-				} break;
-				case LV2_MIDI_CTL_MSB_MAIN_VOLUME:
-				{
-					handle->gain[chn] &= 0x3f80;
-					handle->gain[chn] |= val << 7;
-
-					_update_gain(handle, dsp, chn);
-				} break;
 				case LV2_MIDI_CTL_SC1_SOUND_VARIATION | 0x20:
 				{
 					handle->pressure[chn] &= 0x7f;

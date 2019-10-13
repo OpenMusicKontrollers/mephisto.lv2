@@ -8,7 +8,8 @@ DSP language without any need to restart/reload host or plugin upon code changes
 Use it for one-off instruments/filters, prototyping, experimenting or
 glueing stuff together.
 
-*Note: needs a fairly recent libFAUST and/or bleeding edge GNU/Linux distribution*
+*Note: This is an early release, it may thus have rough edges and will need a
+fairly recent libFAUST and/or bleeding edge GNU/Linux distribution.*
 
 #### Build status
 
@@ -174,7 +175,7 @@ in their labels in your DSP code:
     cntrl2 = hslider("[2]Control 2", 5.0, 1.0, 10.0, 1.0);
     cntrl3 = hslider("[3]Control 3", 0.5, 0.0, 1.0, 0.1);
 
-#### Instruments (MIDI polyphony)
+#### MIDI and polyphony
 
 The plugin supports building instruments with
 [MIDI polyphony](https://faust.grame.fr/doc/manual/index.html#midi-polyphony-support).
@@ -183,9 +184,16 @@ For this to work you have to enable the MIDI option and declare amount of polyph
 
 The plugin automatically derives the 3 control signals:
 
-* gate (NoteOn vs NoteOff),
-* freq (NoteOn note + PitchBend), honouring PitchBend range RPN 0/0
-* gain (NoteOn velocity).
+* gate (NoteOn vs NoteOff)
+* freq (NoteOn-note + PitchBend), honouring PitchBend range RPN 0/0
+* gain (NoteOn-velocity)
+* pressure (NotePressure aka polyphonic aftertouch)
+
+Additionally, the following MIDI ControlChanges are supported:
+
+* SustainPedal
+* AllNotesOff
+* AllSoundsOff
 
 Other MIDI events are not supported as of today and thus should be
 automated via the plugin host to one of the 16 control slots.
@@ -195,10 +203,17 @@ automated via the plugin host to one of the 16 control slots.
     freq = hslider("freq", 0, 0, 1, 0.1);
     gain = hslider("gain", 0, 0, 1, 0.1);
     gate = button("gate");
+    pressure = button("gate");
+    pressure = hslider("pressure", 0.0, 0.0, 1.0, 0.1);
 
     cntrl1 = hslider("[1]Control 1", 500.0, 10.0, 1000.0, 1.0);
     cntrl2 = hslider("[2]Control 2", 5.0, 1.0, 10.0, 1.0);
     cntrl3 = hslider("[3]Control 3", 0.5, 0.0, 1.0, 0.1);
+
+#### OSC
+
+OSC events are not supported as of today and thus should be automated via
+the plugin host to one of the 16 control slots.
 
 #### Time
 
