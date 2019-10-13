@@ -586,7 +586,7 @@ static const LV2UI_Descriptor simple_kx = {
 	.instantiate		= instantiate,
 	.cleanup				= cleanup,
 	.port_event			= port_event,
-	.extension_data	= ui_extension_data
+	.extension_data	= NULL
 };
 
 LV2_SYMBOL_EXPORT const LV2UI_Descriptor*

@@ -34,7 +34,7 @@ mephisto:audio_1x1
 	a lv2:Plugin ;
 	lv2:minorVersion @MINOR_VERSION@ ;
 	lv2:microVersion @MICRO_VERSION@ ;
-	ui:ui mephisto:showUI ;
+	#ui:ui mephisto:showUI ;
 	ui:ui mephisto:kxUI ;
 	lv2:binary <mephisto@MODULE_SUFFIX@> ;
 	rdfs:seeAlso <mephisto.ttl> .
@@ -44,7 +44,7 @@ mephisto:audio_2x2
 	a lv2:Plugin ;
 	lv2:minorVersion @MINOR_VERSION@ ;
 	lv2:microVersion @MICRO_VERSION@ ;
-	ui:ui mephisto:showUI ;
+	#ui:ui mephisto:showUI ;
 	ui:ui mephisto:kxUI ;
 	lv2:binary <mephisto@MODULE_SUFFIX@> ;
 	rdfs:seeAlso <mephisto.ttl> .
@@ -54,7 +54,7 @@ mephisto:audio_4x4
 	a lv2:Plugin ;
 	lv2:minorVersion @MINOR_VERSION@ ;
 	lv2:microVersion @MICRO_VERSION@ ;
-	ui:ui mephisto:showUI ;
+	#ui:ui mephisto:showUI ;
 	ui:ui mephisto:kxUI ;
 	lv2:binary <mephisto@MODULE_SUFFIX@> ;
 	rdfs:seeAlso <mephisto.ttl> .
@@ -64,7 +64,7 @@ mephisto:audio_8x8
 	a lv2:Plugin ;
 	lv2:minorVersion @MINOR_VERSION@ ;
 	lv2:microVersion @MICRO_VERSION@ ;
-	ui:ui mephisto:showUI ;
+	#ui:ui mephisto:showUI ;
 	ui:ui mephisto:kxUI ;
 	lv2:binary <mephisto@MODULE_SUFFIX@> ;
 	rdfs:seeAlso <mephisto.ttl> .
@@ -74,7 +74,7 @@ mephisto:cv_1x1
 	a lv2:Plugin ;
 	lv2:minorVersion @MINOR_VERSION@ ;
 	lv2:microVersion @MICRO_VERSION@ ;
-	ui:ui mephisto:showUI ;
+	#ui:ui mephisto:showUI ;
 	ui:ui mephisto:kxUI ;
 	lv2:binary <mephisto@MODULE_SUFFIX@> ;
 	rdfs:seeAlso <mephisto.ttl> .
@@ -84,7 +84,7 @@ mephisto:cv_2x2
 	a lv2:Plugin ;
 	lv2:minorVersion @MINOR_VERSION@ ;
 	lv2:microVersion @MICRO_VERSION@ ;
-	ui:ui mephisto:showUI ;
+	#ui:ui mephisto:showUI ;
 	ui:ui mephisto:kxUI ;
 	lv2:binary <mephisto@MODULE_SUFFIX@> ;
 	rdfs:seeAlso <mephisto.ttl> .
@@ -94,7 +94,7 @@ mephisto:cv_4x4
 	a lv2:Plugin ;
 	lv2:minorVersion @MINOR_VERSION@ ;
 	lv2:microVersion @MICRO_VERSION@ ;
-	ui:ui mephisto:showUI ;
+	#ui:ui mephisto:showUI ;
 	ui:ui mephisto:kxUI ;
 	lv2:binary <mephisto@MODULE_SUFFIX@> ;
 	rdfs:seeAlso <mephisto.ttl> .
@@ -104,7 +104,7 @@ mephisto:cv_8x8
 	a lv2:Plugin ;
 	lv2:minorVersion @MINOR_VERSION@ ;
 	lv2:microVersion @MICRO_VERSION@ ;
-	ui:ui mephisto:showUI ;
+	#ui:ui mephisto:showUI ;
 	ui:ui mephisto:kxUI ;
 	lv2:binary <mephisto@MODULE_SUFFIX@> ;
 	rdfs:seeAlso <mephisto.ttl> .

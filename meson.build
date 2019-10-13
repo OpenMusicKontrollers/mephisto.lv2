@@ -122,7 +122,7 @@ endif
 
 if lv2lint.found()
 	test('LV2 lint', lv2lint,
-		args : ['-Swarn',
+		args : [
 			'http://open-music-kontrollers.ch/lv2/mephisto#audio_1x1',
 			'http://open-music-kontrollers.ch/lv2/mephisto#audio_2x2',
 			'http://open-music-kontrollers.ch/lv2/mephisto#audio_4x4',
@@ -130,7 +130,8 @@ if lv2lint.found()
 			'http://open-music-kontrollers.ch/lv2/mephisto#cv_1x1',
 			'http://open-music-kontrollers.ch/lv2/mephisto#cv_2x2',
 			'http://open-music-kontrollers.ch/lv2/mephisto#cv_4x4',
-			'http://open-music-kontrollers.ch/lv2/mephisto#cv_8x8'])
+			'http://open-music-kontrollers.ch/lv2/mephisto#cv_8x8'
+		])
 endif
 
 if faust.found()
