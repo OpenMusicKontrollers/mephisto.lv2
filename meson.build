@@ -6,6 +6,7 @@ project('mephisto.lv2', 'c', default_options : [
 	'c_std=c11'])
 
 source_root = meson.source_root()
+build_root = meson.build_root()
 
 add_project_arguments('-D_GNU_SOURCE', language : 'c')
 
@@ -122,7 +123,7 @@ endif
 
 if lv2lint.found()
 	test('LV2 lint', lv2lint,
-		args : [
+		args : [ '-I', join_paths(build_root, ''),
 			'http://open-music-kontrollers.ch/lv2/mephisto#audio_1x1',
 			'http://open-music-kontrollers.ch/lv2/mephisto#audio_2x2',
 			'http://open-music-kontrollers.ch/lv2/mephisto#audio_4x4',
