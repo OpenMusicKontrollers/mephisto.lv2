@@ -17,25 +17,16 @@
 @prefix owl:			<http://www.w3.org/2002/07/owl#> .
 @prefix rdfs:     <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix ui:       <http://lv2plug.in/ns/extensions/ui#> .
-@prefix kx:       <http://kxstudio.sf.net/ns/lv2ext/external-ui#> .
 @prefix pset:     <http://lv2plug.in/ns/ext/presets#> .
 
 @prefix mephisto:		<http://open-music-kontrollers.ch/lv2/mephisto#> .
-
-# to please sord_validate
-kx:Widget
-	a rdfs:Class, owl:Class ;
-	rdfs:subClassOf ui:UI .
-kx:Host
-	a lv2:Feature .
 
 # Mephisto Audio 1x1
 mephisto:audio_1x1
 	a lv2:Plugin ;
 	lv2:minorVersion @MINOR_VERSION@ ;
 	lv2:microVersion @MICRO_VERSION@ ;
-	#ui:ui mephisto:showUI ;
-	ui:ui mephisto:kxUI ;
+	ui:ui mephisto:ui ;
 	lv2:binary <mephisto@MODULE_SUFFIX@> ;
 	rdfs:seeAlso <mephisto.ttl> .
 
@@ -44,8 +35,7 @@ mephisto:audio_2x2
 	a lv2:Plugin ;
 	lv2:minorVersion @MINOR_VERSION@ ;
 	lv2:microVersion @MICRO_VERSION@ ;
-	#ui:ui mephisto:showUI ;
-	ui:ui mephisto:kxUI ;
+	ui:ui mephisto:ui ;
 	lv2:binary <mephisto@MODULE_SUFFIX@> ;
 	rdfs:seeAlso <mephisto.ttl> .
 
@@ -54,8 +44,7 @@ mephisto:audio_4x4
 	a lv2:Plugin ;
 	lv2:minorVersion @MINOR_VERSION@ ;
 	lv2:microVersion @MICRO_VERSION@ ;
-	#ui:ui mephisto:showUI ;
-	ui:ui mephisto:kxUI ;
+	ui:ui mephisto:ui ;
 	lv2:binary <mephisto@MODULE_SUFFIX@> ;
 	rdfs:seeAlso <mephisto.ttl> .
 
@@ -64,8 +53,7 @@ mephisto:audio_8x8
 	a lv2:Plugin ;
 	lv2:minorVersion @MINOR_VERSION@ ;
 	lv2:microVersion @MICRO_VERSION@ ;
-	#ui:ui mephisto:showUI ;
-	ui:ui mephisto:kxUI ;
+	ui:ui mephisto:ui ;
 	lv2:binary <mephisto@MODULE_SUFFIX@> ;
 	rdfs:seeAlso <mephisto.ttl> .
 
@@ -74,8 +62,7 @@ mephisto:cv_1x1
 	a lv2:Plugin ;
 	lv2:minorVersion @MINOR_VERSION@ ;
 	lv2:microVersion @MICRO_VERSION@ ;
-	#ui:ui mephisto:showUI ;
-	ui:ui mephisto:kxUI ;
+	ui:ui mephisto:ui ;
 	lv2:binary <mephisto@MODULE_SUFFIX@> ;
 	rdfs:seeAlso <mephisto.ttl> .
 
@@ -84,8 +71,7 @@ mephisto:cv_2x2
 	a lv2:Plugin ;
 	lv2:minorVersion @MINOR_VERSION@ ;
 	lv2:microVersion @MICRO_VERSION@ ;
-	#ui:ui mephisto:showUI ;
-	ui:ui mephisto:kxUI ;
+	ui:ui mephisto:ui ;
 	lv2:binary <mephisto@MODULE_SUFFIX@> ;
 	rdfs:seeAlso <mephisto.ttl> .
 
@@ -94,8 +80,7 @@ mephisto:cv_4x4
 	a lv2:Plugin ;
 	lv2:minorVersion @MINOR_VERSION@ ;
 	lv2:microVersion @MICRO_VERSION@ ;
-	#ui:ui mephisto:showUI ;
-	ui:ui mephisto:kxUI ;
+	ui:ui mephisto:ui ;
 	lv2:binary <mephisto@MODULE_SUFFIX@> ;
 	rdfs:seeAlso <mephisto.ttl> .
 
@@ -104,18 +89,13 @@ mephisto:cv_8x8
 	a lv2:Plugin ;
 	lv2:minorVersion @MINOR_VERSION@ ;
 	lv2:microVersion @MICRO_VERSION@ ;
-	#ui:ui mephisto:showUI ;
-	ui:ui mephisto:kxUI ;
+	ui:ui mephisto:ui ;
 	lv2:binary <mephisto@MODULE_SUFFIX@> ;
 	rdfs:seeAlso <mephisto.ttl> .
 
 # UIs
-mephisto:showUI
-	a ui:UI ;
-	ui:binary <mephisto_ui@MODULE_SUFFIX@> ;
-	rdfs:seeAlso <mephisto_ui.ttl> .
-mephisto:kxUI
-	a kx:Widget ;
+mephisto:ui
+	a ui:X11UI ;
 	ui:binary <mephisto_ui@MODULE_SUFFIX@> ;
 	rdfs:seeAlso <mephisto_ui.ttl> .
 

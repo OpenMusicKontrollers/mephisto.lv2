@@ -5,6 +5,17 @@ project('mephisto.lv2', 'c', default_options : [
 	'b_lto=false',
 	'c_std=c11'])
 
+d2tk = subproject('d2tk')
+
+use_backend = get_option('use-backend')
+if use_backend == 'nanovg'
+	d2tk_dep = d2tk.get_variable('d2tk_nanovg')
+elif use_backend == 'cairo'
+	d2tk_dep = d2tk.get_variable('d2tk_cairo')
+else
+	error('no valid UI backend given')
+endif
+
 source_root = meson.source_root()
 build_root = meson.build_root()
 
@@ -35,13 +46,21 @@ endif
 m_dep = cc.find_library('m')
 lv2_dep = dependency('lv2', version : '>=1.14.0')
 faust_dep = cc.find_library('faust')
+util_dep = cc.find_library('util')
+rt_dep = cc.find_library('rt')
+thread_dep = dependency('threads')
+vterm_dep = dependency('vterm', version : '>=0.1')
+uuid_dep = dependency('uuid', version : '>=2.0')
+
 dsp_deps = [m_dep, lv2_dep, faust_dep]
+ui_deps = [d2tk_dep, rt_dep, vterm_dep, uuid_dep, thread_dep]
 
 props_inc = include_directories('props.lv2')
 timely_inc = include_directories('timely.lv2')
 ser_inc = include_directories('ser_atom.lv2')
 varchunk_inc = include_directories('varchunk')
-inc_dir = [props_inc, timely_inc, ser_inc, varchunk_inc]
+d2tk_inc = include_directories(join_paths('subprojects', 'd2tk'))
+inc_dir = [props_inc, timely_inc, ser_inc, varchunk_inc, d2tk_inc]
 
 inst_dir = join_paths(get_option('libdir'), 'lv2', meson.project_name())
 
@@ -51,6 +70,13 @@ ui_srcs = ['mephisto_ui.c']
 
 c_args = ['-fvisibility=hidden',
 	'-ffast-math']
+
+version = run_command('cat', 'VERSION').stdout().strip().split('.')
+add_project_arguments('-DMEPHISTO_VERSION="'
+	+ version[0] + '.' + version[1] + '.' + version[2] + '"', language : 'c')
+conf_data.set('MAJOR_VERSION', version[0])
+conf_data.set('MINOR_VERSION', version[1])
+conf_data.set('MICRO_VERSION', version[2])
 
 mod = shared_module('mephisto', dsp_srcs,
 	c_args : c_args,
@@ -64,14 +90,9 @@ ui = shared_module('mephisto_ui', ui_srcs,
 	c_args : c_args,
 	include_directories : inc_dir,
 	name_prefix : '',
-	dependencies : dsp_deps,
+	dependencies : ui_deps,
 	install : true,
 	install_dir : inst_dir)
-
-version = run_command('cat', 'VERSION').stdout().strip().split('.')
-conf_data.set('MAJOR_VERSION', version[0])
-conf_data.set('MINOR_VERSION', version[1])
-conf_data.set('MICRO_VERSION', version[2])
 
 bank_filter_through = run_command('cat', 'bank-filter_through.dsp').stdout()
 conf_data.set('BANK-FILTER_THROUGH', bank_filter_through)
@@ -113,6 +134,31 @@ pset_ttl = configure_file(
 	input : 'presets.ttl.in',
 	output : 'presets.ttl',
 	configuration : conf_data,
+	install : true,
+	install_dir : inst_dir)
+
+configure_file(
+	input : 'FiraCode-Bold.ttf',
+	output : 'FiraCode-Bold.ttf',
+	copy : true,
+	install : true,
+	install_dir : inst_dir)
+configure_file(
+	input : 'FiraCode-Medium.ttf',
+	output : 'FiraCode-Medium.ttf',
+	copy : true,
+	install : true,
+	install_dir : inst_dir)
+configure_file(
+	input : 'FiraCode-Regular.ttf',
+	output : 'FiraCode-Regular.ttf',
+	copy : true,
+	install : true,
+	install_dir : inst_dir)
+configure_file(
+	input : 'FiraCode-Light.ttf',
+	output : 'FiraCode-Light.ttf',
+	copy : true,
 	install : true,
 	install_dir : inst_dir)
 

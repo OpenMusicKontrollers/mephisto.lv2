@@ -38,6 +38,7 @@
 #include <lv2/lv2plug.in/ns/ext/patch/patch.h>
 #include <lv2/lv2plug.in/ns/ext/options/options.h>
 #include <lv2/lv2plug.in/ns/ext/buf-size/buf-size.h>
+#include <lv2/lv2plug.in/ns/extensions/ui/ui.h>
 #include <lv2/lv2plug.in/ns/lv2core/lv2.h>
 
 #define MEPHISTO_URI    "http://open-music-kontrollers.ch/lv2/mephisto"
@@ -54,8 +55,7 @@
 #define MEPHISTO__cv_8x8        MEPHISTO_PREFIX "cv_8x8"
 
 // plugin UI uris
-#define MEPHISTO__showUI        MEPHISTO_PREFIX "showUI"
-#define MEPHISTO__kxUI          MEPHISTO_PREFIX "kxUI"
+#define MEPHISTO__ui            MEPHISTO_PREFIX "ui"
 
 // param uris
 #define MEPHISTO__code          MEPHISTO_PREFIX "code"

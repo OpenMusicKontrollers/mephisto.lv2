@@ -18,11 +18,10 @@
 @prefix atom: <http://lv2plug.in/ns/ext/atom#> .
 @prefix ui:   <http://lv2plug.in/ns/extensions/ui#> .
 @prefix urid: <http://lv2plug.in/ns/ext/urid#> .
-@prefix kx:		<http://kxstudio.sf.net/ns/lv2ext/external-ui#> .
 
 @prefix mephisto:	<http://open-music-kontrollers.ch/lv2/mephisto#> .
 
-mephisto:showUI
+mephisto:ui
 	ui:portNotification [
 		ui:plugin mephisto:audio_1x1;
 		lv2:symbol "notify" ;
@@ -56,42 +55,5 @@ mephisto:showUI
 		lv2:symbol "notify" ;
 		ui:protocol atom:eventTransfer ;
 	] ;
-	lv2:requiredFeature ui:idleInterface, ui:portMap, urid:map ;
-	lv2:extensionData ui:idleInterface, ui:showInterface .
-
-mephisto:kxUI
-	ui:portNotification [
-		ui:plugin mephisto:audio_1x1;
-		lv2:symbol "notify" ;
-		ui:protocol atom:eventTransfer ;
-	] , [
-		ui:plugin mephisto:audio_2x2 ;
-		lv2:symbol "notify" ;
-		ui:protocol atom:eventTransfer ;
-	] , [
-		ui:plugin mephisto:audio_4x4 ;
-		lv2:symbol "notify" ;
-		ui:protocol atom:eventTransfer ;
-	] , [
-		ui:plugin mephisto:audio_8x8 ;
-		lv2:symbol "notify" ;
-		ui:protocol atom:eventTransfer ;
-	] , [
-		ui:plugin mephisto:cv_1x1 ;
-		lv2:symbol "notify" ;
-		ui:protocol atom:eventTransfer ;
-	] , [
-		ui:plugin mephisto:cv_2x2 ;
-		lv2:symbol "notify" ;
-		ui:protocol atom:eventTransfer ;
-	] , [
-		ui:plugin mephisto:cv_4x4 ;
-		lv2:symbol "notify" ;
-		ui:protocol atom:eventTransfer ;
-	] , [
-		ui:plugin mephisto:cv_8x8 ;
-		lv2:symbol "notify" ;
-		ui:protocol atom:eventTransfer ;
-	] ;
-	lv2:optionalFeature kx:Host ;
-	lv2:requiredFeature ui:portMap, urid:map .
+	lv2:requiredFeature ui:idleInterface, ui:resize, ui:portMap, urid:map ;
+	lv2:extensionData ui:idleInterface, ui:resize .
