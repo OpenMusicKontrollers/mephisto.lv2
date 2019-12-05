@@ -21,6 +21,9 @@
 #include <math.h>
 #include <unistd.h>
 #include <errno.h>
+#include <sys/stat.h>
+#include <time.h>
+#include <utime.h>
 
 #include <mephisto.h>
 #include <props.h>
@@ -71,7 +74,7 @@ struct _plughandle_t {
 	LV2_URID urid_error;
 	LV2_URID urid_control [NCONTROLS];
 
-	char template [16];
+	char template [24];
 	int fd;
 };
 
@@ -81,16 +84,46 @@ _intercept_code(void *data, int64_t frames __attribute__((unused)),
 {
 	plughandle_t *handle = data;
 
-	FILE *fout = fdopen(handle->fd, "rw");
-	if(!fout)
+	const ssize_t len = strlen(handle->state.code);
+
+	// save code to file
+	if(lseek(handle->fd, 0, SEEK_SET) == -1)
 	{
-		fprintf(stderr, "%s\n", strerror(errno)); //FIXME syslog
-		return;
+		lv2_log_error(&handle->logger, "lseek: %s\n", strerror(errno));
+	}
+	if(ftruncate(handle->fd, 0) == -1)
+	{
+		lv2_log_error(&handle->logger, "ftruncate: %s\n", strerror(errno));
+	}
+	if(fsync(handle->fd) == -1)
+	{
+		lv2_log_error(&handle->logger, "fsync: %s\n", strerror(errno));
+	}
+	if(write(handle->fd, handle->state.code, len) == -1)
+	{
+		lv2_log_error(&handle->logger, "write: %s\n", strerror(errno));
+	}
+	if(fsync(handle->fd) == -1)
+	{
+		lv2_log_error(&handle->logger, "fsync: %s\n", strerror(errno));
 	}
 
-	fseek(fout, 0, SEEK_SET);
-	fwrite(handle->state.code, strlen(handle->state.code), 1, fout);
-	fflush(fout);
+	// change modification timestamp of file
+	struct stat st;
+	if(stat(handle->template, &st) == -1)
+	{
+		lv2_log_error(&handle->logger, "stat: %s\n", strerror(errno));
+	}
+
+	const struct utimbuf btime = {
+	 .actime = st.st_atime,
+	 .modtime = time(NULL)
+	};
+
+	if(utime(handle->template, &btime) == -1)
+	{
+		lv2_log_error(&handle->logger, "utime: %s\n", strerror(errno));
+	}
 }
 
 static void
@@ -425,7 +458,9 @@ instantiate(const LV2UI_Descriptor *descriptor,
 	}
 
 	if(handle->log)
+	{
 		lv2_log_logger_init(&handle->logger, handle->map, handle->log);
+	}
 
 	lv2_atom_forge_init(&handle->forge, handle->map);
 
@@ -481,7 +516,7 @@ instantiate(const LV2UI_Descriptor *descriptor,
 	handle->writer = write_function;
 
 	const d2tk_coord_t w = 800;
-	const d2tk_coord_t h = 450;
+	const d2tk_coord_t h = 800;
 
 	d2tk_pugl_config_t *config = &handle->config;
 	config->parent = (uintptr_t)parent;
@@ -507,14 +542,15 @@ instantiate(const LV2UI_Descriptor *descriptor,
 		host_resize->ui_resize(host_resize->handle, w, h);
 	}
 
-	strncpy(handle->template, "/tmp/XXXXXX.dsp", sizeof(handle->template));
+	strncpy(handle->template, "/tmp/jit_XXXXXX.dsp", sizeof(handle->template));
 	handle->fd = mkstemps(handle->template, 4);
 	if(handle->fd == -1)
 	{
 		free(handle);
 		return NULL;
 	}
-	printf("template: %s\n", handle->template);
+
+	lv2_log_note(&handle->logger, "template: %s\n", handle->template);
 
 	_message_get(handle, handle->urid_code);
 	_message_get(handle, handle->urid_error);
@@ -530,6 +566,7 @@ cleanup(LV2UI_Handle instance)
 
 	d2tk_pugl_free(handle->dpugl);
 
+	unlink(handle->template);
 	close(handle->fd);
 	free(handle);
 }
