@@ -19,6 +19,8 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <math.h>
+#include <unistd.h>
+#include <errno.h>
 
 #include <mephisto.h>
 #include <props.h>
@@ -68,6 +70,9 @@ struct _plughandle_t {
 	LV2_URID urid_code;
 	LV2_URID urid_error;
 	LV2_URID urid_control [NCONTROLS];
+
+	char template [16];
+	int fd;
 };
 
 static void
@@ -76,7 +81,16 @@ _intercept_code(void *data, int64_t frames __attribute__((unused)),
 {
 	plughandle_t *handle = data;
 
-	(void)handle; //FIXME
+	FILE *fout = fdopen(handle->fd, "rw");
+	if(!fout)
+	{
+		fprintf(stderr, "%s\n", strerror(errno)); //FIXME syslog
+		return;
+	}
+
+	fseek(fout, 0, SEEK_SET);
+	fwrite(handle->state.code, strlen(handle->state.code), 1, fout);
+	fflush(fout);
 }
 
 static void
@@ -304,6 +318,21 @@ _expose_sidebar(plughandle_t *handle, const d2tk_rect_t *rect)
 }
 
 static inline void
+_expose_term(plughandle_t *handle, const d2tk_rect_t *rect)
+{
+	d2tk_pugl_t *dpugl = handle->dpugl;
+	d2tk_base_t *base = d2tk_pugl_get_base(dpugl);
+
+	char *args [] = {
+		"nvim",
+		handle->template,
+		NULL
+	};
+
+	d2tk_base_pty(base, D2TK_ID, args, 84, rect);
+}
+
+static inline void
 _expose_body(plughandle_t *handle, const d2tk_rect_t *rect)
 {
 	const d2tk_coord_t frac [2] = { 0, SIDEBAR }; 
@@ -316,7 +345,7 @@ _expose_body(plughandle_t *handle, const d2tk_rect_t *rect)
 		{
 			case 0:
 			{
-				//_expose_term(handle, lrect);
+				_expose_term(handle, lrect);
 			} break;
 			case 1:
 			{
@@ -478,6 +507,15 @@ instantiate(const LV2UI_Descriptor *descriptor,
 		host_resize->ui_resize(host_resize->handle, w, h);
 	}
 
+	strncpy(handle->template, "/tmp/XXXXXX.dsp", sizeof(handle->template));
+	handle->fd = mkstemps(handle->template, 4);
+	if(handle->fd == -1)
+	{
+		free(handle);
+		return NULL;
+	}
+	printf("template: %s\n", handle->template);
+
 	_message_get(handle, handle->urid_code);
 	_message_get(handle, handle->urid_error);
 	//FIXME controls
@@ -492,6 +530,7 @@ cleanup(LV2UI_Handle instance)
 
 	d2tk_pugl_free(handle->dpugl);
 
+	close(handle->fd);
 	free(handle);
 }
 
