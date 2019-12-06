@@ -362,7 +362,7 @@ _expose_term(plughandle_t *handle, const d2tk_rect_t *rect)
 		NULL
 	};
 
-	d2tk_base_pty(base, D2TK_ID, args, 84, rect);
+	d2tk_base_pty(base, D2TK_ID, args, 16, rect);
 }
 
 static inline void
