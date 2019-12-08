@@ -76,6 +76,7 @@ struct _plughandle_t {
 
 	char template [24];
 	int fd;
+	time_t modtime;
 };
 
 static void
@@ -115,9 +116,11 @@ _intercept_code(void *data, int64_t frames __attribute__((unused)),
 		lv2_log_error(&handle->logger, "stat: %s\n", strerror(errno));
 	}
 
+	handle->modtime = time(NULL);
+
 	const struct utimbuf btime = {
 	 .actime = st.st_atime,
-	 .modtime = time(NULL)
+	 .modtime = handle->modtime
 	};
 
 	if(utime(handle->template, &btime) == -1)
@@ -186,9 +189,9 @@ static const props_def_t defs [MAX_NPROPS] = {
 	CONTROL(16)
 };
 
-#if 0
 static void
-_message_set_str(plughandle_t *handle, LV2_URID key, const char *str, uint32_t size)
+_message_set_str(plughandle_t *handle, LV2_URID key, const char *str,
+	uint32_t size)
 {
 	ser_atom_t ser;
 	props_impl_t *impl = _props_impl_get(&handle->props, key);
@@ -214,7 +217,6 @@ _message_set_str(plughandle_t *handle, LV2_URID key, const char *str, uint32_t s
 
 	ser_atom_deinit(&ser);
 }
-#endif
 
 static void
 _message_set_control(plughandle_t *handle, unsigned k)
@@ -596,10 +598,36 @@ port_event(LV2UI_Handle instance, uint32_t index __attribute__((unused)),
 	d2tk_pugl_redisplay(handle->dpugl);
 }
 
+static void
+_file_read(plughandle_t *handle)
+{
+	lseek(handle->fd, 0, SEEK_SET);
+	const size_t len = lseek(handle->fd, 0, SEEK_END);
+
+	lseek(handle->fd, 0, SEEK_SET);
+
+	read(handle->fd, handle->state.code, len);
+
+	_message_set_str(handle, handle->urid_code, handle->state.code, len);
+}
+
 static int
 _idle(LV2UI_Handle instance)
 {
 	plughandle_t *handle = instance;
+
+	struct stat st;
+	if(stat(handle->template, &st) == -1)
+	{
+		lv2_log_error(&handle->logger, "stat: %s\n", strerror(errno));
+	}
+
+	if( (st.st_mtime > handle->modtime) && (handle->modtime > 0) )
+	{
+		_file_read(handle);
+
+		handle->modtime = st.st_mtime;
+	}
 
 	d2tk_base_t *base = d2tk_pugl_get_base(handle->dpugl);
 	d2tk_style_t style = *d2tk_base_get_default_style(base);
