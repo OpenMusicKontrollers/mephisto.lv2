@@ -358,8 +358,10 @@ _expose_term(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_pugl_t *dpugl = handle->dpugl;
 	d2tk_base_t *base = d2tk_pugl_get_base(dpugl);
 
+	char *editor = getenv("EDITOR");
+
 	char *args [] = {
-		"nvim",
+		editor ? editor : "vi",
 		handle->template,
 		NULL
 	};
