@@ -133,15 +133,6 @@ _intercept_code(void *data, int64_t frames __attribute__((unused)),
 }
 
 static void
-_intercept_error(void *data, int64_t frames __attribute__((unused)),
-	props_impl_t *impl __attribute__((unused)))
-{
-	plughandle_t *handle = data;
-
-	(void)handle; //FIXME
-}
-
-static void
 _intercept_control(void *data __attribute__((unused)),
 	int64_t frames __attribute__((unused)), props_impl_t *impl __attribute__((unused)))
 {
@@ -161,7 +152,6 @@ static const props_def_t defs [MAX_NPROPS] = {
 		.access = LV2_PATCH__readable,
 		.offset = offsetof(plugstate_t, error),
 		.type = LV2_ATOM__String,
-		.event_cb = _intercept_error,
 		.max_size = ERROR_SIZE
 	},
 	{
@@ -374,6 +364,34 @@ _expose_term(plughandle_t *handle, const d2tk_rect_t *rect)
 }
 
 static inline void
+_expose_editor(plughandle_t *handle, const d2tk_rect_t *rect)
+{
+	//d2tk_pugl_t *dpugl = handle->dpugl;
+	//d2tk_base_t *base = d2tk_pugl_get_base(dpugl);
+
+	const size_t err_len = strlen(handle->state.error);
+	const unsigned n = err_len > 0 ? 2 : 1;
+	const d2tk_coord_t frac [2] = { 2, 1 };
+	D2TK_BASE_LAYOUT(rect, n, frac, D2TK_FLAG_LAYOUT_Y_REL, lay)
+	{
+		const unsigned k = d2tk_layout_get_index(lay);
+		const d2tk_rect_t *lrect = d2tk_layout_get_rect(lay);
+
+		switch(k)
+		{
+			case 0:
+			{
+				_expose_term(handle, lrect);
+			} break;
+			case 1:
+			{
+				//FIXME error
+			} break;
+		}
+	}
+}
+
+static inline void
 _expose_body(plughandle_t *handle, const d2tk_rect_t *rect)
 {
 	const d2tk_coord_t frac [2] = { 0, SIDEBAR }; 
@@ -386,7 +404,7 @@ _expose_body(plughandle_t *handle, const d2tk_rect_t *rect)
 		{
 			case 0:
 			{
-				_expose_term(handle, lrect);
+				_expose_editor(handle, lrect);
 			} break;
 			case 1:
 			{

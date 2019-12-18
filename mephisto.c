@@ -2165,7 +2165,7 @@ _work_response(LV2_Handle instance, uint32_t size, const void *body)
 				static const char *empty = "";
 
 				strncpy(handle->state.error, empty, impl->def->max_size);
-				impl->value.size = strlen(handle->state.error);
+				impl->value.size = strlen(handle->state.error) + 1;
 
 				handle->dirty = true;
 			}
@@ -2177,7 +2177,7 @@ _work_response(LV2_Handle instance, uint32_t size, const void *body)
 			if(impl)
 			{
 				strncat(handle->state.error, job->error, impl->def->max_size);
-				impl->value.size = strlen(handle->state.error);
+				impl->value.size = strlen(handle->state.error) + 1;
 
 				handle->dirty = true;
 
