@@ -74,6 +74,7 @@ struct _plughandle_t {
 	LV2_URID urid_error;
 	LV2_URID urid_control [NCONTROLS];
 
+	bool reinit;
 	char template [24];
 	int fd;
 	time_t modtime;
@@ -127,6 +128,8 @@ _intercept_code(void *data, int64_t frames __attribute__((unused)),
 	{
 		lv2_log_error(&handle->logger, "utime: %s\n", strerror(errno));
 	}
+
+	handle->reinit = true;
 }
 
 static void
@@ -366,7 +369,8 @@ _expose_term(plughandle_t *handle, const d2tk_rect_t *rect)
 		NULL
 	};
 
-	d2tk_base_pty(base, D2TK_ID, args, 16, rect);
+	d2tk_base_pty(base, D2TK_ID, NULL, args, 16, rect, handle->reinit);
+	handle->reinit = false;
 }
 
 static inline void
