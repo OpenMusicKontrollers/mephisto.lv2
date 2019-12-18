@@ -31,6 +31,7 @@
 #define SER_ATOM_IMPLEMENTATION
 #include <ser_atom.lv2/ser_atom.h>
 
+#include <d2tk/hash.h>
 #include <d2tk/frontend_pugl.h>
 
 #define GLYPH_W 7
@@ -69,6 +70,8 @@ struct _plughandle_t {
 	plugstate_t state;
 	plugstate_t stash;
 
+	uint64_t hash;
+
 	LV2_URID atom_eventTransfer;
 	LV2_URID urid_code;
 	LV2_URID urid_error;
@@ -87,6 +90,14 @@ _intercept_code(void *data, int64_t frames __attribute__((unused)),
 	plughandle_t *handle = data;
 
 	const ssize_t len = strlen(handle->state.code);
+	const uint64_t hash = d2tk_hash(handle->state.code, len);
+
+	if(handle->hash == hash)
+	{
+		return;
+	}
+
+	handle->hash = hash;
 
 	// save code to file
 	if(lseek(handle->fd, 0, SEEK_SET) == -1)
@@ -183,25 +194,23 @@ static const props_def_t defs [MAX_NPROPS] = {
 };
 
 static void
-_message_set_str(plughandle_t *handle, LV2_URID key, const char *str,
-	uint32_t size)
+_message_set_code(plughandle_t *handle, size_t len)
 {
 	ser_atom_t ser;
-	props_impl_t *impl = _props_impl_get(&handle->props, key);
-	if(!impl || !str)
+	props_impl_t *impl = _props_impl_get(&handle->props, handle->urid_code);
+	if(!impl)
 	{
 		return;
 	}
+
+	impl->value.size = len;
 
 	ser_atom_init(&ser);
 	ser_atom_reset(&ser, &handle->forge);
 
 	LV2_Atom_Forge_Ref ref = 1;
 
-	impl->value.size = size;
-	memcpy(handle->state.code, str, size);
-
-	props_set(&handle->props, &handle->forge, 0, key, &ref);
+	props_set(&handle->props, &handle->forge, 0, handle->urid_code, &ref);
 
 	const LV2_Atom_Event *ev = (const LV2_Atom_Event *)ser_atom_get(&ser);
 	const LV2_Atom *atom = &ev->body;
@@ -631,8 +640,11 @@ _file_read(plughandle_t *handle)
 	lseek(handle->fd, 0, SEEK_SET);
 
 	read(handle->fd, handle->state.code, len);
+	handle->state.code[len] = '\0';
 
-	_message_set_str(handle, handle->urid_code, handle->state.code, len);
+	handle->hash = d2tk_hash(handle->state.code, len);
+
+	_message_set_code(handle, len + 1);
 }
 
 static int
