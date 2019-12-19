@@ -278,7 +278,7 @@ _expose_header(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_pugl_t *dpugl = handle->dpugl;
 	d2tk_base_t *base = d2tk_pugl_get_base(dpugl);
 
-	const d2tk_coord_t frac [3] = { 1, 2, 1 }; 
+	const d2tk_coord_t frac [3] = { 1, 1, 1 };
 	D2TK_BASE_LAYOUT(rect, 3, frac, D2TK_FLAG_LAYOUT_X_REL, lay)
 	{
 		const unsigned k = d2tk_layout_get_index(lay);
