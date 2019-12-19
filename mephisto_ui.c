@@ -354,6 +354,8 @@ _expose_sidebar(plughandle_t *handle, const d2tk_rect_t *rect)
 	}
 }
 
+#define FONT_HEIGHT 16 //FIXME
+
 static inline void
 _expose_term(plughandle_t *handle, const d2tk_rect_t *rect)
 {
@@ -368,16 +370,40 @@ _expose_term(plughandle_t *handle, const d2tk_rect_t *rect)
 		NULL
 	};
 
-	d2tk_base_pty(base, D2TK_ID, NULL, args, 16, rect, handle->reinit);
+	d2tk_base_pty(base, D2TK_ID, NULL, args, FONT_HEIGHT, rect, handle->reinit);
 	handle->reinit = false;
+}
+
+static inline void
+_expose_error(plughandle_t *handle, const d2tk_rect_t *rect)
+{
+	d2tk_pugl_t *dpugl = handle->dpugl;
+	d2tk_base_t *base = d2tk_pugl_get_base(dpugl);
+
+	const char *from = handle->state.error;
+
+	D2TK_BASE_TABLE(rect, rect->w, FONT_HEIGHT, D2TK_FLAG_TABLE_ABS, tab)
+	{
+		const d2tk_rect_t *trect = d2tk_table_get_rect(tab);
+
+		const char *to = strpbrk(from, "\n\r\0");
+		const size_t len = to ? (to - from) : -1;
+
+		d2tk_base_label(base, len, from, 1.f, trect,
+			D2TK_ALIGN_LEFT | D2TK_ALIGN_MIDDLE);
+
+		from = to;
+
+		if(!from)
+		{
+			break;
+		}
+	}
 }
 
 static inline void
 _expose_editor(plughandle_t *handle, const d2tk_rect_t *rect)
 {
-	//d2tk_pugl_t *dpugl = handle->dpugl;
-	//d2tk_base_t *base = d2tk_pugl_get_base(dpugl);
-
 	const size_t err_len = strlen(handle->state.error);
 	const unsigned n = err_len > 0 ? 2 : 1;
 	const d2tk_coord_t frac [2] = { 2, 1 };
@@ -394,7 +420,7 @@ _expose_editor(plughandle_t *handle, const d2tk_rect_t *rect)
 			} break;
 			case 1:
 			{
-				//FIXME error
+				_expose_error(handle, lrect);
 			} break;
 		}
 	}
@@ -577,7 +603,7 @@ instantiate(const LV2UI_Descriptor *descriptor,
 		host_resize->ui_resize(host_resize->handle, w, h);
 	}
 
-	strncpy(handle->template, "/tmp/jit_XXXXXX.dsp", sizeof(handle->template));
+	strncpy(handle->template, "/tmp/XXXXXX.dsp", sizeof(handle->template));
 	handle->fd = mkstemps(handle->template, 4);
 	if(handle->fd == -1)
 	{
