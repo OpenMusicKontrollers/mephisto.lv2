@@ -374,6 +374,32 @@ _expose_term(plughandle_t *handle, const d2tk_rect_t *rect)
 	handle->reinit = false;
 }
 
+static inline unsigned
+_num_lines(const char *err)
+{
+	unsigned nlines = 0;
+
+	for(const char *from = err, *to = strpbrk(from, "\n\r\0");
+		to;
+		from = &to[1],
+		to = strpbrk(from, "\n\r\0"))
+	{
+		const size_t len = to - from;
+
+		if(len > 0)
+		{
+			nlines += 1;
+		}
+
+		if(to[0] == '\0')
+		{
+			break;
+		}
+	}
+
+	return nlines;
+}
+
 static inline void
 _expose_error(plughandle_t *handle, const d2tk_rect_t *rect)
 {
@@ -381,23 +407,26 @@ _expose_error(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_base_t *base = d2tk_pugl_get_base(dpugl);
 
 	const char *from = handle->state.error;
+	const unsigned nlines = _num_lines(from);
 
+	//FIXME wrap in scroll widget
 	D2TK_BASE_TABLE(rect, rect->w, FONT_HEIGHT, D2TK_FLAG_TABLE_ABS, tab)
 	{
 		const d2tk_rect_t *trect = d2tk_table_get_rect(tab);
+		const unsigned k = d2tk_table_get_index(tab);
+
+		if(k >= nlines)
+		{
+			break;
+		}
 
 		const char *to = strpbrk(from, "\n\r\0");
-		const size_t len = to ? (to - from) : -1;
+		const size_t len = to - from;
 
 		d2tk_base_label(base, len, from, 1.f, trect,
 			D2TK_ALIGN_LEFT | D2TK_ALIGN_MIDDLE);
 
 		from = to;
-
-		if(!from)
-		{
-			break;
-		}
 	}
 }
 
