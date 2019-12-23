@@ -377,24 +377,14 @@ _expose_term(plughandle_t *handle, const d2tk_rect_t *rect)
 static inline unsigned
 _num_lines(const char *err)
 {
-	unsigned nlines = 0;
+	unsigned nlines = 1;
 
-	for(const char *from = err, *to = strpbrk(from, "\n\r\0");
+	for(const char *from = err, *to = strchr(from, '\n');
 		to;
 		from = &to[1],
-		to = strpbrk(from, "\n\r\0"))
+		to = strchr(from, '\n'))
 	{
-		const size_t len = to - from;
-
-		if(len > 0)
-		{
-			nlines += 1;
-		}
-
-		if(to[0] == '\0')
-		{
-			break;
-		}
+		nlines += 1;
 	}
 
 	return nlines;
@@ -420,13 +410,13 @@ _expose_error(plughandle_t *handle, const d2tk_rect_t *rect)
 			break;
 		}
 
-		const char *to = strpbrk(from, "\n\r\0");
-		const size_t len = to - from;
+		const char *to = strchr(from, '\n');
+		const size_t len = to ? to - from : -1;
 
 		d2tk_base_label(base, len, from, 1.f, trect,
 			D2TK_ALIGN_LEFT | D2TK_ALIGN_MIDDLE);
 
-		from = to;
+		from = &to[1];
 	}
 }
 

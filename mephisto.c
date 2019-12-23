@@ -1847,6 +1847,7 @@ _dsp_init(plughandle_t *handle, dsp_t *dsp, const char *code,
 	}
 
 	dsp->handle = handle;
+	memset(err, 0x0, sizeof(err));
 
 	pthread_mutex_lock(&lock);
 
@@ -2176,7 +2177,7 @@ _work_response(LV2_Handle instance, uint32_t size, const void *body)
 
 			if(impl)
 			{
-				strncat(handle->state.error, job->error, impl->def->max_size);
+				strncat(handle->state.error, job->error, impl->def->max_size - strlen(job->error) - 1);
 				impl->value.size = strlen(handle->state.error) + 1;
 
 				handle->dirty = true;

@@ -82,7 +82,7 @@
 #define NCONTROLS 16
 #define MAX_NPROPS (4 + NCONTROLS)
 #define CODE_SIZE 0x10000 // 64 K
-#define ERROR_SIZE 0x400 // 1 K
+#define ERROR_SIZE 0x2000 // 8 K
 #define BUF_SIZE (CODE_SIZE * 4)
 
 #define CONTROL(NUM) \
