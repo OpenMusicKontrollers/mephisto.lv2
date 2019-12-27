@@ -167,6 +167,7 @@ struct _voice_t {
 	voice_state_t state;
 	int32_t remaining;
 	hash_t hash;
+	bool retrigger;
 };
 
 struct _dsp_t {
@@ -631,6 +632,15 @@ _play(plughandle_t *handle, int64_t from, int64_t to)
 		{
 			if(voice->instance && (voice->state & VOICE_STATE_ACTIVE) )
 			{
+				if(voice->retrigger)
+				{
+					_cntrl_refresh_value_abs(&voice->gate, 0.f);
+					computeCDSPInstance(voice->instance, 1, audio_in, audio_out);
+					_cntrl_refresh_value_abs(&voice->gate, 1.f);
+
+					voice->retrigger = false;
+				}
+
 				computeCDSPInstance(voice->instance, nsamples, audio_in, audio_out);
 
 				// add to master out
@@ -1059,7 +1069,10 @@ _voice_off(plughandle_t *handle, voice_t *voice)
 static inline void
 _voice_off_force(voice_t *voice)
 {
-	voice->state = VOICE_STATE_INACTIVE;
+	_cntrl_refresh_value_abs(&voice->gate, 0.f);
+
+	voice->state |= VOICE_STATE_DEACTIVATING;
+	voice->remaining = 1;
 }
 
 static void
@@ -1093,12 +1106,13 @@ _handle_midi(plughandle_t *handle, dsp_t *dsp,
 
 				_cntrl_refresh_value_abs(&voice->freq, freq);
 				_cntrl_refresh_value_abs(&voice->gain, vel * 0x1p-7);
-				_cntrl_refresh_value_abs(&voice->gate, 1.f);
+				_cntrl_refresh_value_abs(&voice->gate, 0.f);
 
 				voice->hash.key = key;
 				voice->hash.chn = chn;
 				voice->state = VOICE_STATE_ACTIVE;
 				voice->remaining = 0;
+				voice->retrigger = true;
 			}
 		} break;
 		case LV2_MIDI_MSG_NOTE_OFF:
