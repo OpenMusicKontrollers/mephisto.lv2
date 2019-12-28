@@ -38,6 +38,7 @@
 #define GLYPH_H (GLYPH_W * 2)
 
 #define HEADER 32
+#define FOOTER 64
 #define SIDEBAR 150
 
 #define FPS 25
@@ -73,6 +74,7 @@ struct _plughandle_t {
 	uint64_t hash;
 
 	LV2_URID atom_eventTransfer;
+	LV2_URID midi_MidiEvent;
 	LV2_URID urid_code;
 	LV2_URID urid_error;
 	LV2_URID urid_control [NCONTROLS];
@@ -194,6 +196,29 @@ static const props_def_t defs [MAX_NPROPS] = {
 };
 
 static void
+_message_set_note(plughandle_t *handle, uint8_t chan, uint8_t msg, uint8_t note,
+	uint8_t vel)
+{
+	const struct {
+		LV2_Atom atom;
+		uint8_t body [8];
+	} midi = {
+		.atom = {
+			.type = handle->midi_MidiEvent,
+			.size = 3
+		},
+		.body = {
+			[0] = chan | msg,
+			[1] = note,
+			[2] = vel
+		}
+	};
+
+	handle->writer(handle->controller, 0, lv2_atom_total_size(&midi.atom),
+		handle->atom_eventTransfer, &midi);
+}
+
+static void
 _message_set_code(plughandle_t *handle, size_t len)
 {
 	ser_atom_t ser;
@@ -300,6 +325,78 @@ _expose_header(plughandle_t *handle, const d2tk_rect_t *rect)
 			{
 				d2tk_base_label(base, -1, "Version "MEPHISTO_VERSION, 0.5f, lrect,
 					D2TK_ALIGN_RIGHT | D2TK_ALIGN_TOP);
+			} break;
+		}
+	}
+}
+
+static inline void
+_expose_footer(plughandle_t *handle, const d2tk_rect_t *rect)
+{
+	d2tk_pugl_t *dpugl = handle->dpugl;
+	d2tk_base_t *base = d2tk_pugl_get_base(dpugl);
+
+	D2TK_BASE_TABLE(rect, 48, 2, D2TK_FLAG_TABLE_REL, tab)
+	{
+		const unsigned x = d2tk_table_get_index_x(tab);
+		const unsigned y = d2tk_table_get_index_y(tab);
+		const unsigned k = d2tk_table_get_index(tab);
+		const d2tk_rect_t *trect = d2tk_table_get_rect(tab);
+
+		switch(y)
+		{
+			case 0:
+			{
+				d2tk_rect_t trect2 = *trect;
+				trect2.x -= trect2.w/2;
+
+				switch(x%7)
+				{
+					case 0:
+					{
+						char buf [32];
+						const ssize_t len = snprintf(buf, sizeof(buf), "%+i", x/7);
+
+						d2tk_base_label(base, len, buf, 0.35f, &trect2,
+							D2TK_ALIGN_TOP| D2TK_ALIGN_RIGHT);
+					} break;
+					case 1:
+						// fall-through
+					case 2:
+						// fall-through
+					case 4:
+						// fall-through
+					case 5:
+						// fall-through
+					case 6:
+						// fall-through
+					{
+						const d2tk_state_t state = d2tk_base_button(base, D2TK_ID_IDX(k),
+							&trect2);
+
+						if(d2tk_state_is_down(state))
+						{
+							_message_set_note(handle, 0x0, LV2_MIDI_MSG_NOTE_ON, 80, 0x7f);
+						}
+						if(d2tk_state_is_up(state))
+						{
+							_message_set_note(handle, 0x0, LV2_MIDI_MSG_NOTE_OFF, 80, 0x0);
+						}
+					} break;
+				}
+			} break;
+			case 1:
+			{
+				const d2tk_state_t state = d2tk_base_button(base, D2TK_ID_IDX(k), trect);
+
+				if(d2tk_state_is_down(state))
+				{
+					_message_set_note(handle, 0x0, LV2_MIDI_MSG_NOTE_ON, 80, 0x7f);
+				}
+				if(d2tk_state_is_up(state))
+				{
+					_message_set_note(handle, 0x0, LV2_MIDI_MSG_NOTE_OFF, 80, 0x0);
+				}
 			} break;
 		}
 	}
@@ -474,8 +571,8 @@ _expose(void *data, d2tk_coord_t w, d2tk_coord_t h)
 	plughandle_t *handle = data;
 	const d2tk_rect_t rect = D2TK_RECT(0, 0, w, h);
 
-	const d2tk_coord_t frac [2] = { HEADER, 0 }; 
-	D2TK_BASE_LAYOUT(&rect, 2, frac, D2TK_FLAG_LAYOUT_Y_ABS, lay)
+	const d2tk_coord_t frac [3] = { HEADER, 0, FOOTER };
+	D2TK_BASE_LAYOUT(&rect, 2, frac, D2TK_FLAG_LAYOUT_Y_ABS, lay) //FIXME 2->3
 	{
 		const unsigned k = d2tk_layout_get_index(lay);
 		const d2tk_rect_t *lrect = d2tk_layout_get_rect(lay);
@@ -489,6 +586,10 @@ _expose(void *data, d2tk_coord_t w, d2tk_coord_t h)
 			case 1:
 			{
 				_expose_body(handle, lrect);
+			} break;
+			case 2:
+			{
+				_expose_footer(handle, lrect);
 			} break;
 		}
 	}
@@ -546,6 +647,8 @@ instantiate(const LV2UI_Descriptor *descriptor,
 
 	handle->atom_eventTransfer = handle->map->map(handle->map->handle,
 		LV2_ATOM__eventTransfer);
+	handle->midi_MidiEvent = handle->map->map(handle->map->handle,
+		LV2_MIDI__MidiEvent);
 	handle->urid_code = handle->map->map(handle->map->handle,
 		MEPHISTO__code);
 	handle->urid_error = handle->map->map(handle->map->handle,
