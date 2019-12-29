@@ -25,7 +25,7 @@ folder out of the platform folder of the downloaded package into your
 
 #### Stable release
 
-* [mephisto.lv2-0.2.0.zip](https://dl.open-music-kontrollers.ch/mephisto.lv2/stable/mephisto.lv2-0.2.0.zip) ([sig](https://dl.open-music-kontrollers.ch/mephisto.lv2/stable/mephisto.lv2-0.2.0.zip.sig))
+* [mephisto.lv2-0.2.2.zip](https://dl.open-music-kontrollers.ch/mephisto.lv2/stable/mephisto.lv2-0.2.2.zip) ([sig](https://dl.open-music-kontrollers.ch/mephisto.lv2/stable/mephisto.lv2-0.2.2.zip.sig))
 
 #### Unstable (nightly) release
 
@@ -35,7 +35,7 @@ folder out of the platform folder of the downloaded package into your
 
 #### Stable release
 
-* [mephisto.lv2-0.2.0.tar.xz](https://git.open-music-kontrollers.ch/lv2/mephisto.lv2/snapshot/mephisto.lv2-0.2.0.tar.xz)
+* [mephisto.lv2-0.2.2.tar.xz](https://git.open-music-kontrollers.ch/lv2/mephisto.lv2/snapshot/mephisto.lv2-0.2.2.tar.xz)
 
 #### Git repository
 
