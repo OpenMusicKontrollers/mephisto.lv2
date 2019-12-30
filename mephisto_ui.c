@@ -83,6 +83,8 @@ struct _plughandle_t {
 	char template [24];
 	int fd;
 	time_t modtime;
+
+	int done;
 };
 
 static void
@@ -336,6 +338,13 @@ _expose_footer(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_pugl_t *dpugl = handle->dpugl;
 	d2tk_base_t *base = d2tk_pugl_get_base(dpugl);
 
+	static const uint8_t off_black [7] = {
+		0, 1, 3, 0, 6, 8, 10,
+	};
+	static const uint8_t off_white [7] = {
+		0, 2, 4, 5, 7, 9, 11
+	};
+
 	D2TK_BASE_TABLE(rect, 48, 2, D2TK_FLAG_TABLE_REL, tab)
 	{
 		const unsigned x = d2tk_table_get_index_x(tab);
@@ -376,11 +385,15 @@ _expose_footer(plughandle_t *handle, const d2tk_rect_t *rect)
 
 						if(d2tk_state_is_down(state))
 						{
-							_message_set_note(handle, 0x0, LV2_MIDI_MSG_NOTE_ON, 80, 0x7f);
+							const uint8_t note = x/7*12 + off_black[x%7];
+
+							_message_set_note(handle, 0x0, LV2_MIDI_MSG_NOTE_ON, note, 0x7f);
 						}
 						if(d2tk_state_is_up(state))
 						{
-							_message_set_note(handle, 0x0, LV2_MIDI_MSG_NOTE_OFF, 80, 0x0);
+							const uint8_t note = x/7*12 + off_black[x%7];
+
+							_message_set_note(handle, 0x0, LV2_MIDI_MSG_NOTE_OFF, note, 0x0);
 						}
 					} break;
 				}
@@ -391,11 +404,15 @@ _expose_footer(plughandle_t *handle, const d2tk_rect_t *rect)
 
 				if(d2tk_state_is_down(state))
 				{
-					_message_set_note(handle, 0x0, LV2_MIDI_MSG_NOTE_ON, 80, 0x7f);
+					const uint8_t note = x/7*12 + off_white[x%7];
+
+					_message_set_note(handle, 0x0, LV2_MIDI_MSG_NOTE_ON, note, 0x7f);
 				}
 				if(d2tk_state_is_up(state))
 				{
-					_message_set_note(handle, 0x0, LV2_MIDI_MSG_NOTE_OFF, 80, 0x0);
+					const uint8_t note = x/7*12 + off_white[x%7];
+
+					_message_set_note(handle, 0x0, LV2_MIDI_MSG_NOTE_OFF, note, 0x0);
 				}
 			} break;
 		}
@@ -453,6 +470,40 @@ _expose_sidebar(plughandle_t *handle, const d2tk_rect_t *rect)
 
 #define FONT_HEIGHT 16 //FIXME
 
+/* list of tested console editors:
+ *
+ * e3
+ * joe
+ * nano
+ * vi
+ * vis
+ * vim
+ * neovim
+ * emacs
+ * zile
+ * mg
+ * kakoune
+ */
+
+/* list of tested graphical editors:
+ *
+ * acme
+ * adie
+ * beaver
+ * deepin-editor
+ * gedit         (does not work properly)
+ * gobby
+ * howl
+ * jedit         (does not work properly)
+ * xed           (does not work properly)
+ * leafpad
+ * mousepad
+ * nedit
+ * notepadqq
+ * pluma         (does not work properly)
+ * sublime3      (needs to be started with -w)
+ */
+
 static inline void
 _expose_term(plughandle_t *handle, const d2tk_rect_t *rect)
 {
@@ -467,7 +518,14 @@ _expose_term(plughandle_t *handle, const d2tk_rect_t *rect)
 		NULL
 	};
 
-	d2tk_base_pty(base, D2TK_ID, NULL, args, FONT_HEIGHT, rect, handle->reinit);
+	const d2tk_state_t state = d2tk_base_pty(base, D2TK_ID, NULL, args,
+		FONT_HEIGHT, rect, handle->reinit);
+
+	if(d2tk_state_is_close(state))
+	{
+		handle->done = 1;
+	}
+
 	handle->reinit = false;
 }
 
@@ -545,7 +603,7 @@ _expose_editor(plughandle_t *handle, const d2tk_rect_t *rect)
 static inline void
 _expose_body(plughandle_t *handle, const d2tk_rect_t *rect)
 {
-	const d2tk_coord_t frac [2] = { 0, SIDEBAR }; 
+	const d2tk_coord_t frac [2] = { 0, SIDEBAR };
 	D2TK_BASE_LAYOUT(rect, 2, frac, D2TK_FLAG_LAYOUT_X_ABS, lay)
 	{
 		const unsigned k = d2tk_layout_get_index(lay);
@@ -572,7 +630,7 @@ _expose(void *data, d2tk_coord_t w, d2tk_coord_t h)
 	const d2tk_rect_t rect = D2TK_RECT(0, 0, w, h);
 
 	const d2tk_coord_t frac [3] = { HEADER, 0, FOOTER };
-	D2TK_BASE_LAYOUT(&rect, 2, frac, D2TK_FLAG_LAYOUT_Y_ABS, lay) //FIXME 2->3
+	D2TK_BASE_LAYOUT(&rect, 3, frac, D2TK_FLAG_LAYOUT_Y_ABS, lay)
 	{
 		const unsigned k = d2tk_layout_get_index(lay);
 		const d2tk_rect_t *lrect = d2tk_layout_get_rect(lay);
@@ -824,7 +882,12 @@ _idle(LV2UI_Handle instance)
 	style.font_face = "FiraCode-Regular.ttf";
 	d2tk_base_set_style(base, &style);
 
-	return d2tk_pugl_step(handle->dpugl);
+	if(d2tk_pugl_step(handle->dpugl))
+	{
+		handle->done = 1;
+	}
+
+	return handle->done;
 }
 
 static const LV2UI_Idle_Interface idle_ext = {

@@ -1689,7 +1689,6 @@ _ui_add_vertical_bargraph(void* iface, const char* label, FAUSTFLOAT* zone,
 	cntrl->vertical_bargraph.ran_1 = 1.f / (max - min);
 }
 
-#if 0
 static void
 _ui_add_sound_file(void* iface, const char* label, const char* filename,
 	struct Soundfile** sf_zone __attribute__((unused)))
@@ -1708,7 +1707,6 @@ _ui_add_sound_file(void* iface, const char* label, const char* filename,
 
 	//FIXME
 }
-#endif
 
 static void
 _ui_declare(void* iface, FAUSTFLOAT* zone __attribute__((unused)),
@@ -1818,9 +1816,7 @@ _ui_init(dsp_t *dsp)
 	glue->addNumEntry = _ui_add_num_entry;
 	glue->addHorizontalBargraph = _ui_add_horizontal_bargraph;
 	glue->addVerticalBargraph = _ui_add_vertical_bargraph;
-#if 0
-	glue->addSoundfile = _ui_add_sound_file;
-#endif
+	//glue->addSoundfile = _ui_add_sound_file;
 	glue->declare = _ui_declare;
 
 	dsp->cvoices = 0;
