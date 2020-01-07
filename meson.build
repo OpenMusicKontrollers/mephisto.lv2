@@ -50,10 +50,9 @@ util_dep = cc.find_library('util')
 rt_dep = cc.find_library('rt')
 thread_dep = dependency('threads')
 vterm_dep = dependency('vterm', version : '>=0.1')
-uuid_dep = dependency('uuid', version : '>=2.0')
 
 dsp_deps = [m_dep, lv2_dep, faust_dep]
-ui_deps = [d2tk_dep, rt_dep, vterm_dep, uuid_dep, thread_dep]
+ui_deps = [d2tk_dep, rt_dep, vterm_dep, thread_dep]
 
 props_inc = include_directories('props.lv2')
 timely_inc = include_directories('timely.lv2')
@@ -169,7 +168,9 @@ endif
 
 if lv2lint.found()
 	test('LV2 lint', lv2lint,
-		args : [ '-I', join_paths(build_root, ''),
+		args : ['-M', 'pack',
+			'-E', 'warn',
+			'-I', join_paths(build_root, ''),
 			'http://open-music-kontrollers.ch/lv2/mephisto#audio_1x1',
 			'http://open-music-kontrollers.ch/lv2/mephisto#audio_2x2',
 			'http://open-music-kontrollers.ch/lv2/mephisto#audio_4x4',
