@@ -53,7 +53,7 @@ x86_64-linux-gnu-bullseye:
 i686-linux-gnu-bullseye:
   before_script:
     - apt-get update
-    - apt-get install -y faust:i386 faust-common:i386 libfaust2:i386 libglu1-mesa-dev:i286 libvterm-dev:i386
+    - apt-get install -y faust:i386 faust-common:i386 libfaust2:i386 libglu1-mesa-dev:i386 libvterm-dev:i386
   <<: *universal_linux_definition_bullseye
 
 #arm-linux-gnueabihf-bullseye:
