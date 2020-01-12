@@ -47,25 +47,25 @@ stages:
 x86_64-linux-gnu-bullseye:
   before_script:
     - apt-get update
-    - apt-get install -y faust faust-common libfaust2 libvterm-dev
+    - apt-get install -y faust faust-common libfaust2 libglu1-mesa-dev libvterm-dev
   <<: *universal_linux_definition_bullseye
 
 i686-linux-gnu-bullseye:
   before_script:
     - apt-get update
-    - apt-get install -y faust:i386 faust-common:i386 libfaust2:i386 libvterm-dev:i386
+    - apt-get install -y faust:i386 faust-common:i386 libfaust2:i386 libglu1-mesa-dev:i286 libvterm-dev:i386
   <<: *universal_linux_definition_bullseye
 
 #arm-linux-gnueabihf-bullseye:
 #  before_script:
 #    - apt-get update
-#    - apt-get install -y faust:armhf faust-common:armhf libfaust2:armhf libvterm-dev:armhf
+#    - apt-get install -y faust:armhf faust-common:armhf libfaust2:armhf libglu1-mesa-dev:armhf libvterm-dev:armhf
 #  <<: *arm_linux_definition_bullseye
 
 #aarch64-linux-gnu-bullseye:
 #  before_script:
 #    - apt-get update
-#    - apt-get install -y faust:arm64 faust-common:arm64 libfaust2:arm64 libvterm-dev:arm64
+#    - apt-get install -y faust:arm64 faust-common:arm64 libfaust2:arm64 libglu1-mesa-dev:arm64 libvterm-dev:arm64
 #  <<: *arm_linux_definition_bullseye
 
 #x86_64-w64-mingw32:
