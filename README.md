@@ -133,31 +133,22 @@ after code changes.
 	sudo ninja install
 	ninja test
 
-#### GUI
+#### UI
 
-This plugin features an external LV2 plugin GUI, which does nothing else than
-just opening the plugin's FAUST source in your favorite editor and monitor its
-modification state. Additionally it opens a log file to write compile errors to.
+This plugin features a native LV2 plugin UI which embeds a terminal emulator
+which can run your favorite terminal editor to edit the plugin's FAUST source.
 
-Currently, the editor has to be defined via the environment variable
-*MEPHISTO_EDITOR*.
+Currently, the editor has to be defined via the environment variable *EDITOR*:
 
-    export MEPHISTO_EDITOR='gedit'
-    export MEPHISTO_EDITOR='xterm -e emacs'
-    export MEPHISTO_EDITOR='urxvt -e vim -o2'
+    export EDITOR='vim'
+    export EDITOR='emacs'
 
-If no environment variable is defined, the default fallback invocation commands
-are defined as follows:
-
-* 'xterm -e vi' (Unix)
-<!--
-* 'open -nW' (MacOS)
-* 'cmd /c start /wait' (Windows)
--->
+If no environment variable is defined, the default fallback editor is 'vi', as
+it must be part of every POSIX system.
 
 Whenever you save the FAUST source, the plugin will try to just-in-time compile and
 inject it. Potential warnings and errors are reported in the plugin host's log
-and the log file.
+and the UI itself.
 
 #### Controls
 
@@ -165,11 +156,11 @@ The plugin supports up to 16 controls implemented as LV2
 [Parameters](http://lv2plug.in/ns/lv2core/lv2core.html#Parameter). To have
 access to them, simply use one of FAUST's active control structures with
 [ordering indexes](https://faust.grame.fr/doc/manual/index.html#ordering-ui-elements)
-in their labels in your DSP code:
+(monitonically rising starting from 0) in their labels in your DSP code:
 
-    cntrl1 = hslider("[1]Control 1", 500.0, 10.0, 1000.0, 1.0);
-    cntrl2 = hslider("[2]Control 2", 5.0, 1.0, 10.0, 1.0);
-    cntrl3 = hslider("[3]Control 3", 0.5, 0.0, 1.0, 0.1);
+    cntrl1 = hslider("[0]Control 0", 500.0, 10.0, 1000.0, 1.0);
+    cntrl2 = hslider("[1]Control 1", 5.0, 1.0, 10.0, 1.0);
+    cntrl3 = hslider("[2]Control 2", 0.5, 0.0, 1.0, 0.1);
 
 #### MIDI and polyphony
 
@@ -202,9 +193,9 @@ automated via the plugin host to one of the 16 control slots.
     pressure = button("gate");
     pressure = hslider("pressure", 0.0, 0.0, 1.0, 0.1);
 
-    cntrl1 = hslider("[1]Control 1", 500.0, 10.0, 1000.0, 1.0);
-    cntrl2 = hslider("[2]Control 2", 5.0, 1.0, 10.0, 1.0);
-    cntrl3 = hslider("[3]Control 3", 0.5, 0.0, 1.0, 0.1);
+    cntrl1 = hslider("[0]Control 0", 500.0, 10.0, 1000.0, 1.0);
+    cntrl2 = hslider("[1]Control 1", 5.0, 1.0, 10.0, 1.0);
+    cntrl3 = hslider("[2]Control 2", 0.5, 0.0, 1.0, 0.1);
 
 #### OSC
 

@@ -57,6 +57,7 @@ typedef struct _cntrl_sound_file_t cntrl_sound_file_t;
 typedef struct _cntrl_t cntrl_t;
 
 typedef enum _cntrl_type_t {
+	CNTRL_NONE = 0,
 	CNTRL_BUTTON,
 	CNTRL_CHECK_BUTTON,
 	CNTRL_VERTICAL_SLIDER,
@@ -159,7 +160,6 @@ struct _voice_t {
 	cntrl_t d_pressure;
 	cntrl_t d_timbre;
 
-	uint32_t ncntrls;
 	cntrl_t cntrls [NCONTROLS];
 
 	pos_t pos;
@@ -347,6 +347,10 @@ _cntrl_refresh_value_rel(cntrl_t *cntrl, float val)
 {
 	switch(cntrl->type)
 	{
+		case CNTRL_NONE:
+		{
+			// do nothing
+		} break;
 		case CNTRL_BUTTON:
 		{
 			val = val > 0.5f
@@ -436,11 +440,9 @@ _refresh_value(plughandle_t *handle, uint32_t idx)
 
 		VOICE_FOREACH(dsp, voice)
 		{
-			cntrl_t *cntrl = idx < voice->ncntrls
-				? &voice->cntrls[idx]
-				: NULL;
+			cntrl_t *cntrl = &voice->cntrls[idx];
 
-			if(!cntrl)
+			if(cntrl->type == CNTRL_NONE)
 			{
 				continue;
 			}
@@ -1482,12 +1484,9 @@ _ui_next_cntrl(dsp_t *dsp, cntrl_type_t type, const char *label)
 
 		dsp->timely_mask = 0; // reset flag
 	}
-	else if(dsp->idx >= 0)
+	else if( (dsp->idx >= 0) && (dsp->idx < NCONTROLS) )
 	{
-		if(voice->ncntrls < NCONTROLS)
-		{
-			cntrl = &voice->cntrls[voice->ncntrls++];
-		}
+		cntrl = &voice->cntrls[dsp->idx];
 
 		dsp->idx = -1;
 	}
