@@ -43,6 +43,13 @@ else
 	error('unsupported FAUST version found ' + faust_ver)
 endif
 
+if cc.has_member('UIGlue', 'addSoundFile',
+		prefix : '#include <faust/gui/CInterface.h>')
+	add_project_arguments('-DFAUST_ADDSOUNDFILE=addSoundFile', language : 'c')
+else
+	add_project_arguments('-DFAUST_ADDSOUNDFILE=addSoundfile', language : 'c')
+endif
+
 m_dep = cc.find_library('m')
 lv2_dep = dependency('lv2', version : '>=1.14.0')
 faust_dep = cc.find_library('faust')
