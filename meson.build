@@ -74,8 +74,7 @@ dsp_srcs = ['mephisto.c']
 
 ui_srcs = ['mephisto_ui.c']
 
-c_args = ['-fvisibility=hidden',
-	'-ffast-math']
+c_args = ['-fvisibility=hidden']
 
 version = run_command('cat', 'VERSION').stdout().strip().split('.')
 add_project_arguments('-DMEPHISTO_VERSION="'
