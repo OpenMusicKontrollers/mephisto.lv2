@@ -70,6 +70,8 @@ typedef enum _bar_t {
 #endif
 #if !defined(_WIN32) && !defined(__APPLE__)
 	BAR_BROWSER,
+#endif
+#if D2TK_EVDEV
 	BAR_KEYBOARD,
 #endif
 
@@ -93,6 +95,8 @@ static const char *bar_lbl [BAR_MAX] = {
 #endif
 #if !defined(_WIN32) && !defined(__APPLE__)
 	[BAR_BROWSER]    = "Browser",
+#endif
+#if D2TK_EVDEV
 	[BAR_KEYBOARD]   = "Keyboard"
 #endif
 };
@@ -1154,15 +1158,15 @@ _render_c_browser(d2tk_base_t *base, const d2tk_rect_t *rect)
 	_file_list_free(list);
 #undef M
 }
+#endif
 
+#if D2TK_EVDEV
 static void
 _fake_event(unsigned type, unsigned code, int value)
 {
 	if(fake.uidev)
 	{
-#if D2TK_EVDEV
 		libevdev_uinput_write_event(fake.uidev, type, code, value);
-#endif
 	}
 }
 
@@ -1786,6 +1790,8 @@ d2tk_example_run(d2tk_base_t *base, d2tk_coord_t w, d2tk_coord_t h)
 					{
 						_render_c_browser(base, vrect);
 					} break;
+#endif
+#if D2TK_EVDEV
 					case BAR_KEYBOARD:
 					{
 						_render_c_keyboard(base, vrect);
