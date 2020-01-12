@@ -68,22 +68,22 @@ stages:
 # building in docker
 x86_64-linux-gnu:
   before_script:
-    - apt-get install -y libglu1-mesa-dev libevdev-dev
+    - apt-get install -y libglu1-mesa-dev libevdev-dev libvterm-dev
   <<: *universal_linux_definition
 
 i686-linux-gnu:
   before_script:
-    - apt-get install -y libglu1-mesa-dev:i386 libevdev-dev:i386
+    - apt-get install -y libglu1-mesa-dev:i386 libevdev-dev:i386 libvterm-dev:i386
   <<: *universal_linux_definition
 
 arm-linux-gnueabihf:
   before_script:
-    - apt-get install -y libglu1-mesa-dev:armhf libevdev-dev:armhf
+    - apt-get install -y libglu1-mesa-dev:armhf libevdev-dev:armhf libvterm-dev:armhf
   <<: *arm_linux_definition
 
 aarch64-linux-gnu:
   before_script:
-    - apt-get install -y libglu1-mesa-dev:arm64 libevdev-dev:arm64
+    - apt-get install -y libglu1-mesa-dev:arm64 libevdev-dev:arm64 libvterm-dev:arm64
   <<: *arm_linux_definition
 
 x86_64-w64-mingw32:
