@@ -1,0 +1,2 @@
+#define D2TK_PTY @D2TK_PTY@
+#define D2TK_EVDEV @D2TK_EVDEV@
