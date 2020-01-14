@@ -152,6 +152,12 @@ configure_file(
 	copy : true,
 	install : true,
 	install_dir : inst_dir)
+configure_file(
+	input : 'libre-gui-exclamation-circle.png',
+	output : 'libre-gui-exclamation-circle.png',
+	copy : true,
+	install : true,
+	install_dir : inst_dir)
 
 if lv2_validate.found() and sord_validate.found()
 	test('LV2 validate', lv2_validate,

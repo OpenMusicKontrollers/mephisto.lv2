@@ -200,7 +200,7 @@ static const props_def_t defs [MAX_NPROPS] = {
 };
 
 static void
-_message_set_note(plughandle_t *handle, uint8_t chan, uint8_t msg, uint8_t note,
+_message_midi_note(plughandle_t *handle, uint8_t chan, uint8_t msg, uint8_t note,
 	uint8_t vel)
 {
 	const struct {
@@ -220,6 +220,30 @@ _message_set_note(plughandle_t *handle, uint8_t chan, uint8_t msg, uint8_t note,
 
 	handle->writer(handle->controller, 0, lv2_atom_total_size(&midi.atom),
 		handle->atom_eventTransfer, &midi);
+}
+
+static void
+_message_midi_allnotesoff(plughandle_t *handle)
+{
+	for(uint8_t chan = 0x0; chan < 0x10; chan++)
+	{
+		const struct {
+			LV2_Atom atom;
+			uint8_t body [8];
+		} midi = {
+			.atom = {
+				.type = handle->midi_MidiEvent,
+				.size = 2
+			},
+			.body = {
+				[0] = chan | LV2_MIDI_MSG_CONTROLLER,
+				[1] = LV2_MIDI_CTL_ALL_NOTES_OFF
+			}
+		};
+
+		handle->writer(handle->controller, 0, lv2_atom_total_size(&midi.atom),
+			handle->atom_eventTransfer, &midi);
+	}
 }
 
 static void
@@ -340,8 +364,9 @@ _expose_header(plughandle_t *handle, const d2tk_rect_t *rect)
 	}
 }
 
+#if 0
 static inline void
-_expose_footer(plughandle_t *handle, const d2tk_rect_t *rect)
+_expose_vkb(plughandle_t *handle, const d2tk_rect_t *rect)
 {
 	d2tk_pugl_t *dpugl = handle->dpugl;
 	d2tk_base_t *base = d2tk_pugl_get_base(dpugl);
@@ -395,13 +420,13 @@ _expose_footer(plughandle_t *handle, const d2tk_rect_t *rect)
 						{
 							const uint8_t note = x/7*12 + off_black[x%7];
 
-							_message_set_note(handle, 0x0, LV2_MIDI_MSG_NOTE_ON, note, 0x7f);
+							_message_midi_note(handle, 0x0, LV2_MIDI_MSG_NOTE_ON, note, 0x7f);
 						}
 						if(d2tk_state_is_up(state))
 						{
 							const uint8_t note = x/7*12 + off_black[x%7];
 
-							_message_set_note(handle, 0x0, LV2_MIDI_MSG_NOTE_OFF, note, 0x0);
+							_message_midi_note(handle, 0x0, LV2_MIDI_MSG_NOTE_OFF, note, 0x0);
 						}
 					} break;
 				}
@@ -414,14 +439,102 @@ _expose_footer(plughandle_t *handle, const d2tk_rect_t *rect)
 				{
 					const uint8_t note = x/7*12 + off_white[x%7];
 
-					_message_set_note(handle, 0x0, LV2_MIDI_MSG_NOTE_ON, note, 0x7f);
+					_message_midi_note(handle, 0x0, LV2_MIDI_MSG_NOTE_ON, note, 0x7f);
 				}
 				if(d2tk_state_is_up(state))
 				{
 					const uint8_t note = x/7*12 + off_white[x%7];
 
-					_message_set_note(handle, 0x0, LV2_MIDI_MSG_NOTE_OFF, note, 0x0);
+					_message_midi_note(handle, 0x0, LV2_MIDI_MSG_NOTE_OFF, note, 0x0);
 				}
+			} break;
+		}
+	}
+}
+#endif
+
+static inline void
+_expose_xfade(plughandle_t *handle, const d2tk_rect_t *rect)
+{
+	d2tk_pugl_t *dpugl = handle->dpugl;
+	d2tk_base_t *base = d2tk_pugl_get_base(dpugl);
+
+	static const char lbl [] = "crossfade•ms";
+
+	D2TK_BASE_FRAME(base, rect, sizeof(lbl), lbl, frm)
+	{
+		const d2tk_rect_t *frect = d2tk_frame_get_rect(frm);
+
+		if(d2tk_base_prop_int32_is_changed(base, D2TK_ID, frect,
+			10, &handle->state.xfade_dur, 1000))
+		{
+			_message_set_key(handle, handle->urid_xfadeDuration);
+		}
+	}
+}
+
+static inline void
+_expose_release(plughandle_t *handle, const d2tk_rect_t *rect)
+{
+	d2tk_pugl_t *dpugl = handle->dpugl;
+	d2tk_base_t *base = d2tk_pugl_get_base(dpugl);
+
+	static const char lbl [] = "release•s";
+
+	D2TK_BASE_FRAME(base, rect, sizeof(lbl), lbl, frm)
+	{
+		const d2tk_rect_t *frect = d2tk_frame_get_rect(frm);
+
+		if(d2tk_base_prop_int32_is_changed(base, D2TK_ID, frect,
+			0, &handle->state.release_dur, 100))
+		{
+			_message_set_key(handle, handle->urid_releaseDuration);
+		}
+	}
+}
+
+static inline void
+_expose_panic(plughandle_t *handle, const d2tk_rect_t *rect)
+{
+	d2tk_pugl_t *dpugl = handle->dpugl;
+	d2tk_base_t *base = d2tk_pugl_get_base(dpugl);
+
+	static const char lbl [] = "panic";
+	static const char path [] = "libre-arrow-circle-right.png";
+
+	D2TK_BASE_FRAME(base, rect, sizeof(lbl), lbl, frm)
+	{
+		const d2tk_rect_t *frect = d2tk_frame_get_rect(frm);
+
+		if(d2tk_base_button_image_is_changed(base, D2TK_ID, sizeof(path), path, frect))
+		{
+			_message_midi_allnotesoff(handle);
+		}
+	}
+}
+
+static inline void
+_expose_footer(plughandle_t *handle, const d2tk_rect_t *rect)
+{
+	const d2tk_coord_t frac [3] = { 1, 1, 1 };
+	D2TK_BASE_LAYOUT(rect, 3, frac, D2TK_FLAG_LAYOUT_X_REL, lay)
+	{
+		const unsigned k = d2tk_layout_get_index(lay);
+		const d2tk_rect_t *lrect = d2tk_layout_get_rect(lay);
+
+		switch(k)
+		{
+			case 0:
+			{
+				_expose_xfade(handle, lrect);
+			} break;
+			case 1:
+			{
+				_expose_release(handle, lrect);
+			} break;
+			case 2:
+			{
+				_expose_panic(handle, lrect);
 			} break;
 		}
 	}
@@ -465,98 +578,14 @@ _expose_slot(plughandle_t *handle, const d2tk_rect_t *rect, unsigned k)
 }
 
 static inline void
-_expose_xfade(plughandle_t *handle, const d2tk_rect_t *rect)
-{
-	d2tk_pugl_t *dpugl = handle->dpugl;
-	d2tk_base_t *base = d2tk_pugl_get_base(dpugl);
-
-	static const char lbl [] = "crossfade (ms)";
-
-	D2TK_BASE_FRAME(base, rect, sizeof(lbl), lbl, frm)
-	{
-		const d2tk_rect_t *frect = d2tk_frame_get_rect(frm);
-
-		if(d2tk_base_dial_int32_is_changed(base, D2TK_ID, frect,
-			10, &handle->state.xfade_dur, 1000))
-		{
-			_message_set_key(handle, handle->urid_xfadeDuration);
-		}
-	}
-}
-
-static inline void
-_expose_release(plughandle_t *handle, const d2tk_rect_t *rect)
-{
-	d2tk_pugl_t *dpugl = handle->dpugl;
-	d2tk_base_t *base = d2tk_pugl_get_base(dpugl);
-
-	static const char lbl [] = "release (s)";
-
-	D2TK_BASE_FRAME(base, rect, sizeof(lbl), lbl, frm)
-	{
-		const d2tk_rect_t *frect = d2tk_frame_get_rect(frm);
-
-		if(d2tk_base_dial_int32_is_changed(base, D2TK_ID, frect,
-			0, &handle->state.release_dur, 100))
-		{
-			_message_set_key(handle, handle->urid_releaseDuration);
-		}
-	}
-}
-
-static inline void
 _expose_sidebar(plughandle_t *handle, const d2tk_rect_t *rect)
 {
-	D2TK_BASE_TABLE(rect, 2, 9,  D2TK_FLAG_TABLE_REL, tab)
+	D2TK_BASE_TABLE(rect, 2, NCONTROLS/2,  D2TK_FLAG_TABLE_REL, tab)
 	{
 		const unsigned k = d2tk_table_get_index(tab);
 		const d2tk_rect_t *trect = d2tk_table_get_rect(tab);
 
-		switch(k)
-		{
-			case 0:
-				// fall-through
-			case 1:
-				// fall-through
-			case 2:
-				// fall-through
-			case 3:
-				// fall-through
-			case 4:
-				// fall-through
-			case 5:
-				// fall-through
-			case 6:
-				// fall-through
-			case 7:
-				// fall-through
-			case 8:
-				// fall-through
-			case 9:
-				// fall-through
-			case 10:
-				// fall-through
-			case 11:
-				// fall-through
-			case 12:
-				// fall-through
-			case 13:
-				// fall-through
-			case 14:
-				// fall-through
-			case 15:
-			{
-				_expose_slot(handle, trect, k);
-			} break;
-			case 16:
-			{
-				_expose_xfade(handle, trect);
-			} break;
-			case 17:
-			{
-				_expose_release(handle, trect);
-			} break;
-		}
+		_expose_slot(handle, trect, k);
 	}
 }
 
@@ -722,7 +751,7 @@ _expose(void *data, d2tk_coord_t w, d2tk_coord_t h)
 	const d2tk_rect_t rect = D2TK_RECT(0, 0, w, h);
 
 	const d2tk_coord_t frac [3] = { HEADER, 0, FOOTER };
-	D2TK_BASE_LAYOUT(&rect, 2, frac, D2TK_FLAG_LAYOUT_Y_ABS, lay) //FIXME
+	D2TK_BASE_LAYOUT(&rect, 3, frac, D2TK_FLAG_LAYOUT_Y_ABS, lay)
 	{
 		const unsigned k = d2tk_layout_get_index(lay);
 		const d2tk_rect_t *lrect = d2tk_layout_get_rect(lay);
