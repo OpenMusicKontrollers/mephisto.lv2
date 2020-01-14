@@ -500,7 +500,7 @@ _expose_panic(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_base_t *base = d2tk_pugl_get_base(dpugl);
 
 	static const char lbl [] = "panic";
-	static const char path [] = "libre-arrow-circle-right.png";
+	static const char path [] = "libre-gui-exclamation-circle.png";
 
 	D2TK_BASE_FRAME(base, rect, sizeof(lbl), lbl, frm)
 	{
