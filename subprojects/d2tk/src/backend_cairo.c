@@ -655,10 +655,14 @@ d2tk_cairo_process(void *data, d2tk_core_t *core, const d2tk_com_t *com,
 
 			if(!*sprite)
 			{
+				char *img_path = NULL;
+				assert(asprintf(&img_path, "%s%s", backend->bundle_path, body->path) != -1);
+				assert(img_path);
+
 				int W, H, N;
 				stbi_set_unpremultiply_on_load(1);
 				stbi_convert_iphone_png_to_rgb(1);
-				uint8_t *pixels = stbi_load(body->path, &W, &H, &N, 4);
+				uint8_t *pixels = stbi_load(img_path, &W, &H, &N, 4);
 				assert(pixels );
 
 				// bitswap and premultiply pixel data
