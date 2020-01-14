@@ -729,7 +729,11 @@ d2tk_nanovg_process(void *data, d2tk_core_t *core, const d2tk_com_t *com,
 
 			if(!*sprite)
 			{
-				*sprite = nvgCreateImage(ctx, body->path, NVG_IMAGE_GENERATE_MIPMAPS);
+				char *img_path = NULL;
+				assert(asprintf(&img_path, "%s%s", backend->bundle_path, body->path) != -1);
+				assert(img_path);
+
+				*sprite = nvgCreateImage(ctx, img_path, NVG_IMAGE_GENERATE_MIPMAPS);
 			}
 
 			const int img = *sprite;
