@@ -1069,6 +1069,15 @@ _voice_off(plughandle_t *handle, voice_t *voice)
 }
 
 static inline void
+_voice_off_panic(plughandle_t *handle, voice_t *voice)
+{
+	_cntrl_refresh_value_abs(&voice->gate, 0.f);
+
+	voice->state |= VOICE_STATE_DEACTIVATING;
+	voice->remaining = handle->release_max;
+}
+
+static inline void
 _voice_off_force(voice_t *voice)
 {
 	_cntrl_refresh_value_abs(&voice->gate, 0.f);
@@ -1078,14 +1087,48 @@ _voice_off_force(voice_t *voice)
 }
 
 static void
-_handle_midi(plughandle_t *handle, dsp_t *dsp,
-	int64_t frames __attribute__((unused)), const uint8_t *msg, uint32_t len)
+_handle_midi_2(plughandle_t *handle, dsp_t *dsp,
+	int64_t frames __attribute__((unused)), const uint8_t *msg)
 {
-	if(len < 3)
+	const uint8_t cmd = msg[0] & 0xf0;
+	//const uint8_t chn = msg[0] & 0x0f; FIXME
+
+	if(!dsp || !dsp->is_instrument || !dsp->midi_on)
 	{
 		return;
 	}
 
+	switch(cmd)
+	{
+		case LV2_MIDI_MSG_CONTROLLER:
+		{
+			const uint8_t ctr = msg[1];
+
+			switch(ctr)
+			{
+				case LV2_MIDI_CTL_ALL_NOTES_OFF:
+				{
+					VOICE_FOREACH(dsp, voice)
+					{
+						_voice_off_panic(handle, voice);
+					}
+				} break;
+				case LV2_MIDI_CTL_ALL_SOUNDS_OFF:
+				{
+					VOICE_FOREACH(dsp, voice)
+					{
+						_voice_off_force(voice);
+					}
+				} break;
+			}
+		} break;
+	}
+}
+
+static void
+_handle_midi_3(plughandle_t *handle, dsp_t *dsp,
+	int64_t frames __attribute__((unused)), const uint8_t *msg)
+{
 	const uint8_t cmd = msg[0] & 0xf0;
 	const uint8_t chn = msg[0] & 0x0f;
 
@@ -1184,20 +1227,6 @@ _handle_midi(plughandle_t *handle, dsp_t *dsp,
 						}
 					}
 				} break;
-				case LV2_MIDI_CTL_ALL_NOTES_OFF:
-				{
-					VOICE_FOREACH(dsp, voice)
-					{
-						_voice_off(handle, voice);
-					}
-				} break;
-				case LV2_MIDI_CTL_ALL_SOUNDS_OFF:
-				{
-					VOICE_FOREACH(dsp, voice)
-					{
-						_voice_off_force(voice);
-					}
-				} break;
 				case LV2_MIDI_CTL_RPN_LSB:
 				{
 					handle->rpn_lsb[chn] = val;
@@ -1248,6 +1277,23 @@ _handle_midi(plughandle_t *handle, dsp_t *dsp,
 					_update_timbre(handle, dsp, chn);
 				} break;
 			}
+		} break;
+	}
+}
+
+static void
+_handle_midi(plughandle_t *handle, dsp_t *dsp,
+	int64_t frames, const uint8_t *msg, uint32_t len)
+{
+	switch(len)
+	{
+		case 2:
+		{
+			_handle_midi_2(handle, dsp, frames, msg);
+		} break;
+		case 3:
+		{
+			_handle_midi_3(handle, dsp, frames, msg);
 		} break;
 	}
 }
