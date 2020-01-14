@@ -45,7 +45,7 @@ thread_dep = dependency('threads')
 vterm_dep = dependency('vterm', version : '>=0.1')
 
 dsp_deps = [m_dep, lv2_dep, faust_dep]
-ui_deps = [d2tk_dep, rt_dep, vterm_dep, thread_dep]
+ui_deps = [lv2_dep, d2tk_dep, rt_dep, vterm_dep, thread_dep]
 
 props_inc = include_directories('props.lv2')
 timely_inc = include_directories('timely.lv2')
