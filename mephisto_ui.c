@@ -77,6 +77,8 @@ struct _plughandle_t {
 	LV2_URID midi_MidiEvent;
 	LV2_URID urid_code;
 	LV2_URID urid_error;
+	LV2_URID urid_xfadeDuration;
+	LV2_URID urid_releaseDuration;
 	LV2_URID urid_control [NCONTROLS];
 
 	bool reinit;
@@ -248,10 +250,8 @@ _message_set_code(plughandle_t *handle, size_t len)
 }
 
 static void
-_message_set_control(plughandle_t *handle, unsigned k)
+_message_set_key(plughandle_t *handle, LV2_URID key)
 {
-	const LV2_URID key = handle->urid_control[k];
-
 	ser_atom_t ser;
 	props_impl_t *impl = _props_impl_get(&handle->props, key);
 	if(!impl)
@@ -272,6 +272,14 @@ _message_set_control(plughandle_t *handle, unsigned k)
 		handle->atom_eventTransfer, atom);
 
 	ser_atom_deinit(&ser);
+}
+
+static void
+_message_set_control(plughandle_t *handle, unsigned k)
+{
+	const LV2_URID key = handle->urid_control[k];
+
+	_message_set_key(handle, key);
 }
 
 static void
@@ -457,14 +465,98 @@ _expose_slot(plughandle_t *handle, const d2tk_rect_t *rect, unsigned k)
 }
 
 static inline void
+_expose_xfade(plughandle_t *handle, const d2tk_rect_t *rect)
+{
+	d2tk_pugl_t *dpugl = handle->dpugl;
+	d2tk_base_t *base = d2tk_pugl_get_base(dpugl);
+
+	static const char lbl [] = "crossfade (ms)";
+
+	D2TK_BASE_FRAME(base, rect, sizeof(lbl), lbl, frm)
+	{
+		const d2tk_rect_t *frect = d2tk_frame_get_rect(frm);
+
+		if(d2tk_base_dial_int32_is_changed(base, D2TK_ID, frect,
+			10, &handle->state.xfade_dur, 1000))
+		{
+			_message_set_key(handle, handle->urid_xfadeDuration);
+		}
+	}
+}
+
+static inline void
+_expose_release(plughandle_t *handle, const d2tk_rect_t *rect)
+{
+	d2tk_pugl_t *dpugl = handle->dpugl;
+	d2tk_base_t *base = d2tk_pugl_get_base(dpugl);
+
+	static const char lbl [] = "release (s)";
+
+	D2TK_BASE_FRAME(base, rect, sizeof(lbl), lbl, frm)
+	{
+		const d2tk_rect_t *frect = d2tk_frame_get_rect(frm);
+
+		if(d2tk_base_dial_int32_is_changed(base, D2TK_ID, frect,
+			0, &handle->state.release_dur, 100))
+		{
+			_message_set_key(handle, handle->urid_releaseDuration);
+		}
+	}
+}
+
+static inline void
 _expose_sidebar(plughandle_t *handle, const d2tk_rect_t *rect)
 {
-	D2TK_BASE_TABLE(rect, 2, 8,  D2TK_FLAG_TABLE_REL, tab)
+	D2TK_BASE_TABLE(rect, 2, 9,  D2TK_FLAG_TABLE_REL, tab)
 	{
 		const unsigned k = d2tk_table_get_index(tab);
 		const d2tk_rect_t *trect = d2tk_table_get_rect(tab);
 
-		_expose_slot(handle, trect, k);
+		switch(k)
+		{
+			case 0:
+				// fall-through
+			case 1:
+				// fall-through
+			case 2:
+				// fall-through
+			case 3:
+				// fall-through
+			case 4:
+				// fall-through
+			case 5:
+				// fall-through
+			case 6:
+				// fall-through
+			case 7:
+				// fall-through
+			case 8:
+				// fall-through
+			case 9:
+				// fall-through
+			case 10:
+				// fall-through
+			case 11:
+				// fall-through
+			case 12:
+				// fall-through
+			case 13:
+				// fall-through
+			case 14:
+				// fall-through
+			case 15:
+			{
+				_expose_slot(handle, trect, k);
+			} break;
+			case 16:
+			{
+				_expose_xfade(handle, trect);
+			} break;
+			case 17:
+			{
+				_expose_release(handle, trect);
+			} break;
+		}
 	}
 }
 
@@ -711,6 +803,10 @@ instantiate(const LV2UI_Descriptor *descriptor,
 		MEPHISTO__code);
 	handle->urid_error = handle->map->map(handle->map->handle,
 		MEPHISTO__error);
+	handle->urid_xfadeDuration = handle->map->map(handle->map->handle,
+		MEPHISTO__xfadeDuration);
+	handle->urid_releaseDuration = handle->map->map(handle->map->handle,
+		MEPHISTO__releaseDuration);
 	handle->urid_control[0] = handle->map->map(handle->map->handle,
 		MEPHISTO__control_1);
 	handle->urid_control[1] = handle->map->map(handle->map->handle,
@@ -795,7 +891,12 @@ instantiate(const LV2UI_Descriptor *descriptor,
 
 	_message_get(handle, handle->urid_code);
 	_message_get(handle, handle->urid_error);
-	//FIXME controls
+	_message_get(handle, handle->urid_xfadeDuration);
+	_message_get(handle, handle->urid_releaseDuration);
+	for(unsigned i = 0; i < NCONTROLS; i++)
+	{
+		_message_get(handle, handle->urid_control[i]);
+	}
 
 	return handle;
 }
