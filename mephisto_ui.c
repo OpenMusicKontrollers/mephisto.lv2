@@ -630,7 +630,7 @@ _expose(void *data, d2tk_coord_t w, d2tk_coord_t h)
 	const d2tk_rect_t rect = D2TK_RECT(0, 0, w, h);
 
 	const d2tk_coord_t frac [3] = { HEADER, 0, FOOTER };
-	D2TK_BASE_LAYOUT(&rect, 3, frac, D2TK_FLAG_LAYOUT_Y_ABS, lay)
+	D2TK_BASE_LAYOUT(&rect, 2, frac, D2TK_FLAG_LAYOUT_Y_ABS, lay) //FIXME
 	{
 		const unsigned k = d2tk_layout_get_index(lay);
 		const d2tk_rect_t *lrect = d2tk_layout_get_rect(lay);
