@@ -122,6 +122,9 @@ after code changes.
 
 * [LV2](http://lv2plug.in) (LV2 Plugin Standard)
 * [FAUST](https://faust.grame.fr/) (Faust Programming Language >=2.14.4)
+* [OpenGl]() (OpenGl)
+* [GLEW]() (GLEW)
+* [VTERM]() (Virtual terminal library)
 
 #### Build / install
 
@@ -130,8 +133,8 @@ after code changes.
 	meson build
 	cd build
 	ninja -j4
-	sudo ninja install
 	ninja test
+	sudo ninja install
 
 #### UI
 

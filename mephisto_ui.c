@@ -459,17 +459,10 @@ _expose_xfade(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_pugl_t *dpugl = handle->dpugl;
 	d2tk_base_t *base = d2tk_pugl_get_base(dpugl);
 
-	static const char lbl [] = "crossfade•ms";
-
-	D2TK_BASE_FRAME(base, rect, sizeof(lbl), lbl, frm)
+	if(d2tk_base_prop_int32_is_changed(base, D2TK_ID, rect,
+		10, &handle->state.xfade_dur, 1000))
 	{
-		const d2tk_rect_t *frect = d2tk_frame_get_rect(frm);
-
-		if(d2tk_base_prop_int32_is_changed(base, D2TK_ID, frect,
-			10, &handle->state.xfade_dur, 1000))
-		{
-			_message_set_key(handle, handle->urid_xfadeDuration);
-		}
+		_message_set_key(handle, handle->urid_xfadeDuration);
 	}
 }
 
@@ -479,17 +472,10 @@ _expose_release(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_pugl_t *dpugl = handle->dpugl;
 	d2tk_base_t *base = d2tk_pugl_get_base(dpugl);
 
-	static const char lbl [] = "release•s";
-
-	D2TK_BASE_FRAME(base, rect, sizeof(lbl), lbl, frm)
+	if(d2tk_base_prop_int32_is_changed(base, D2TK_ID, rect,
+		0, &handle->state.release_dur, 100))
 	{
-		const d2tk_rect_t *frect = d2tk_frame_get_rect(frm);
-
-		if(d2tk_base_prop_int32_is_changed(base, D2TK_ID, frect,
-			0, &handle->state.release_dur, 100))
-		{
-			_message_set_key(handle, handle->urid_releaseDuration);
-		}
+		_message_set_key(handle, handle->urid_releaseDuration);
 	}
 }
 
@@ -499,42 +485,59 @@ _expose_panic(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_pugl_t *dpugl = handle->dpugl;
 	d2tk_base_t *base = d2tk_pugl_get_base(dpugl);
 
-	static const char lbl [] = "panic";
 	static const char path [] = "libre-gui-exclamation-circle.png";
 
-	D2TK_BASE_FRAME(base, rect, sizeof(lbl), lbl, frm)
+	if(d2tk_base_button_image_is_changed(base, D2TK_ID, sizeof(path), path, rect))
 	{
-		const d2tk_rect_t *frect = d2tk_frame_get_rect(frm);
-
-		if(d2tk_base_button_image_is_changed(base, D2TK_ID, sizeof(path), path, frect))
-		{
-			_message_midi_allnotesoff(handle);
-		}
+		_message_midi_allnotesoff(handle);
 	}
 }
 
 static inline void
 _expose_footer(plughandle_t *handle, const d2tk_rect_t *rect)
 {
-	const d2tk_coord_t frac [3] = { 1, 1, 1 };
-	D2TK_BASE_LAYOUT(rect, 3, frac, D2TK_FLAG_LAYOUT_X_REL, lay)
-	{
-		const unsigned k = d2tk_layout_get_index(lay);
-		const d2tk_rect_t *lrect = d2tk_layout_get_rect(lay);
+	d2tk_pugl_t *dpugl = handle->dpugl;
+	d2tk_base_t *base = d2tk_pugl_get_base(dpugl);
 
-		switch(k)
+	D2TK_BASE_TABLE(rect, 3, 2, D2TK_FLAG_TABLE_REL, tab)
+	{
+		const unsigned x = d2tk_table_get_index_x(tab);
+		const unsigned y = d2tk_table_get_index_y(tab);
+		const d2tk_rect_t *trect = d2tk_table_get_rect(tab);
+
+		switch(y)
 		{
 			case 0:
 			{
-				_expose_xfade(handle, lrect);
+				static const char *lbls [3] = {
+					"panic",
+					"crossfade•ms",
+					"release•s"
+				};
+
+				if(lbls[x])
+				{
+					d2tk_base_label(base, -1, lbls[x], 0.5f, trect,
+						D2TK_ALIGN_MIDDLE | D2TK_ALIGN_RIGHT);
+				}
 			} break;
 			case 1:
 			{
-				_expose_release(handle, lrect);
-			} break;
-			case 2:
-			{
-				_expose_panic(handle, lrect);
+				switch(x)
+				{
+					case 0:
+					{
+						_expose_panic(handle, trect);
+					} break;
+					case 1:
+					{
+						_expose_xfade(handle, trect);
+					} break;
+					case 2:
+					{
+						_expose_release(handle, trect);
+					} break;
+				}
 			} break;
 		}
 	}
@@ -578,7 +581,7 @@ _expose_slot(plughandle_t *handle, const d2tk_rect_t *rect, unsigned k)
 }
 
 static inline void
-_expose_sidebar(plughandle_t *handle, const d2tk_rect_t *rect)
+_expose_sidebar_right(plughandle_t *handle, const d2tk_rect_t *rect)
 {
 	D2TK_BASE_TABLE(rect, 2, NCONTROLS/2,  D2TK_FLAG_TABLE_REL, tab)
 	{
@@ -722,10 +725,10 @@ _expose_editor(plughandle_t *handle, const d2tk_rect_t *rect)
 }
 
 static inline void
-_expose_body(plughandle_t *handle, const d2tk_rect_t *rect)
+_expose_sidebar_left(plughandle_t *handle, const d2tk_rect_t *rect)
 {
-	const d2tk_coord_t frac [2] = { 0, SIDEBAR };
-	D2TK_BASE_LAYOUT(rect, 2, frac, D2TK_FLAG_LAYOUT_X_ABS, lay)
+	const d2tk_coord_t frac [2] = { 0, FOOTER };
+	D2TK_BASE_LAYOUT(rect, 2, frac, D2TK_FLAG_LAYOUT_Y_ABS, lay)
 	{
 		const unsigned k = d2tk_layout_get_index(lay);
 		const d2tk_rect_t *lrect = d2tk_layout_get_rect(lay);
@@ -738,7 +741,30 @@ _expose_body(plughandle_t *handle, const d2tk_rect_t *rect)
 			} break;
 			case 1:
 			{
-				_expose_sidebar(handle, lrect);
+				_expose_footer(handle, lrect);
+			} break;
+		}
+	}
+}
+
+static inline void
+_expose_body(plughandle_t *handle, const d2tk_rect_t *rect)
+{
+	const d2tk_coord_t frac [2] = { 0, SIDEBAR };
+	D2TK_BASE_LAYOUT(rect, 2, frac, D2TK_FLAG_LAYOUT_X_ABS, lay)
+	{
+		const unsigned k = d2tk_layout_get_index(lay);
+		const d2tk_rect_t *lrect = d2tk_layout_get_rect(lay);
+
+		switch(k)
+		{
+			case 0:
+			{
+				_expose_sidebar_left(handle, lrect);
+			} break;
+			case 1:
+			{
+				_expose_sidebar_right(handle, lrect);
 			} break;
 		}
 	}
@@ -750,8 +776,8 @@ _expose(void *data, d2tk_coord_t w, d2tk_coord_t h)
 	plughandle_t *handle = data;
 	const d2tk_rect_t rect = D2TK_RECT(0, 0, w, h);
 
-	const d2tk_coord_t frac [3] = { HEADER, 0, FOOTER };
-	D2TK_BASE_LAYOUT(&rect, 3, frac, D2TK_FLAG_LAYOUT_Y_ABS, lay)
+	const d2tk_coord_t frac [2] = { HEADER, 0 };
+	D2TK_BASE_LAYOUT(&rect, 2, frac, D2TK_FLAG_LAYOUT_Y_ABS, lay)
 	{
 		const unsigned k = d2tk_layout_get_index(lay);
 		const d2tk_rect_t *lrect = d2tk_layout_get_rect(lay);
@@ -765,10 +791,6 @@ _expose(void *data, d2tk_coord_t w, d2tk_coord_t h)
 			case 1:
 			{
 				_expose_body(handle, lrect);
-			} break;
-			case 2:
-			{
-				_expose_footer(handle, lrect);
 			} break;
 		}
 	}
