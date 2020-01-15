@@ -37,10 +37,6 @@
 #define GLYPH_W 7
 #define GLYPH_H (GLYPH_W * 2)
 
-#define HEADER 32
-#define FOOTER 64
-#define SIDEBAR 150
-
 #define FPS 25
 
 #define DEFAULT_FG 0xddddddff
@@ -85,6 +81,11 @@ struct _plughandle_t {
 	char template [24];
 	int fd;
 	time_t modtime;
+
+	d2tk_coord_t header_height;
+	d2tk_coord_t footer_height;
+	d2tk_coord_t sidebar_width;
+	d2tk_coord_t font_height;
 
 	int done;
 };
@@ -592,8 +593,6 @@ _expose_sidebar_right(plughandle_t *handle, const d2tk_rect_t *rect)
 	}
 }
 
-#define FONT_HEIGHT 16 //FIXME
-
 /* list of tested console editors:
  *
  * e3
@@ -643,7 +642,7 @@ _expose_term(plughandle_t *handle, const d2tk_rect_t *rect)
 	};
 
 	const d2tk_state_t state = d2tk_base_pty(base, D2TK_ID, NULL, args,
-		FONT_HEIGHT, rect, handle->reinit);
+		handle->font_height, rect, handle->reinit);
 
 	if(d2tk_state_is_close(state))
 	{
@@ -679,7 +678,7 @@ _expose_error(plughandle_t *handle, const d2tk_rect_t *rect)
 	const unsigned nlines = _num_lines(from);
 
 	//FIXME wrap in scroll widget
-	D2TK_BASE_TABLE(rect, rect->w, FONT_HEIGHT, D2TK_FLAG_TABLE_ABS, tab)
+	D2TK_BASE_TABLE(rect, rect->w, handle->font_height, D2TK_FLAG_TABLE_ABS, tab)
 	{
 		const d2tk_rect_t *trect = d2tk_table_get_rect(tab);
 		const unsigned k = d2tk_table_get_index(tab);
@@ -727,7 +726,7 @@ _expose_editor(plughandle_t *handle, const d2tk_rect_t *rect)
 static inline void
 _expose_sidebar_left(plughandle_t *handle, const d2tk_rect_t *rect)
 {
-	const d2tk_coord_t frac [2] = { 0, FOOTER };
+	const d2tk_coord_t frac [2] = { 0, handle->footer_height };
 	D2TK_BASE_LAYOUT(rect, 2, frac, D2TK_FLAG_LAYOUT_Y_ABS, lay)
 	{
 		const unsigned k = d2tk_layout_get_index(lay);
@@ -750,7 +749,7 @@ _expose_sidebar_left(plughandle_t *handle, const d2tk_rect_t *rect)
 static inline void
 _expose_body(plughandle_t *handle, const d2tk_rect_t *rect)
 {
-	const d2tk_coord_t frac [2] = { 0, SIDEBAR };
+	const d2tk_coord_t frac [2] = { 0, handle->sidebar_width };
 	D2TK_BASE_LAYOUT(rect, 2, frac, D2TK_FLAG_LAYOUT_X_ABS, lay)
 	{
 		const unsigned k = d2tk_layout_get_index(lay);
@@ -776,7 +775,7 @@ _expose(void *data, d2tk_coord_t w, d2tk_coord_t h)
 	plughandle_t *handle = data;
 	const d2tk_rect_t rect = D2TK_RECT(0, 0, w, h);
 
-	const d2tk_coord_t frac [2] = { HEADER, 0 };
+	const d2tk_coord_t frac [2] = { handle->header_height, 0 };
 	D2TK_BASE_LAYOUT(&rect, 2, frac, D2TK_FLAG_LAYOUT_Y_ABS, lay)
 	{
 		const unsigned k = d2tk_layout_get_index(lay);
@@ -924,6 +923,12 @@ instantiate(const LV2UI_Descriptor *descriptor,
 		free(handle);
 		return NULL;
 	}
+
+	const float scale = d2tk_pugl_get_scale(handle->dpugl);
+	handle->header_height = 32 * scale;
+	handle->footer_height = 64 * scale;
+	handle->sidebar_width = 150 * scale;
+	handle->font_height = 16 * scale;
 
 	if(host_resize)
 	{

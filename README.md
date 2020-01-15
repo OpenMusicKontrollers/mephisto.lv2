@@ -153,6 +153,15 @@ Whenever you save the FAUST source, the plugin will try to just-in-time compile 
 inject it. Potential warnings and errors are reported in the plugin host's log
 and the UI itself.
 
+On hi-DPI displays, the UI scales automatically if you have set the correct DPI
+in your ~/.Xresources.
+
+    Xft.dpi: 200
+
+If not, you can manually set your DPI via environmental variable *D2TK_SCALE*:
+
+    export D2TK_SCALE=200
+
 #### Controls
 
 The plugin supports up to 16 controls implemented as LV2
