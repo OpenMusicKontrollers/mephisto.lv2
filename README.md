@@ -11,7 +11,7 @@ glueing stuff together.
 *Note: This is an early release, it may thus have rough edges and will need a
 fairly recent libFAUST and/or bleeding edge GNU/Linux distribution.*
 
-*Note: libFAUST 2.20.6 has a broken LLVM C-API and thus will be non-functional
+*Note: libFAUST 2.20.2 has a broken LLVM C-API and thus will be non-functional
 with this plugin.*
 
 #### Build status
