@@ -2,12 +2,12 @@ declare options "[time:on]";
 
 import("stdfaust.lib");
 
-barBeat = hslider("time/barBeat[time:barBeat]", 0, 0, 32, 1);
-beatsPerBar = hslider("time/beatsPerBar[time:beatsPerBar]", 1, 1, 32, 1);
-gate = button("time/speed[time:speed]");
+barBeat = hslider("bar beat[time:barBeat]", 0, 0, 32, 1);
+beatsPerBar = hslider("beats per bar[time:beatsPerBar]", 1, 1, 32, 1);
+gate = button("speed[time:speed]");
 
-mul = hslider("parameter/mul[0]", 0, 0, 1000, 1);
-add = hslider("parameter/add[1]", 0, 0, 1000, 1);
+mul = hslider("mul[0]", 0, 0, 1000, 1);
+add = hslider("add[1]", 0, 0, 1000, 1);
 
 freq = sin(barBeat / beatsPerBar * ma.PI) * mul + add;
 
