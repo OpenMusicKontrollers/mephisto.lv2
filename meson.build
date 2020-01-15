@@ -39,13 +39,9 @@ endif
 m_dep = cc.find_library('m')
 lv2_dep = dependency('lv2', version : '>=1.14.0')
 faust_dep = cc.find_library('faust')
-util_dep = cc.find_library('util')
-rt_dep = cc.find_library('rt')
-thread_dep = dependency('threads')
-vterm_dep = dependency('vterm', version : '>=0.1')
 
 dsp_deps = [m_dep, lv2_dep, faust_dep]
-ui_deps = [lv2_dep, d2tk_dep, rt_dep, vterm_dep, thread_dep]
+ui_deps = [lv2_dep, d2tk_dep]
 
 props_inc = include_directories('props.lv2')
 timely_inc = include_directories('timely.lv2')
