@@ -11,6 +11,9 @@ glueing stuff together.
 *Note: This is an early release, it may thus have rough edges and will need a
 fairly recent libFAUST and/or bleeding edge GNU/Linux distribution.*
 
+*Note: libFAUST 2.20.2 has a broken LLVM C-API and thus will be non-functional
+with this plugin.*
+
 #### Build status
 
 [![build status](https://gitlab.com/OpenMusicKontrollers/mephisto.lv2/badges/master/build.svg)](https://gitlab.com/OpenMusicKontrollers/mephisto.lv2/commits/master)
@@ -41,11 +44,9 @@ folder out of the platform folder of the downloaded package into your
 
 * <https://git.open-music-kontrollers.ch/lv2/mephisto.lv2>
 
-<!--
 ### Packages
 
 * [ArchLinux](https://www.archlinux.org/packages/community/x86_64/mephisto.lv2/)
--->
 
 ### Bugs and feature requests
 
@@ -53,6 +54,8 @@ folder out of the platform folder of the downloaded package into your
 * [Github](https://github.com/OpenMusicKontrollers/mephisto.lv2)
 
 #### Plugins
+
+![Screenshot](https://git.open-music-kontrollers.ch/lv2/mephisto.lv2/plain/screenshots/screenshot_1.png)
 
 ##### Audio 1x1
 
@@ -122,9 +125,9 @@ after code changes.
 
 * [LV2](http://lv2plug.in) (LV2 Plugin Standard)
 * [FAUST](https://faust.grame.fr/) (Faust Programming Language >=2.14.4)
-* [OpenGl]() (OpenGl)
-* [GLEW]() (GLEW)
-* [VTERM]() (Virtual terminal library)
+* [OpenGl](https://www.opengl.org) (OpenGl)
+* [GLEW](http://glew.sourceforge.net) (GLEW)
+* [VTERM](http://www.leonerd.org.uk/code/libvterm) (Virtual terminal emulator)
 
 #### Build / install
 
