@@ -574,6 +574,9 @@ d2tk_fbdev_step(d2tk_fbdev_t *fbdev)
 			case LIBINPUT_EVENT_TABLET_PAD_BUTTON:
 			case LIBINPUT_EVENT_TABLET_PAD_RING:
 			case LIBINPUT_EVENT_TABLET_PAD_STRIP:
+#if D2TK_INPUT_1_15
+			case LIBINPUT_EVENT_TABLET_PAD_KEY:
+#endif
 			{
 				struct libinput_event_tablet_pad *evtp =
 					libinput_event_get_tablet_pad_event(ev);

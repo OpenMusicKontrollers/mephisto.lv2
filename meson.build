@@ -105,6 +105,11 @@ else
 	conf_data.set('D2TK_EVDEV', 0)
 endif
 
+if input_dep.found() and input_dep.version().version_compare('>=1.15.0')
+	conf_data.set('D2TK_INPUT_1_15', 1)
+else
+	conf_data.set('D2TK_INPUT_1_15', 0)
+endif
 
 bin_srcs = [
 	join_paths('example', 'example.c')
