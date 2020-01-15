@@ -11,7 +11,7 @@ glueing stuff together.
 *Note: This is an early release, it may thus have rough edges and will need a
 fairly recent libFAUST and/or bleeding edge GNU/Linux distribution.*
 
-*Note: libFAUST 2.20.2 has a broken LLVM C-API and thus will be non-functional
+*Note: libFAUST 2.20.6 has a broken LLVM C-API and thus will be non-functional
 with this plugin.*
 
 #### Build status
@@ -28,7 +28,7 @@ folder out of the platform folder of the downloaded package into your
 
 #### Stable release
 
-* [mephisto.lv2-0.2.0.zip](https://dl.open-music-kontrollers.ch/mephisto.lv2/stable/mephisto.lv2-0.2.0.zip) ([sig](https://dl.open-music-kontrollers.ch/mephisto.lv2/stable/mephisto.lv2-0.2.0.zip.sig))
+* [mephisto.lv2-0.6.0.zip](https://dl.open-music-kontrollers.ch/mephisto.lv2/stable/mephisto.lv2-0.6.0.zip) ([sig](https://dl.open-music-kontrollers.ch/mephisto.lv2/stable/mephisto.lv2-0.6.0.zip.sig))
 
 #### Unstable (nightly) release
 
@@ -38,7 +38,7 @@ folder out of the platform folder of the downloaded package into your
 
 #### Stable release
 
-* [mephisto.lv2-0.2.0.tar.xz](https://git.open-music-kontrollers.ch/lv2/mephisto.lv2/snapshot/mephisto.lv2-0.2.0.tar.xz)
+* [mephisto.lv2-0.6.0.tar.xz](https://git.open-music-kontrollers.ch/lv2/mephisto.lv2/snapshot/mephisto.lv2-0.6.0.tar.xz)
 
 #### Git repository
 

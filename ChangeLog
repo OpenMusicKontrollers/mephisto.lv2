@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.6.0] - 15 Jan 2020
+
+### Deprecated
+
+* external UI
+
+### Added
+
+* native UI based on D2TK with embedded terminal emulator
+* retrigger of gate signal over 1 sample at least at NoteOn
+
+### Fixed
+
+* too short error buffer size
+* handling of AllNotesOff and AllSoundsOff MIDI messages
+* compilaton errors (FAUST 2.20.2)
+* slot ordering of parameter slots (FAUST 2.20.2)
+* lv2lint warnings
+
+### Removed
+
+* build dependency on FAUST binary
+
+### Changed
+
+* parameter labels in presets
+
 ## [0.2.0] - 13 Oct 2019
 
 ### Initial release
