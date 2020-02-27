@@ -576,13 +576,12 @@ d2tk_cairo_process(void *data, d2tk_core_t *core, const d2tk_com_t *com,
 
 			if(!*sprite)
 			{
-				char *ft_path = NULL;
-				assert(asprintf(&ft_path, "%s%s", backend->bundle_path, body->face) != -1);
-				assert(ft_path);
+				char ft_path [1024];
+				d2tk_core_get_font_path(core, backend->bundle_path, body->face,
+					sizeof(ft_path), ft_path);
 
 				FT_Face ft_face = NULL;
 				FT_New_Face(backend->library, ft_path, 0, &ft_face);
-				free(ft_path);
 				assert(ft_face);
 
 				cairo_font_face_t *face = cairo_ft_font_face_create_for_ft_face(ft_face, 0);
@@ -610,7 +609,6 @@ d2tk_cairo_process(void *data, d2tk_core_t *core, const d2tk_com_t *com,
 			cairo_text_extents_t extents;
 			cairo_text_extents(ctx, body->text, &extents);
 			int32_t x = -extents.x_bearing;
-			int32_t y = -extents.y_bearing;
 
 			if(body->align & D2TK_ALIGN_LEFT)
 			{
@@ -627,19 +625,21 @@ d2tk_cairo_process(void *data, d2tk_core_t *core, const d2tk_com_t *com,
 				x -= extents.width;
 			}
 
+			cairo_font_extents_t font_extents;
+			cairo_font_extents(ctx, &font_extents);
+			double y = 0;
+
 			if(body->align & D2TK_ALIGN_TOP)
 			{
-				y += body->y;
+				y += body->y + font_extents.ascent;
 			}
 			else if(body->align & D2TK_ALIGN_MIDDLE)
 			{
-				y += body->y + body->h / 2;
-				y -= extents.height / 2;
+				y += body->y + body->h / 2 + font_extents.descent;
 			}
 			else if(body->align & D2TK_ALIGN_BOTTOM)
 			{
 				y += body->y + body->h;
-				y -= extents.height;
 			}
 
 			cairo_move_to(ctx, x + xo, y + yo);

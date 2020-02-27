@@ -2,6 +2,7 @@ stages:
   - build
   - deploy
 
+# templates
 .variables_template: &variables_definition
   variables:
     BASE_NAME: "d2tk"
@@ -17,6 +18,7 @@ stages:
 
 .build_template: &build_definition
   <<: *common_definition
+  stage: build
   script:
     - meson --prefix="/" --libdir="lib" --cross-file "${CI_BUILD_NAME}" build
     - sed -i -e '/framework/s/-Wl,-O1//g' -e '/framework/s/-Wl,--start-group//g' -e '/framework/s/-Wl,--end-group//g' build/build.ninja
@@ -25,21 +27,26 @@ stages:
 
 .test_template: &test_definition
   <<: *common_definition
+  stage: build
   script:
     - meson --prefix="/" --libdir="lib" --cross-file "${CI_BUILD_NAME}" build
     - sed -i -e '/framework/s/-Wl,-O1//g' -e '/framework/s/-Wl,--start-group//g' -e '/framework/s/-Wl,--end-group//g' build/build.ninja
     - ninja -C build
     - DESTDIR="${CI_PROJECT_DIR}/${BASE_NAME}-$(cat VERSION)/${CI_BUILD_NAME}" ninja -C build install
-    - ninja -C build test
+
+    - meson test -C build
 
 .analyze_template: &analyze_definition
   <<: *common_definition
+  stage: build
   script:
     - meson --prefix="/" --libdir="lib" --cross-file "${CI_BUILD_NAME}" build
     - sed -i -e '/framework/s/-Wl,-O1//g' -e '/framework/s/-Wl,--start-group//g' -e '/framework/s/-Wl,--end-group//g' build/build.ninja
     - ninja -C build
     - DESTDIR="${CI_PROJECT_DIR}/${BASE_NAME}-$(cat VERSION)/${CI_BUILD_NAME}" ninja -C build install
-    - ninja -C build test
+
+    - meson test -C build
+    - meson test -C build --wrap=valgrind
 
     - CC=clang CXX=clang++ meson --prefix="/" --libdir="lib" --cross-file "${CI_BUILD_NAME}" clang
     - ninja -C clang
@@ -50,22 +57,22 @@ stages:
     - scan-build --status-bugs ninja -C scanbuild test
 
 .universal_linux_template: &universal_linux_definition
-  image: ventosus/universal-linux-gnu
+  image: ventosus/universal-linux-gnu:buster
   <<: *analyze_definition
 
 .arm_linux_template: &arm_linux_definition
-  image: ventosus/arm-linux-gnueabihf
+  image: ventosus/arm-linux-gnueabihf:buster
   <<: *test_definition
 
 .universal_w64_template: &universal_w64_definition
   image: ventosus/universal-w64-mingw32
-  <<: *build_definition
+  <<: *test_definition
 
 .universal_apple_template: &universal_apple_definition
   image: ventosus/universal-apple-darwin
   <<: *build_definition
 
-# building in docker
+# targets
 x86_64-linux-gnu:
   before_script:
     - apt-get install -y libglu1-mesa-dev libevdev-dev libvterm-dev
@@ -106,7 +113,6 @@ pack:
       - "${BASE_NAME}-$(cat VERSION)/"
 
 pages:
-  <<: *variables_definition
   stage: deploy
   before_script:
     - apt-get update -y

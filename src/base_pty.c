@@ -38,8 +38,14 @@
 
 #define MAX(x, y) (x > y ? y : x)
 
+#define FONT_CODE_LIGHT   "FiraCode:light"
+#define FONT_CODE_REGULAR "FiraCode:regular"
+#define FONT_CODE_MEDIUM  "FiraCode:medium"
+#define FONT_CODE_BOLD    "FiraCode:bold"
+
 typedef struct _cell_t cell_t;
 typedef struct _d2tk_atom_body_pty_t d2tk_atom_body_pty_t;
+typedef struct _d2tk_pty_t d2tk_pty_t;
 
 struct _cell_t {
 	char lbl [8];
@@ -72,10 +78,20 @@ struct _d2tk_atom_body_pty_t {
 	bool cursor_visible;
 	int cursor_shape;
 
+	uint32_t max_red;
+	uint32_t max_green;
+	uint32_t max_blue;
+
 	cell_t cells [NROWS_MAX][NCOLS_MAX];
 };
 
+struct _d2tk_pty_t {
+	d2tk_state_t state;
+	d2tk_atom_body_pty_t *vpty;
+};
+
 const size_t d2tk_atom_body_pty_sz = sizeof(d2tk_atom_body_pty_t);
+const size_t d2tk_pty_sz = sizeof(d2tk_pty_t);
 
 static inline uint32_t
 _term_dark(d2tk_atom_body_pty_t *vpty)
@@ -222,18 +238,8 @@ static const VTermScreenCallbacks screen_callbacks = {
   .resize = _screen_resize
 };
 
-static void
-_term_clone(FILE *stderr_save, void *data)
-{
-	char **argv = data;
-
-	execvp(argv[0], argv);
-
-	fprintf(stderr_save, "cannot exec(%s) - %s\n", argv[0], strerror(errno));
-}
-
 static int
-_term_init(d2tk_atom_body_pty_t *vpty, d2tk_clone_t clone, void *data,
+_term_init(d2tk_atom_body_pty_t *vpty, char **argv,
 	d2tk_coord_t height, d2tk_coord_t ncols, d2tk_coord_t nrows)
 {
 	vpty->height = height;
@@ -324,12 +330,8 @@ _term_init(d2tk_atom_body_pty_t *vpty, d2tk_clone_t clone, void *data,
 		putenv("TERM=xterm-256color");
 		//putenv("COLORTERM=truecolor");
 
-		if(!clone)
-		{
-			clone = _term_clone;
-		}
-
-		clone(stderr_save, data);
+		execvp(argv[0], argv);
+		fprintf(stderr_save, "cannot exec(%s) - %s\n", argv[0], strerror(errno));
 		_exit(EXIT_FAILURE);
 	}
 
@@ -451,16 +453,14 @@ _term_event(d2tk_atom_event_type_t event, void *data)
 }
 
 static inline void
-_term_set_dark_light(d2tk_atom_body_pty_t *vpty, uint32_t fg)
+_term_set_dark_light(d2tk_atom_body_pty_t *vpty, uint32_t fg,
+	int32_t r1, int32_t g1, int32_t b1)
 {
 	const int32_t r0 = (vpty->light >> 24) & 0xff;
 	const int32_t g0 = (vpty->light >> 16) & 0xff;
 	const int32_t b0 = (vpty->light >>  8) & 0xff;
 	const int32_t d0 = (r0 - g0) + (r0 - b0);
 
-	const int32_t r1 = (fg >> 24) & 0xff;
-	const int32_t g1 = (fg >> 16) & 0xff;
-	const int32_t b1 = (fg >>  8) & 0xff;
 	const int32_t d1 = (r1 - g1) + (r1 - b1);
 
 	if(d1 > d0)
@@ -471,6 +471,70 @@ _term_set_dark_light(d2tk_atom_body_pty_t *vpty, uint32_t fg)
 			| ( (b1 >> 1) << 8)
 			| 0xff;
 	}
+}
+
+static inline void
+_term_set_max_red(d2tk_atom_body_pty_t *vpty, uint32_t fg,
+	int32_t r1, int32_t g1, int32_t b1)
+{
+	const int32_t r0 = (vpty->max_red >> 24) & 0xff;
+	const int32_t g0 = (vpty->max_red >> 16) & 0xff;
+	const int32_t b0 = (vpty->max_red >>  8) & 0xff;
+	const int32_t d0 = (r0 - g0) + (r0 - b0);
+
+	const int32_t d1 = (r1 - g1) + (r1 - b1);
+
+	if(d1 > d0)
+	{
+		vpty->max_red = fg;
+	}
+}
+
+static inline void
+_term_set_max_green(d2tk_atom_body_pty_t *vpty, uint32_t fg,
+	int32_t r1, int32_t g1, int32_t b1)
+{
+	const int32_t r0 = (vpty->max_green >> 24) & 0xff;
+	const int32_t g0 = (vpty->max_green >> 16) & 0xff;
+	const int32_t b0 = (vpty->max_green >>  8) & 0xff;
+	const int32_t d0 = (g0 - r0) + (g0 - b0);
+
+	const int32_t d1 = (g1 - r1) + (g1 - b1);
+
+	if(d1 > d0)
+	{
+		vpty->max_green = fg;
+	}
+}
+
+static inline void
+_term_set_max_blue(d2tk_atom_body_pty_t *vpty, uint32_t fg,
+	int32_t r1, int32_t g1, int32_t b1)
+{
+	const int32_t r0 = (vpty->max_blue >> 24) & 0xff;
+	const int32_t g0 = (vpty->max_blue >> 16) & 0xff;
+	const int32_t b0 = (vpty->max_blue >>  8) & 0xff;
+	const int32_t d0 = (b0 - r0) + (b0 - g0);
+
+	const int32_t d1 = (b1 - r1) + (b1 - g1);
+
+	if(d1 > d0)
+	{
+		vpty->max_blue = fg;
+	}
+}
+
+static inline void
+_term_set_colors(d2tk_atom_body_pty_t *vpty, uint32_t fg)
+{
+	const int32_t r1 = (fg >> 24) & 0xff;
+	const int32_t g1 = (fg >> 16) & 0xff;
+	const int32_t b1 = (fg >>  8) & 0xff;
+
+	_term_set_dark_light(vpty, fg, r1, g1, b1);
+	_term_set_max_red(vpty, fg, r1, g1, b1);
+	_term_set_max_green(vpty, fg, r1, g1, b1);
+	_term_set_max_blue(vpty, fg, r1, g1, b1);
 }
 
 static inline void
@@ -583,7 +647,7 @@ _term_update(d2tk_atom_body_pty_t *vpty)
 			tar->fg = fg_rgba;
 			tar->bg = bg_rgba;
 
-			_term_set_dark_light(vpty, fg_rgba);
+			_term_set_colors(vpty, fg_rgba);
 		}
 	}
 }
@@ -733,12 +797,13 @@ _term_behave(d2tk_base_t *base, d2tk_atom_body_pty_t *vpty,
 
 		vterm_mouse_move(vpty->vterm, row, col, mod);
 
-		vterm_mouse_button(vpty->vterm, 1,
-			d2tk_base_get_butmask(base, D2TK_BUTMASK_LEFT, false), mod);
-		vterm_mouse_button(vpty->vterm, 2,
-			d2tk_base_get_butmask(base, D2TK_BUTMASK_MIDDLE, false), mod);
-		vterm_mouse_button(vpty->vterm, 3,
-			d2tk_base_get_butmask(base, D2TK_BUTMASK_RIGHT, false), mod);
+		const bool btn_l = d2tk_base_get_butmask(base, D2TK_BUTMASK_LEFT, false);
+		const bool btn_m = d2tk_base_get_butmask(base, D2TK_BUTMASK_MIDDLE, false);
+		const bool btn_r = d2tk_base_get_butmask(base, D2TK_BUTMASK_RIGHT, false);
+
+		vterm_mouse_button(vpty->vterm, 1, btn_l, mod);
+		vterm_mouse_button(vpty->vterm, 2, btn_m, mod);
+		vterm_mouse_button(vpty->vterm, 3, btn_r, mod);
 
 		if(dy > 0)
 		{
@@ -796,27 +861,27 @@ _term_draw(d2tk_base_t *base, d2tk_atom_body_pty_t *vpty,
 
 		if(cell->bold)
 		{
-			style.font_face = "FiraCode-Bold.ttf";
+			style.font_face = FONT_CODE_BOLD;
 		}
 		else if(cell->italic)
 		{
-			style.font_face = "FiraCode-Light.ttf";
+			style.font_face = FONT_CODE_LIGHT;
 		}
 		else
 		{
-			style.font_face = "FiraCode-Regular.ttf";
+			style.font_face = FONT_CODE_REGULAR;
 		}
 
 		d2tk_base_set_style(base, &style);
 
 		d2tk_base_label(base, cell->lbl_len, cell->lbl, 1.f, trect,
-			D2TK_ALIGN_LEFT | D2TK_ALIGN_TOP);
+			D2TK_ALIGN_LEFT | D2TK_ALIGN_BOTTOM);
 
 		d2tk_base_set_style(base, old_style);
 
 		if(cell->cursor)
 		{
-			style.font_face = "FiraCode-Bold.ttf";
+			style.font_face = FONT_CODE_BOLD;
 			style.text_fill_color[D2TK_TRIPLE_NONE] = 0x0;
 			style.text_stroke_color[D2TK_TRIPLE_NONE] = focus
 				? DEFAULT_FG
@@ -848,12 +913,15 @@ _term_draw(d2tk_base_t *base, d2tk_atom_body_pty_t *vpty,
 	}
 }
 
-D2TK_API d2tk_state_t
-d2tk_base_pty(d2tk_base_t *base, d2tk_id_t id, d2tk_clone_t clone, void *data,
-	d2tk_coord_t height, const d2tk_rect_t *rect, bool reinit)
+D2TK_API d2tk_pty_t *
+d2tk_pty_begin(d2tk_base_t *base, d2tk_id_t id, char **argv,
+	d2tk_coord_t height, const d2tk_rect_t *rect, bool reinit, d2tk_pty_t *pty)
 {
+	memset(pty, 0x0, sizeof(d2tk_pty_t));
+
 	d2tk_atom_body_pty_t *vpty = _d2tk_base_get_atom(base, id, D2TK_ATOM_PTY,
 		_term_event);
+	pty->vpty = vpty;
 
 	const d2tk_coord_t width = height / 2;
 	const d2tk_coord_t ncols = rect->w / width;
@@ -866,7 +934,7 @@ d2tk_base_pty(d2tk_base_t *base, d2tk_id_t id, d2tk_clone_t clone, void *data,
 
 	if(vpty->height == 0)
 	{
-		if(_term_init(vpty, clone, data, height, ncols, nrows) != 0)
+		if(_term_init(vpty, argv, height, ncols, nrows) != 0)
 		{
 			fprintf(stderr, "[%s] _term_init failed\n", __func__);
 		}
@@ -879,32 +947,68 @@ d2tk_base_pty(d2tk_base_t *base, d2tk_id_t id, d2tk_clone_t clone, void *data,
 	style.fill_color[D2TK_TRIPLE_ACTIVE_HOT] = _term_light(vpty);
 	style.fill_color[D2TK_TRIPLE_ACTIVE_FOCUS] = _term_dark(vpty);
 	style.fill_color[D2TK_TRIPLE_ACTIVE_HOT_FOCUS] = _term_light(vpty);
-	style.font_face = "FiraCode-Regular.ttf";
+	style.font_face = FONT_CODE_REGULAR;
 	d2tk_base_set_style(base, &style);
 
 	_term_resize(vpty, ncols, nrows);
 
-	d2tk_state_t state = _term_behave(base, vpty, id, rect);
+	pty->state = _term_behave(base, vpty, id, rect);
 
 	_term_input(vpty);
 
-	_term_draw(base, vpty, rect, d2tk_state_is_focused(state));
+	_term_draw(base, vpty, rect, d2tk_state_is_focused(pty->state));
 
 	if(_term_done(vpty))
 	{
 		_term_deinit(vpty);
 
-		state |= D2TK_STATE_CLOSE;
+		pty->state |= D2TK_STATE_CLOSE;
 	}
 
 	if(vpty->bell)
 	{
-		state |= D2TK_STATE_BELL;
+		pty->state |= D2TK_STATE_BELL;
 
 		vpty->bell = 0;
 	}
 
 	d2tk_base_set_style(base, old_style);
 
-	return state;
+	return pty;
+}
+
+D2TK_API bool
+d2tk_pty_not_end(d2tk_pty_t *pty)
+{
+	return pty ? true : false;
+}
+
+D2TK_API d2tk_pty_t *
+d2tk_pty_next(d2tk_pty_t *pty __attribute__((unused)))
+{
+	return NULL;
+}
+
+D2TK_API d2tk_state_t
+d2tk_pty_get_state(d2tk_pty_t *pty)
+{
+	return pty->state;
+}
+
+D2TK_API uint32_t
+d2tk_pty_get_max_red(d2tk_pty_t *pty)
+{
+	return pty->vpty->max_red;
+}
+
+D2TK_API uint32_t
+d2tk_pty_get_max_green(d2tk_pty_t *pty)
+{
+	return pty->vpty->max_green;
+}
+
+D2TK_API uint32_t
+d2tk_pty_get_max_blue(d2tk_pty_t *pty)
+{
+	return pty->vpty->max_blue;
 }

@@ -129,6 +129,12 @@ _d2tk_base_get_atom(d2tk_base_t *base, d2tk_id_t id, d2tk_atom_type_t type,
 					len = d2tk_atom_body_pty_sz;
 				} break;
 #endif
+#if D2TK_EVDEV
+				case D2TK_ATOM_VKB:
+				{
+					len = d2tk_atom_body_vkb_sz;
+				} break;
+#endif
 				case D2TK_ATOM_FLOW_NODE:
 					// fall-through
 				case D2TK_ATOM_FLOW_ARC:
@@ -467,6 +473,15 @@ d2tk_base_is_active_hot(d2tk_base_t *base, d2tk_id_t id,
 	bool newfocus = curfocus;
 	const bool lastfocus = _d2tk_flip_equal_old(&base->focusitem, id);
 
+	// test for mouse up
+	if(  is_active
+		&& !d2tk_base_get_butmask(base, D2TK_BUTMASK_LEFT, false) )
+	{
+		_d2tk_flip_clear(&base->activeitem);
+		is_active = false;
+		state |= D2TK_STATE_UP;
+	}
+
 	// handle forward focus
 	if(curfocus)
 	{
@@ -505,10 +520,18 @@ d2tk_base_is_active_hot(d2tk_base_t *base, d2tk_id_t id,
 			}
 		}
 
-		if(d2tk_base_get_keymask(base, D2TK_KEYMASK_ENTER, false))
+		if(d2tk_base_get_keymask_up(base, D2TK_KEYMASK_ENTER))
+		{
+			is_active = false;
+		}
+		else if(d2tk_base_get_keymask_down(base, D2TK_KEYMASK_ENTER))
 		{
 			is_active = true;
 			state |= D2TK_STATE_ENTER;
+		}
+		else if(d2tk_base_get_keymask(base, D2TK_KEYMASK_ENTER, false))
+		{
+			is_active = true;
 		}
 	}
 	else if(!base->focused)
@@ -516,15 +539,6 @@ d2tk_base_is_active_hot(d2tk_base_t *base, d2tk_id_t id,
 		curfocus = _d2tk_base_set_focus(base, id);
 		newfocus = curfocus;
 		base->focused = true; // set focused flag
-	}
-
-	// test for mouse up
-	if(  is_active
-		&& !d2tk_base_get_butmask(base, D2TK_BUTMASK_LEFT, false) )
-	{
-		_d2tk_flip_clear(&base->activeitem);
-		is_active = false;
-		state |= D2TK_STATE_UP;
 	}
 
 	// test for mouse over
@@ -644,11 +658,13 @@ d2tk_base_is_active_hot(d2tk_base_t *base, d2tk_id_t id,
 #define light_orange 0xffcf00ff
 #define dark_orange 0xcf9f00ff
 
+#define FONT_SANS_BOLD "FiraSans:bold"
+
 D2TK_API const d2tk_style_t *
 d2tk_base_get_default_style()
 {
 	static const d2tk_style_t style = {
-		.font_face                       = "FiraSans-Bold.ttf",
+		.font_face                       = FONT_SANS_BOLD,
 		.border_width                    = 1,
 		.padding                         = 1,
 		.rounding                        = 4,
@@ -797,6 +813,9 @@ d2tk_base_post(d2tk_base_t *base)
 		base->focused = false;
 	}
 
+	base->mouse.mask_prev = base->mouse.mask;
+	base->keys.mask_prev = base->keys.mask;
+
 	_d2tk_base_clear_chars(base);
 
 	d2tk_core_post(base->core);
@@ -919,6 +938,29 @@ d2tk_base_get_butmask(d2tk_base_t *base, d2tk_butmask_t mask, bool clear)
 }
 
 D2TK_API bool
+d2tk_base_get_butmask_prev(d2tk_base_t *base, d2tk_butmask_t mask)
+{
+	const bool old_state = (base->mouse.mask_prev & mask) == mask;
+
+	return old_state;
+
+}
+
+D2TK_API bool
+d2tk_base_get_butmask_down(d2tk_base_t *base, d2tk_butmask_t mask)
+{
+	return !d2tk_base_get_butmask_prev(base, mask)
+		&& d2tk_base_get_butmask(base, mask, false);
+}
+
+D2TK_API bool
+d2tk_base_get_butmask_up(d2tk_base_t *base, d2tk_butmask_t mask)
+{
+	return d2tk_base_get_butmask_prev(base, mask)
+		&& !d2tk_base_get_butmask(base, mask, false);
+}
+
+D2TK_API bool
 d2tk_base_set_modmask(d2tk_base_t *base, d2tk_modmask_t mask, bool down)
 {
 	const bool old_state = (base->keys.mod & mask) == mask;
@@ -978,6 +1020,28 @@ d2tk_base_get_keymask(d2tk_base_t *base, d2tk_keymask_t mask, bool clear)
 
 	return old_state;
 
+}
+
+D2TK_API bool
+d2tk_base_get_keymask_prev(d2tk_base_t *base, d2tk_keymask_t mask)
+{
+	const bool old_state = (base->keys.mask_prev & mask) == mask;
+
+	return old_state;
+}
+
+D2TK_API bool
+d2tk_base_get_keymask_down(d2tk_base_t *base, d2tk_keymask_t mask)
+{
+	return !d2tk_base_get_keymask_prev(base, mask)
+		&& d2tk_base_get_keymask(base, mask, false);
+}
+
+D2TK_API bool
+d2tk_base_get_keymask_up(d2tk_base_t *base, d2tk_keymask_t mask)
+{
+	return d2tk_base_get_keymask_prev(base, mask)
+		&& !d2tk_base_get_keymask(base, mask, false);
 }
 
 D2TK_API void

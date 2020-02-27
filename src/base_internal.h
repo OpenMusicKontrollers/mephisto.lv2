@@ -34,6 +34,9 @@ typedef enum _d2tk_atom_type_t {
 #if D2TK_PTY
 	D2TK_ATOM_PTY,
 #endif
+#if D2TK_EVDEV
+	D2TK_ATOM_VKB,
+#endif
 } d2tk_atom_type_t;
 
 typedef enum _d2tk_atom_event_type_t {
@@ -74,6 +77,7 @@ struct _d2tk_base_t {
 		d2tk_coord_t dx;
 		d2tk_coord_t dy;
 		d2tk_butmask_t mask;
+		d2tk_butmask_t mask_prev;
 	} mouse;
 
 	struct {
@@ -88,6 +92,7 @@ struct _d2tk_base_t {
 		utf8_int32_t chars [32];
 		unsigned keymod;
 		d2tk_keymask_t mask;
+		d2tk_keymask_t mask_prev;
 		d2tk_modmask_t mod;
 	} keys;
 
@@ -112,6 +117,9 @@ extern const size_t d2tk_atom_body_pane_sz;
 extern const size_t d2tk_atom_body_scroll_sz;
 #if D2TK_PTY
 extern const size_t d2tk_atom_body_pty_sz;
+#endif
+#if D2TK_EVDEV
+extern const size_t d2tk_atom_body_vkb_sz;
 #endif
 
 void *

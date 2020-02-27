@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "config.h"
 #include <d2tk/d2tk.h>
 
 #ifdef __cplusplus
