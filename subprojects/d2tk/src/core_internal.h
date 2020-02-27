@@ -292,6 +292,10 @@ d2tk_core_set_bg_color(d2tk_core_t *core, uint32_t rgba);
 uint32_t
 d2tk_core_get_bg_color(d2tk_core_t *core);
 
+int
+d2tk_core_get_font_path(d2tk_core_t *core, const char *bundle_path,
+	const char *rel_path, size_t abs_len, char *abs_path);
+
 #ifdef __cplusplus
 }
 #endif

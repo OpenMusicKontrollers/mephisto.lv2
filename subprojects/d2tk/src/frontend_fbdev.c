@@ -532,7 +532,7 @@ d2tk_fbdev_step(d2tk_fbdev_t *fbdev)
 				const int32_t slot= libinput_event_touch_get_seat_slot(evt);
 				(void)slot; //FIXME
 
-				d2tk_base_set_butmask(fbdev->base, D2TK_BUTMASK_RIGHT, false);
+				d2tk_base_set_butmask(fbdev->base, D2TK_BUTMASK_LEFT, false);
 			} break;
 			case LIBINPUT_EVENT_TOUCH_MOTION:
 			{

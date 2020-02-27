@@ -26,8 +26,6 @@
 
 #include <utf8.h/utf8.h>
 
-#include "config.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -43,6 +41,7 @@ typedef struct _d2tk_flowmatrix_t d2tk_flowmatrix_t;
 typedef struct _d2tk_flowmatrix_node_t d2tk_flowmatrix_node_t;
 typedef struct _d2tk_flowmatrix_arc_t d2tk_flowmatrix_arc_t;
 typedef struct _d2tk_pane_t d2tk_pane_t;
+typedef struct _d2tk_pty_t d2tk_pty_t;
 typedef struct _d2tk_base_t d2tk_base_t;
 
 struct _d2tk_pos_t {
@@ -155,9 +154,9 @@ typedef enum _d2tk_flag_t {
 	D2TK_FLAG_TABLE_REL     = (1 << 9),
 } d2tk_flag_t;
 
-#define D2TK_ID_IDX(IDX) ((d2tk_id_t)__LINE__ << 16) | (IDX)
+#define D2TK_ID_IDX(IDX) ( ((d2tk_id_t)__LINE__ << 16) | (IDX) )
 #define D2TK_ID_FILE_IDX(IDX) \
-	((d2tk_id_t)d2tk_hash(__FILE__, -1) << 32) | D2TK_ID_IDX((IDX))
+	( ((d2tk_id_t)d2tk_hash(__FILE__, -1) << 32) | D2TK_ID_IDX((IDX)) )
 #define D2TK_ID D2TK_ID_IDX(0)
 #define D2TK_ID_FILE D2TK_ID_FILE_IDX(0)
 
@@ -169,6 +168,7 @@ extern const size_t d2tk_flowmatrix_sz;
 extern const size_t d2tk_flowmatrix_node_sz;
 extern const size_t d2tk_flowmatrix_arc_sz;
 extern const size_t d2tk_pane_sz;
+extern const size_t d2tk_pty_sz;
 
 D2TK_API d2tk_table_t *
 d2tk_table_begin(const d2tk_rect_t *rect, unsigned N, unsigned M,
@@ -416,6 +416,14 @@ d2tk_base_button(d2tk_base_t *base, d2tk_id_t id, const d2tk_rect_t *rect);
 	d2tk_state_is_changed(d2tk_base_button(__VA_ARGS__))
 
 D2TK_API d2tk_state_t
+d2tk_base_toggle_label_image(d2tk_base_t *base, d2tk_id_t id, ssize_t lbl_len,
+	const char *lbl, d2tk_align_t align, ssize_t path_len, const char *path,
+	const d2tk_rect_t *rect, bool *value);
+
+#define d2tk_base_toggle_label_image_is_changed(...) \
+	d2tk_state_is_changed(d2tk_base_toggle_label_image(__VA_ARGS__))
+
+D2TK_API d2tk_state_t
 d2tk_base_toggle_label(d2tk_base_t *base, d2tk_id_t id, ssize_t lbl_len,
 	const char *lbl, d2tk_align_t align, const d2tk_rect_t *rect, bool *value);
 
@@ -475,14 +483,38 @@ d2tk_base_link(d2tk_base_t *base, d2tk_id_t id, ssize_t lbl_len, const char *lbl
 	d2tk_state_is_changed(d2tk_base_link(__VA_ARGS__))
 
 #if D2TK_PTY
-typedef void (*d2tk_clone_t)(FILE *stderr, void *data);
+D2TK_API d2tk_pty_t *
+d2tk_pty_begin(d2tk_base_t *base, d2tk_id_t id, char **argv,
+	d2tk_coord_t height, const d2tk_rect_t *rect, bool reinit, d2tk_pty_t *pty);
+
+D2TK_API bool
+d2tk_pty_not_end(d2tk_pty_t *pty);
+
+D2TK_API d2tk_pty_t *
+d2tk_pty_next(d2tk_pty_t *pty);
 
 D2TK_API d2tk_state_t
-d2tk_base_pty(d2tk_base_t *base, d2tk_id_t id, d2tk_clone_t clone, void *data,
-	d2tk_coord_t height, const d2tk_rect_t *rect, bool reinit);
+d2tk_pty_get_state(d2tk_pty_t *pty);
 
-#define d2tk_base_pty_is_changed(...) \
-	d2tk_state_is_changed(d2tk_base_pty(__VA_ARGS__))
+D2TK_API uint32_t
+d2tk_pty_get_max_red(d2tk_pty_t *pty);
+
+D2TK_API uint32_t
+d2tk_pty_get_max_green(d2tk_pty_t *pty);
+
+D2TK_API uint32_t
+d2tk_pty_get_max_blue(d2tk_pty_t *pty);
+
+#define D2TK_BASE_PTY(BASE, ID, ARGV, HEIGHT, RECT, REINIT, PTY) \
+	for(d2tk_pty_t *(PTY) = d2tk_pty_begin((BASE), (ID), (ARGV), (HEIGHT), \
+			(RECT), (REINIT), alloca(d2tk_pty_sz)); \
+		d2tk_pty_not_end((PTY)); \
+		(PTY) = d2tk_pty_next((PTY)))
+#endif
+
+#if D2TK_EVDEV
+D2TK_API d2tk_state_t
+d2tk_base_vkb(d2tk_base_t *base, d2tk_id_t id, const d2tk_rect_t *rect);
 #endif
 
 D2TK_API d2tk_state_t
@@ -533,6 +565,20 @@ d2tk_base_dial_double(d2tk_base_t *base, d2tk_id_t id, const d2tk_rect_t *rect,
 
 #define d2tk_base_dial_double_is_changed(...) \
 	d2tk_state_is_changed(d2tk_base_dial_double(__VA_ARGS__))
+
+D2TK_API d2tk_state_t
+d2tk_base_spinner_int32(d2tk_base_t *base, d2tk_id_t id, const d2tk_rect_t *rect,
+	int32_t min, int32_t *value, int32_t max);
+
+#define d2tk_base_spinner_int32_is_changed(...) \
+	d2tk_state_is_changed(d2tk_base_spinner_int32(__VA_ARGS__))
+
+D2TK_API d2tk_state_t
+d2tk_base_bar_int32(d2tk_base_t *base, d2tk_id_t id, const d2tk_rect_t *rect,
+	int32_t min, int32_t *value, int32_t max);
+
+#define d2tk_base_bar_int32_is_changed(...) \
+	d2tk_state_is_changed(d2tk_base_bar_int32(__VA_ARGS__))
 
 D2TK_API d2tk_flowmatrix_t *
 d2tk_flowmatrix_begin(d2tk_base_t *base, const d2tk_rect_t *rect, d2tk_id_t id,
@@ -647,6 +693,12 @@ d2tk_base_set_butmask(d2tk_base_t *base, d2tk_butmask_t mask, bool down);
 D2TK_API bool
 d2tk_base_get_butmask(d2tk_base_t *base, d2tk_butmask_t mask, bool clear);
 
+D2TK_API bool
+d2tk_base_get_butmask_down(d2tk_base_t *base, d2tk_butmask_t mask);
+
+D2TK_API bool
+d2tk_base_get_butmask_up(d2tk_base_t *base, d2tk_butmask_t mask);
+
 D2TK_API void
 d2tk_base_set_mouse_pos(d2tk_base_t *base, d2tk_coord_t x, d2tk_coord_t y);
 
@@ -671,6 +723,12 @@ d2tk_base_set_keymask(d2tk_base_t *base, d2tk_keymask_t mask, bool down);
 
 D2TK_API bool
 d2tk_base_get_keymask(d2tk_base_t *base, d2tk_keymask_t mask, bool clear);
+
+D2TK_API bool
+d2tk_base_get_keymask_down(d2tk_base_t *base, d2tk_keymask_t mask);
+
+D2TK_API bool
+d2tk_base_get_keymask_up(d2tk_base_t *base, d2tk_keymask_t mask);
 
 D2TK_API void
 d2tk_base_set_dimensions(d2tk_base_t *base, d2tk_coord_t w, d2tk_coord_t h);

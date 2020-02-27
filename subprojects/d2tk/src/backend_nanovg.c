@@ -657,12 +657,11 @@ d2tk_nanovg_process(void *data, d2tk_core_t *core, const d2tk_com_t *com,
 
 			if(!*sprite)
 			{
-				char *ft_path = NULL;
-				assert(asprintf(&ft_path, "%s%s", backend->bundle_path, body->face) != -1);
-				assert(ft_path);
+				char ft_path [1024];
+				d2tk_core_get_font_path(core, backend->bundle_path, body->face,
+					sizeof(ft_path), ft_path);
 
 				const int face = nvgCreateFont(ctx, body->face, ft_path);
-				free(ft_path);
 				assert(face != -1);
 
 				*sprite = (uintptr_t)face;

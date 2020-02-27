@@ -33,6 +33,10 @@
 #include "core_internal.h"
 #include <d2tk/hash.h>
 
+#if D2TK_FONTCONFIG
+#	include <fontconfig/fontconfig.h>
+#endif
+
 #define _D2TK_SPRITES_MAX			0x10000 //FIXME how big?
 #define _D2TK_SPRITES_MASK		(_D2TK_SPRITES_MAX - 1)
 #define _D2TK_SPRITES_TTL			0x100
@@ -1632,4 +1636,47 @@ D2TK_API void
 d2tk_core_set_full_refresh(d2tk_core_t *core)
 {
 	core->full_refresh = true;
+}
+
+int
+d2tk_core_get_font_path(d2tk_core_t *core, const char *bundle_path,
+	const char *rel_path, size_t abs_len, char *abs_path)
+{
+	int ret = 1;
+
+#if D2TK_FONTCONFIG
+	(void)core;
+	(void)bundle_path;
+
+	FcConfig *config = FcInitLoadConfigAndFonts();
+	FcPattern *pat = FcNameParse((FcChar8 *)rel_path);
+	FcConfigSubstitute(config, pat, FcMatchPattern);
+	FcDefaultSubstitute(pat);
+
+	//FcPatternPrint(pat);
+
+	FcResult result;
+	FcPattern *font = FcFontMatch(config, pat, &result);
+	if(font)
+	{
+		FcChar8 *file = NULL;
+		if(FcPatternGetString(font, FC_FILE, 0, &file) == FcResultMatch)
+		{
+			snprintf(abs_path, abs_len, "%s", file);
+			ret = 0;
+		}
+
+		FcPatternDestroy(font);
+	}
+
+	FcPatternDestroy(pat);
+
+	FcConfigDestroy(config);
+#else
+	(void)core;
+	snprintf(abs_path, abs_len, "%s%s.ttf", bundle_path, rel_path);
+	ret = 0;
+#endif
+
+	return ret;
 }

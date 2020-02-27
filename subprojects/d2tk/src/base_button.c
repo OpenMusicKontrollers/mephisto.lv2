@@ -164,8 +164,9 @@ d2tk_base_button(d2tk_base_t *base, d2tk_id_t id, const d2tk_rect_t *rect)
 }
 
 D2TK_API d2tk_state_t
-d2tk_base_toggle_label(d2tk_base_t *base, d2tk_id_t id, ssize_t lbl_len,
-	const char *lbl, d2tk_align_t align, const d2tk_rect_t *rect, bool *value)
+d2tk_base_toggle_label_image(d2tk_base_t *base, d2tk_id_t id, ssize_t lbl_len,
+	const char *lbl, d2tk_align_t align, ssize_t path_len, const char *path,
+	const d2tk_rect_t *rect, bool *value)
 {
 	d2tk_state_t state = d2tk_base_is_active_hot(base, id, rect, D2TK_FLAG_NONE);
 
@@ -192,10 +193,18 @@ d2tk_base_toggle_label(d2tk_base_t *base, d2tk_id_t id, ssize_t lbl_len,
 		triple |= D2TK_TRIPLE_FOCUS;
 	}
 
-	_d2tk_base_draw_button(base->core, lbl_len, lbl, align, 0, NULL, rect, triple,
-		d2tk_base_get_style(base));
+	_d2tk_base_draw_button(base->core, lbl_len, lbl, align, path_len, path, rect,
+		triple, d2tk_base_get_style(base));
 
 	return state;
+}
+
+D2TK_API d2tk_state_t
+d2tk_base_toggle_label(d2tk_base_t *base, d2tk_id_t id, ssize_t lbl_len,
+	const char *lbl, d2tk_align_t align, const d2tk_rect_t *rect, bool *value)
+{
+	return d2tk_base_toggle_label_image(base, id, lbl_len, lbl, align, 0, NULL,
+		rect, value);
 }
 
 D2TK_API d2tk_state_t
