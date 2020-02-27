@@ -44,14 +44,14 @@ x86_64-linux-gnu-bullseye:
   before_script:
     - apt-get update
     - apt-get install -y faust-common libfaust2 libglu1-mesa-dev libvterm-dev
-    - ln -s /usr/lib/x86_64-linux-gnu/libfaust.so.2.15.11 /usr/lib/x86_64-linux-gnu/libfaust.so
+    - ln -s /usr/lib/x86_64-linux-gnu/libfaust.so.2.20.2 /usr/lib/x86_64-linux-gnu/libfaust.so
   <<: *universal_linux_definition_bullseye
 
 i686-linux-gnu-bullseye:
   before_script:
     - apt-get update
     - apt-get install -y faust-common:i386 libfaust2:i386 libglu1-mesa-dev:i386 libvterm-dev:i386
-    - ln -s /usr/lib/i386-linux-gnu/libfaust.so.2.15.11 /usr/lib/i386-linux-gnu/libfaust.so
+    - ln -s /usr/lib/i386-linux-gnu/libfaust.so.2.20.2 /usr/lib/i386-linux-gnu/libfaust.so
   <<: *universal_linux_definition_bullseye
 
 #arm-linux-gnueabihf-bullseye:
