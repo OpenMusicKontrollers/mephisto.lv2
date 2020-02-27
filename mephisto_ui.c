@@ -641,12 +641,15 @@ _expose_term(plughandle_t *handle, const d2tk_rect_t *rect)
 		NULL
 	};
 
-	const d2tk_state_t state = d2tk_base_pty(base, D2TK_ID, NULL, args,
-		handle->font_height, rect, handle->reinit);
-
-	if(d2tk_state_is_close(state))
+	D2TK_BASE_PTY(base, D2TK_ID, args,
+		handle->font_height, rect, handle->reinit, pty)
 	{
-		handle->done = 1;
+		const d2tk_state_t state = d2tk_pty_get_state(pty);
+
+		if(d2tk_state_is_close(state))
+		{
+			handle->done = 1;
+		}
 	}
 
 	handle->reinit = false;

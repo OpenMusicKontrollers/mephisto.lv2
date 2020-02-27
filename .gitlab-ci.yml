@@ -1,31 +1,27 @@
 stages:
   - build
-  - test
   - deploy
 
 .variables_template: &variables_definition
   variables:
-    BASE_NAME: "mephisto.lv2"
     PKG_CONFIG_PATH: "/opt/lv2/lib/pkgconfig:/opt/${CI_BUILD_NAME}/lib/pkgconfig:/usr/lib/${CI_BUILD_NAME}/pkgconfig"
+    BUILD_OPTS: "-Duse-fontconfig=disabled"
 
 .common_template: &common_definition
   <<: *variables_definition
   stage: build
   artifacts:
-    name: "${BASE_NAME}-$(cat VERSION)-${CI_BUILD_NAME}"
+    name: "${CI_PROJECT_NAME}-$(cat VERSION)-${CI_BUILD_NAME}"
     paths:
-      - "${BASE_NAME}-$(cat VERSION)/"
+      - "${CI_PROJECT_NAME}-$(cat VERSION)/${CI_BUILD_NAME}/"
 
 .build_template: &build_definition
   <<: *common_definition
   script:
-    - meson --prefix="/opt/${CI_BUILD_NAME}" --libdir="lib" --cross-file "${CI_BUILD_NAME}" build
-    - sed -i -e '/framework/s/-Wl,-O1//g' -e '/framework/s/-Wl,--start-group//g' -e '/framework/s/-Wl,--end-group//g' -e '/framework/s/-Wl,-soname,.*dylib//g' build/build.ninja
+    - meson --prefix="${CI_PROJECT_DIR}/${CI_PROJECT_NAME}-$(cat VERSION)/${CI_BUILD_NAME}" -Dlv2libdir="" --cross-file "${CI_BUILD_NAME}" "${BUILD_OPTS}" build
     - ninja -C build
-    - ninja -C build install
     - ninja -C build test
-    - mkdir -p "${BASE_NAME}-$(cat VERSION)/${CI_BUILD_NAME}/${BASE_NAME}"
-    - cp -r "/opt/${CI_BUILD_NAME}/lib/lv2/${BASE_NAME}/" "${BASE_NAME}-$(cat VERSION)/${CI_BUILD_NAME}/"
+    - ninja -C build install
 
 .universal_linux_template_bullseye: &universal_linux_definition_bullseye
   image: ventosus/universal-linux-gnu:bullseye
@@ -85,6 +81,6 @@ pack:
   script:
     - echo 'packing up...'
   artifacts:
-    name: "${BASE_NAME}-$(cat VERSION)"
+    name: "${CI_PROJECT_NAME}-$(cat VERSION)"
     paths:
-      - "${BASE_NAME}-$(cat VERSION)/"
+      - "${CI_PROJECT_NAME}-$(cat VERSION)/"

@@ -7,10 +7,14 @@ project('mephisto.lv2', 'c', default_options : [
 
 d2tk = subproject('d2tk')
 
-use_backend = get_option('use-backend')
-if use_backend == 'nanovg'
+lv2libdir = get_option('lv2libdir')
+build_tests = get_option('build-tests')
+
+inst_dir = join_paths(lv2libdir, meson.project_name())
+
+if get_option('use-backend-nanovg').enabled()
 	d2tk_dep = d2tk.get_variable('d2tk_nanovg')
-elif use_backend == 'cairo'
+elif get_option('use-backend-cairo').enabled()
 	d2tk_dep = d2tk.get_variable('d2tk_cairo')
 else
 	error('no valid UI backend given')
@@ -49,8 +53,6 @@ ser_inc = include_directories('ser_atom.lv2')
 varchunk_inc = include_directories('varchunk')
 d2tk_inc = include_directories(join_paths('subprojects', 'd2tk'))
 inc_dir = [props_inc, timely_inc, ser_inc, varchunk_inc, d2tk_inc]
-
-inst_dir = join_paths(get_option('libdir'), 'lv2', meson.project_name())
 
 dsp_srcs = ['mephisto.c']
 
@@ -125,68 +127,46 @@ pset_ttl = configure_file(
 	install_dir : inst_dir)
 
 configure_file(
-	input : 'FiraCode-Bold.ttf',
-	output : 'FiraCode-Bold.ttf',
-	copy : true,
-	install : true,
-	install_dir : inst_dir)
-configure_file(
-	input : 'FiraCode-Medium.ttf',
-	output : 'FiraCode-Medium.ttf',
-	copy : true,
-	install : true,
-	install_dir : inst_dir)
-configure_file(
-	input : 'FiraCode-Regular.ttf',
-	output : 'FiraCode-Regular.ttf',
-	copy : true,
-	install : true,
-	install_dir : inst_dir)
-configure_file(
-	input : 'FiraCode-Light.ttf',
-	output : 'FiraCode-Light.ttf',
-	copy : true,
-	install : true,
-	install_dir : inst_dir)
-configure_file(
 	input : 'libre-gui-exclamation-circle.png',
 	output : 'libre-gui-exclamation-circle.png',
 	copy : true,
 	install : true,
 	install_dir : inst_dir)
 
-if lv2_validate.found() and sord_validate.found()
-	test('LV2 validate', lv2_validate,
-		args : [manifest_ttl, dsp_ttl, ui_ttl, pset_ttl])
-endif
+if build_tests
+	if lv2_validate.found() and sord_validate.found()
+		test('LV2 validate', lv2_validate,
+			args : [manifest_ttl, dsp_ttl, ui_ttl, pset_ttl])
+	endif
 
-if lv2lint.found()
-	test('LV2 lint', lv2lint,
-		args : ['-M', 'pack',
-			'-E', 'warn',
-			'-I', join_paths(build_root, ''),
-			'http://open-music-kontrollers.ch/lv2/mephisto#audio_1x1',
-			'http://open-music-kontrollers.ch/lv2/mephisto#audio_2x2',
-			'http://open-music-kontrollers.ch/lv2/mephisto#audio_4x4',
-			'http://open-music-kontrollers.ch/lv2/mephisto#audio_8x8',
-			'http://open-music-kontrollers.ch/lv2/mephisto#cv_1x1',
-			'http://open-music-kontrollers.ch/lv2/mephisto#cv_2x2',
-			'http://open-music-kontrollers.ch/lv2/mephisto#cv_4x4',
-			'http://open-music-kontrollers.ch/lv2/mephisto#cv_8x8'
+	if lv2lint.found()
+		test('LV2 lint', lv2lint,
+			args : ['-M', 'pack',
+				'-E', 'warn',
+				'-I', join_paths(build_root, ''),
+				'http://open-music-kontrollers.ch/lv2/mephisto#audio_1x1',
+				'http://open-music-kontrollers.ch/lv2/mephisto#audio_2x2',
+				'http://open-music-kontrollers.ch/lv2/mephisto#audio_4x4',
+				'http://open-music-kontrollers.ch/lv2/mephisto#audio_8x8',
+				'http://open-music-kontrollers.ch/lv2/mephisto#cv_1x1',
+				'http://open-music-kontrollers.ch/lv2/mephisto#cv_2x2',
+				'http://open-music-kontrollers.ch/lv2/mephisto#cv_4x4',
+				'http://open-music-kontrollers.ch/lv2/mephisto#cv_8x8'
+			])
+	endif
+
+	if faust.found()
+		test('FAUST bank-filter_through', faust, args : [
+			join_paths(source_root, 'bank-filter_through.dsp')
 		])
-endif
-
-if faust.found()
-	test('FAUST bank-filter_through', faust, args : [
-		join_paths(source_root, 'bank-filter_through.dsp')
-	])
-	test('FAUST bank-filter_gain', faust, args : [
-		join_paths(source_root, 'bank-filter_gain.dsp')
-	])
-	test('FAUST bank-time_lfo', faust, args : [
-		join_paths(source_root, 'bank-time_lfo.dsp')
-	])
-	test('FAUST bank-instrument_osc', faust, args : [
-		join_paths(source_root, 'bank-instrument_osc.dsp')
-	])
+		test('FAUST bank-filter_gain', faust, args : [
+			join_paths(source_root, 'bank-filter_gain.dsp')
+		])
+		test('FAUST bank-time_lfo', faust, args : [
+			join_paths(source_root, 'bank-time_lfo.dsp')
+		])
+		test('FAUST bank-instrument_osc', faust, args : [
+			join_paths(source_root, 'bank-instrument_osc.dsp')
+		])
+	endif
 endif
