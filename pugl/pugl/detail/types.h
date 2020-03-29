@@ -28,12 +28,12 @@
 #include <stdint.h>
 
 // Unused parameter macro to suppresses warnings and make it impossible to use
-#if defined(__cplusplus) || defined(_MSC_VER)
+#if defined(__cplusplus)
 #   define PUGL_UNUSED(name)
 #elif defined(__GNUC__)
 #   define PUGL_UNUSED(name) name##_unused __attribute__((__unused__))
 #else
-#   define PUGL_UNUSED(name)
+#   define PUGL_UNUSED(name) name
 #endif
 
 /** Platform-specific world internals. */
@@ -64,6 +64,7 @@ struct PuglViewImpl {
 	uintptr_t          transientParent;
 	PuglHints          hints;
 	PuglRect           frame;
+	PuglEventConfigure lastConfigure;
 	int                minWidth;
 	int                minHeight;
 	int                minAspectX;
@@ -71,16 +72,18 @@ struct PuglViewImpl {
 	int                maxAspectX;
 	int                maxAspectY;
 	bool               visible;
-	bool               redisplay;
 };
 
 /** Cross-platform world definition. */
 struct PuglWorldImpl {
 	PuglWorldInternals* impl;
+	PuglWorldHandle     handle;
+	PuglLogFunc         logFunc;
 	char*               className;
 	double              startTime;
 	size_t              numViews;
 	PuglView**          views;
+	PuglLogLevel        logLevel;
 };
 
 /** Opaque surface used by graphics backend. */
@@ -97,14 +100,11 @@ struct PuglBackendImpl {
 	/** Destroy surface and drawing context. */
 	PuglStatus (*destroy)(PuglView*);
 
-	/** Enter drawing context, for drawing if parameter is true. */
-	PuglStatus (*enter)(PuglView*, bool);
+	/** Enter drawing context, for drawing if expose is non-null. */
+	PuglStatus (*enter)(PuglView*, const PuglEventExpose*);
 
-	/** Leave drawing context, after drawing if parameter is true. */
-	PuglStatus (*leave)(PuglView*, bool);
-
-	/** Resize drawing context to the given width and height. */
-	PuglStatus (*resize)(PuglView*, int, int);
+	/** Leave drawing context, after drawing if expose is non-null. */
+	PuglStatus (*leave)(PuglView*, const PuglEventExpose*);
 
 	/** Return the puglGetContext() handle for the application, if any. */
 	void* (*getContext)(PuglView*);

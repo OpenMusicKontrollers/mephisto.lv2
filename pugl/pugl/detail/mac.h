@@ -30,13 +30,12 @@
 @public
 	PuglView*                  puglview;
 	NSTrackingArea*            trackingArea;
-    NSMutableAttributedString* markedText;
+	NSMutableAttributedString* markedText;
 	NSTimer*                   timer;
-	NSTimer*                   urgentTimer;
+	NSMutableDictionary*       userTimers;
 	bool                       reshaped;
 }
 
-- (void) dispatchConfigure:(NSRect)bounds;
 - (void) dispatchExpose:(NSRect)rect;
 - (void) setReshaped;
 

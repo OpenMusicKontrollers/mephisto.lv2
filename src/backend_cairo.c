@@ -46,10 +46,14 @@ typedef enum _sprite_type_t {
 typedef struct _d2tk_backend_cairo_t d2tk_backend_cairo_t;
 
 struct _d2tk_backend_cairo_t {
+	cairo_t *pctx;
 	cairo_t *ctx;
 	char *bundle_path;
 	FT_Library library;
 	cairo_pattern_t *pat;
+	d2tk_coord_t w;
+	d2tk_coord_t h;
+	cairo_surface_t *surf;
 };
 
 static void
@@ -57,20 +61,24 @@ d2tk_cairo_free(void *data)
 {
 	d2tk_backend_cairo_t *backend = data;
 
+	if(backend->surf)
+	{
+		cairo_surface_destroy(backend->surf);
+	}
+
+	if(backend->ctx)
+	{
+		cairo_destroy(backend->ctx);
+	}
+
 	FT_Done_FreeType(backend->library);
 	free(backend->bundle_path);
 	free(backend);
 }
 
 static void *
-d2tk_cairo_new(const char *bundle_path, void *pctx)
+d2tk_cairo_new(const char *bundle_path)
 {
-	if(!pctx)
-	{
-		fprintf(stderr, "invalid cairo context\n");
-		return NULL;
-	}
-
 	d2tk_backend_cairo_t *backend = calloc(1, sizeof(d2tk_backend_cairo_t));
 	if(!backend)
 	{
@@ -78,11 +86,26 @@ d2tk_cairo_new(const char *bundle_path, void *pctx)
 		return NULL;
 	}
 
-	backend->ctx = pctx;
 	backend->bundle_path = strdup(bundle_path);
 	FT_Init_FreeType(&backend->library);
 
 	return backend;
+}
+
+static int
+d2tk_cairo_context(void *data, void *pctx)
+{
+	d2tk_backend_cairo_t *backend = data;
+
+	if(!pctx)
+	{
+		fprintf(stderr, "invalid cairo context\n");
+		return 1;
+	}
+
+	backend->pctx = pctx;
+
+	return 0;
 }
 
 static inline void
@@ -90,12 +113,37 @@ d2tk_cairo_pre(void *data, d2tk_core_t *core __attribute((unused)),
 	d2tk_coord_t w, d2tk_coord_t h, unsigned pass)
 {
 	d2tk_backend_cairo_t *backend = data;
-	cairo_t *ctx = backend->ctx;
 
 	if(pass == 0) // is this 1st pass ?
 	{
 		return;
 	}
+
+	if(!backend->ctx || !backend->surf || (w != backend->w) || (h != backend->h) )
+	{
+		cairo_surface_t *psurf = cairo_get_target(backend->pctx);
+
+		if(backend->surf)
+		{
+			cairo_surface_destroy(backend->surf);
+			backend->surf = NULL;
+		}
+
+		if(backend->ctx)
+		{
+			cairo_destroy(backend->ctx);
+			backend->ctx = NULL;
+		}
+
+		backend->surf = cairo_surface_create_similar_image(psurf,
+			CAIRO_FORMAT_ARGB32, w, h);
+		backend->ctx = cairo_create(backend->surf);
+
+		backend->w = w;
+		backend->h = h;
+	}
+
+	cairo_t *ctx = backend->ctx;
 
 	cairo_save(ctx);
 
@@ -167,13 +215,25 @@ d2tk_cairo_post(void *data, d2tk_core_t *core __attribute__((unused)),
 
 	cairo_restore(ctx);
 
-	cairo_surface_t *surf = cairo_get_target(ctx);
-	if(surf)
-	{
-		cairo_surface_flush(surf);
-	}
-
 	return false; // do NOT enter 3rd pass
+}
+
+static inline void
+d2tk_cairo_end(void *data, d2tk_core_t *core __attribute__((unused)),
+	d2tk_coord_t w, d2tk_coord_t h)
+{
+	d2tk_backend_cairo_t *backend = data;
+	cairo_t *ctx = backend->pctx;
+
+	cairo_surface_flush(backend->surf);
+
+	// copy to parent surface
+	cairo_rectangle(ctx, 0, 0, w, h);
+	cairo_clip(ctx);
+
+	cairo_new_sub_path(ctx);
+	cairo_set_source_surface(ctx, backend->surf, 0, 0);
+	cairo_paint(ctx);
 }
 
 static inline void
@@ -663,6 +723,7 @@ d2tk_cairo_process(void *data, d2tk_core_t *core, const d2tk_com_t *com,
 				stbi_set_unpremultiply_on_load(1);
 				stbi_convert_iphone_png_to_rgb(1);
 				uint8_t *pixels = stbi_load(img_path, &W, &H, &N, 4);
+				free(img_path);
 				assert(pixels );
 
 				// bitswap and premultiply pixel data
@@ -770,8 +831,10 @@ d2tk_cairo_process(void *data, d2tk_core_t *core, const d2tk_com_t *com,
 const d2tk_core_driver_t d2tk_core_driver = {
 	.new = d2tk_cairo_new,
 	.free = d2tk_cairo_free,
+	.context = d2tk_cairo_context,
 	.pre = d2tk_cairo_pre,
 	.process = d2tk_cairo_process,
 	.post = d2tk_cairo_post,
+	.end = d2tk_cairo_end,
 	.sprite_free = d2tk_cairo_sprite_free
 };

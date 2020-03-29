@@ -35,7 +35,7 @@
 
 #include <d2tk/backend.h>
 
-struct _d2tk_fbdev_t {
+struct _d2tk_frontend_t {
 	const d2tk_fbdev_config_t *config;
 	bool done;
 	struct udev *udev;
@@ -56,6 +56,7 @@ struct _d2tk_fbdev_t {
 	} kbd;
 	d2tk_base_t *base;
 	void *ctx;
+	cairo_t *cr;
 };
 
 static int
@@ -80,7 +81,7 @@ static const struct libinput_interface iface = {
 };
 
 static int
-_d2tk_fbdev_sync(d2tk_fbdev_t *fbdev)
+_d2tk_frontend_sync(d2tk_frontend_t *fbdev)
 {
 	int dummy = 0;
 
@@ -94,9 +95,9 @@ _d2tk_fbdev_sync(d2tk_fbdev_t *fbdev)
 }
 
 static void
-_d2tk_fbdev_destroy(void *data)
+_d2tk_frontend_destroy(void *data)
 {
-	d2tk_fbdev_t *fbdev = data;
+	d2tk_frontend_t *fbdev = data;
 
 	if(fbdev == NULL)
 	{
@@ -112,7 +113,7 @@ _d2tk_fbdev_destroy(void *data)
 }
 
 static cairo_surface_t *
-_d2tk_fbdev_create(d2tk_fbdev_t *fbdev, const char *fb_device)
+_d2tk_frontend_create(d2tk_frontend_t *fbdev, const char *fb_device)
 {
 	cairo_surface_t *surface;
 
@@ -168,7 +169,7 @@ _d2tk_fbdev_create(d2tk_fbdev_t *fbdev, const char *fb_device)
 			fbdev->finfo.smem_len / fbdev->vinfo.yres_virtual);
 
 	cairo_surface_set_user_data(surface, NULL, fbdev,
-			&_d2tk_fbdev_destroy);
+			&_d2tk_frontend_destroy);
 
 	return surface;
 
@@ -182,13 +183,13 @@ handle_allocate_error:
 }
 
 static inline void
-_d2tk_fbdev_close(d2tk_fbdev_t *fbdev)
+_d2tk_frontend_close(d2tk_frontend_t *fbdev)
 {
 	fbdev->done = true;
 }
 
 static inline void
-_d2tk_fbdev_expose(d2tk_fbdev_t *fbdev)
+_d2tk_frontend_expose(d2tk_frontend_t *fbdev)
 {
 	d2tk_base_t *base = fbdev->base;
 
@@ -198,19 +199,19 @@ _d2tk_fbdev_expose(d2tk_fbdev_t *fbdev)
 
 	do
 	{
-		d2tk_base_pre(base);
+		if(d2tk_base_pre(base, fbdev->cr) == 0)
+		{
+			fbdev->config->expose(fbdev->config->data, w, h);
 
-		fbdev->config->expose(fbdev->config->data, w, h);
-
-		d2tk_base_post(base);
-
+			d2tk_base_post(base);
+		}
 	} while(d2tk_base_get_again(base));
 
-	_d2tk_fbdev_sync(fbdev);
+	_d2tk_frontend_sync(fbdev);
 }
 
 D2TK_API int
-d2tk_fbdev_step(d2tk_fbdev_t *fbdev)
+d2tk_frontend_step(d2tk_frontend_t *fbdev)
 {
 	while(true)
 	{
@@ -624,13 +625,21 @@ d2tk_fbdev_step(d2tk_fbdev_t *fbdev)
 		libinput_event_destroy(ev);
 	}
 
-	_d2tk_fbdev_expose(fbdev);
+	_d2tk_frontend_expose(fbdev);
 
 	return fbdev->done;
 }
 
+D2TK_API int
+d2tk_frontend_poll(d2tk_frontend_t *fbdev __attribute__((unused)),
+	double timeout __attribute__((unused)))
+{
+	//FIXME not implemented, yet
+	return 0;
+}
+
 D2TK_API void
-d2tk_fbdev_run(d2tk_fbdev_t *fbdev, const sig_atomic_t *done)
+d2tk_frontend_run(d2tk_frontend_t *fbdev, const sig_atomic_t *done)
 {
 	const unsigned step = 1000000000 / 24;
 	struct timespec to;
@@ -650,7 +659,7 @@ d2tk_fbdev_run(d2tk_fbdev_t *fbdev, const sig_atomic_t *done)
 			to.tv_nsec -= 1000000000;
 		}
 
-		if(d2tk_fbdev_step(fbdev))
+		if(d2tk_frontend_step(fbdev))
 		{
 			break;
 		}
@@ -658,8 +667,44 @@ d2tk_fbdev_run(d2tk_fbdev_t *fbdev, const sig_atomic_t *done)
 }
 
 D2TK_API void
-d2tk_fbdev_free(d2tk_fbdev_t *fbdev)
+d2tk_frontend_redisplay(d2tk_frontend_t *fbdev __attribute__((unused)))
 {
+	// not supported
+}
+
+D2TK_API int
+d2tk_frontend_set_size(d2tk_frontend_t *fbdev __attribute__((unused)),
+	d2tk_coord_t w __attribute__((unused)), d2tk_coord_t h __attribute__((unused)))
+{
+	// not supported
+
+	return 0;
+}
+
+D2TK_API int
+d2tk_frontend_get_size(d2tk_frontend_t *fbdev, d2tk_coord_t *w, d2tk_coord_t *h)
+{
+	if(w)
+	{
+		*w = fbdev->vinfo.xres_virtual;
+	}
+
+	if(h)
+	{
+		*h = fbdev->vinfo.yres_virtual;
+	}
+
+	return 0;
+}
+
+D2TK_API void
+d2tk_frontend_free(d2tk_frontend_t *fbdev)
+{
+	if(fbdev->cr)
+	{
+		cairo_destroy(fbdev->cr);
+	}
+
 	if(fbdev->ctx)
 	{
 		if(fbdev->base)
@@ -674,10 +719,10 @@ d2tk_fbdev_free(d2tk_fbdev_t *fbdev)
 	free(fbdev);
 }
 
-D2TK_API d2tk_fbdev_t *
+D2TK_API d2tk_frontend_t *
 d2tk_fbdev_new(const d2tk_fbdev_config_t *config)
 {
-	d2tk_fbdev_t *fbdev = calloc(1, sizeof(d2tk_fbdev_t));
+	d2tk_frontend_t *fbdev = calloc(1, sizeof(d2tk_frontend_t));
 	if(!fbdev)
 	{
 		goto fail;
@@ -685,14 +730,10 @@ d2tk_fbdev_new(const d2tk_fbdev_config_t *config)
 
 	fbdev->config = config;
 
-	cairo_surface_t *surf = _d2tk_fbdev_create(fbdev, fbdev->config->fb_device);
-	cairo_t *ctx = cairo_create(surf);
+	cairo_surface_t *surf = _d2tk_frontend_create(fbdev, fbdev->config->fb_device);
+	fbdev->cr = cairo_create(surf);
 
-	//FIXME
-	//cairo_destroy(ctx);
-	//cairo_surface_destroy(surf);
-
-	fbdev->ctx = d2tk_core_driver.new(config->bundle_path, ctx);
+	fbdev->ctx = d2tk_core_driver.new(config->bundle_path);
 
 	if(!fbdev->ctx)
 	{
@@ -728,7 +769,13 @@ fail:
 }
 
 D2TK_API d2tk_base_t *
-d2tk_fbdev_get_base(d2tk_fbdev_t *fbdev)
+d2tk_frontend_get_base(d2tk_frontend_t *fbdev)
 {
 	return fbdev->base;
+}
+
+D2TK_API float
+d2tk_frontend_get_scale()
+{
+	return 1.f;
 }

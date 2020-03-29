@@ -20,6 +20,17 @@
 
 #include "mock.h"
 
+static inline int
+_d2tk_mock_context(void *data, void *pctx)
+{
+	d2tk_mock_ctx_t *ctx = data;
+	assert(ctx);
+
+	assert(pctx == NULL);
+
+	return 0;
+}
+
 static inline void
 _d2tk_mock_pre(void *data, d2tk_core_t *core, d2tk_coord_t w, d2tk_coord_t h,
 	unsigned pass)
@@ -50,6 +61,17 @@ _d2tk_mock_post(void *data, d2tk_core_t *core, d2tk_coord_t w, d2tk_coord_t h,
 	assert( (rect.w != 0) && (rect.h != 0) );
 
 	return false; // do NOT enter 3rd pass
+}
+
+static inline void
+_d2tk_mock_end(void *data, d2tk_core_t *core, d2tk_coord_t w, d2tk_coord_t h)
+{
+	d2tk_mock_ctx_t *ctx = data;
+	assert(ctx);
+
+	assert(core);
+	assert(w == DIM_W);
+	assert(h == DIM_H);
 }
 
 static inline void
@@ -213,26 +235,32 @@ _d2tk_mock_process_lazy(void *data, d2tk_core_t *core, const d2tk_com_t *com,
 const d2tk_core_driver_t d2tk_mock_driver = {
 	.new = NULL,
 	.free = NULL,
+	.context = _d2tk_mock_context,
 	.pre = _d2tk_mock_pre,
 	.process = _d2tk_mock_process,
 	.post = _d2tk_mock_post,
+	.end = _d2tk_mock_end,
 	.sprite_free = _d2tk_mock_sprite_free
 };
 
 const d2tk_core_driver_t d2tk_mock_driver_triple = {
 	.new = NULL,
 	.free = NULL,
+	.context = _d2tk_mock_context,
 	.pre = _d2tk_mock_pre,
 	.process = _d2tk_mock_process_triple,
 	.post = _d2tk_mock_post,
+	.end = _d2tk_mock_end,
 	.sprite_free = _d2tk_mock_sprite_free
 };
 
 const d2tk_core_driver_t d2tk_mock_driver_lazy = {
 	.new = NULL,
 	.free = NULL,
+	.context = _d2tk_mock_context,
 	.pre = _d2tk_mock_pre,
 	.process = _d2tk_mock_process_lazy,
 	.post = _d2tk_mock_post,
+	.end = _d2tk_mock_end,
 	.sprite_free = _d2tk_mock_sprite_free
 };

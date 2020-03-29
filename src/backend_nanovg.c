@@ -106,7 +106,7 @@ d2tk_nanovg_free(void *data)
 }
 
 static void *
-d2tk_nanovg_new(const char *bundle_path, void *pctx __attribute__((unused)))
+d2tk_nanovg_new(const char *bundle_path)
 {
 #if defined(__APPLE__)
 //FIXME
@@ -139,6 +139,15 @@ d2tk_nanovg_new(const char *bundle_path, void *pctx __attribute__((unused)))
 	backend->bundle_path = strdup(bundle_path);
 
 	return backend;
+}
+
+static int
+d2tk_nanovg_context(void *data __attribute__((unused)),
+	void *pctx __attribute__((unused)))
+{
+	// nothing to do
+	
+	return 0;
 }
 
 static inline void
@@ -314,6 +323,14 @@ d2tk_nanovg_post(void *data, d2tk_core_t *core __attribute__((unused)),
 	backend->fbop = !backend->fbop;
 
 	return false; // do NOT enter 3rd pass
+}
+
+static inline void
+d2tk_nanovg_end(void *data __attribute__((unused)),
+	d2tk_core_t *core __attribute__((unused)),
+	d2tk_coord_t w __attribute__((unused)), d2tk_coord_t h __attribute__((unused)))
+{
+	// nothing to do
 }
 
 static inline void
@@ -733,6 +750,7 @@ d2tk_nanovg_process(void *data, d2tk_core_t *core, const d2tk_com_t *com,
 				assert(img_path);
 
 				*sprite = nvgCreateImage(ctx, img_path, NVG_IMAGE_GENERATE_MIPMAPS);
+				free(img_path);
 			}
 
 			const int img = *sprite;
@@ -854,8 +872,10 @@ d2tk_nanovg_process(void *data, d2tk_core_t *core, const d2tk_com_t *com,
 const d2tk_core_driver_t d2tk_core_driver = {
 	.new = d2tk_nanovg_new,
 	.free = d2tk_nanovg_free,
+	.context = d2tk_nanovg_context,
 	.pre = d2tk_nanovg_pre,
 	.process = d2tk_nanovg_process,
 	.post = d2tk_nanovg_post,
+	.end = d2tk_nanovg_end,
 	.sprite_free = d2tk_nanovg_sprite_free
 };

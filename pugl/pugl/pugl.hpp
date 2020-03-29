@@ -18,19 +18,32 @@
    @file pugl.hpp Pugl C++ API wrapper.
 */
 
-#ifndef PUGL_HPP_INCLUDED
-#define PUGL_HPP_INCLUDED
+#ifndef PUGL_PUGL_HPP
+#define PUGL_PUGL_HPP
 
 #include "pugl/pugl.h"
 
 /**
-   @defgroup puglmm Puglmm
-   Pugl C++ API wrapper.
+   @defgroup puglxx C++
+
+   C++ API wrapper.
+
+   @ingroup pugl_api
    @{
 */
 
+/**
+   Pugl C++ API namespace.
+*/
 namespace pugl {
 
+/**
+   A drawable region that receives events.
+
+   This is a thin wrapper for a PuglView that contains only a pointer.
+
+   @ingroup puglxx
+*/
 class View {
 public:
 	View(int* pargc, char** argv)
@@ -104,4 +117,4 @@ private:
    @}
 */
 
-#endif  /* PUGL_HPP_INCLUDED */
+#endif  /* PUGL_PUGL_HPP */

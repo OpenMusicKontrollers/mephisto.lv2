@@ -186,8 +186,8 @@ d2tk_core_custom(d2tk_core_t *core, const d2tk_rect_t *rect, uint32_t size,
 D2TK_API void
 d2tk_core_stroke_width(d2tk_core_t *core, d2tk_coord_t width);
 
-D2TK_API void
-d2tk_core_pre(d2tk_core_t *core);
+D2TK_API int
+d2tk_core_pre(d2tk_core_t *core, void *pctx);
 
 D2TK_API void
 d2tk_core_post(d2tk_core_t *core);

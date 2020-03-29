@@ -1,5 +1,5 @@
 /*
-  Copyright 2012-2019 David Robillard <http://drobilla.net>
+  Copyright 2012-2020 David Robillard <http://drobilla.net>
 
   Permission to use, copy, modify, and/or distribute this software for any
   purpose with or without fee is hereby granted, provided that the above
@@ -14,143 +14,40 @@
   OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
+#define __STDC_FORMAT_MACROS 1
+
 #include "pugl/pugl.h"
 
-#include <math.h>
+#include <inttypes.h>
+#include <stdarg.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
 typedef struct {
-	double lastReportTime;
-} PuglFpsPrinter;
-
-typedef struct {
 	int  samples;
 	int  doubleBuffer;
+	int  sync;
 	bool continuous;
 	bool help;
 	bool ignoreKeyRepeat;
 	bool resizable;
+	bool verbose;
+	bool errorChecking;
 } PuglTestOptions;
 
-typedef float vec4[4];
-typedef vec4  mat4[4];
-
-static const float cubeStripVertices[] = {
-	-1.0f,  1.0f,  1.0f, // Front top left
-	 1.0f,  1.0f,  1.0f, // Front top right
-	-1.0f, -1.0f,  1.0f, // Front bottom left
-	 1.0f, -1.0f,  1.0f, // Front bottom right
-	 1.0f, -1.0f, -1.0f, // Back bottom right
-	 1.0f,  1.0f,  1.0f, // Front top right
-	 1.0f,  1.0f, -1.0f, // Back top right
-	-1.0f,  1.0f,  1.0f, // Front top left
-	-1.0f,  1.0f, -1.0f, // Back top left
-	-1.0f, -1.0f,  1.0f, // Front bottom left
-	-1.0f, -1.0f, -1.0f, // Back bottom left
-	 1.0f, -1.0f, -1.0f, // Back bottom right
-	-1.0f,  1.0f, -1.0f, // Back top left
-	 1.0f,  1.0f, -1.0f  // Back top right
-};
-
-static const float cubeFrontLineLoop[] = {
-	-1.0f,  1.0f,  1.0f, // Front top left
-	 1.0f,  1.0f,  1.0f, // Front top right
-	 1.0f, -1.0f,  1.0f, // Front bottom right
-	-1.0f, -1.0f,  1.0f, // Front bottom left
-};
-
-static const float cubeBackLineLoop[] = {
-	-1.0f,  1.0f, -1.0f, // Back top left
-	 1.0f,  1.0f, -1.0f, // Back top right
-	 1.0f, -1.0f, -1.0f, // Back bottom right
-	-1.0f, -1.0f, -1.0f, // Back bottom left
-};
-
-static const float cubeSideLines[] = {
-	-1.0f,  1.0f,  1.0f, // Front top left
-	-1.0f,  1.0f, -1.0f, // Back top left
-
-	-1.0f, -1.0f,  1.0f, // Front bottom left
-	-1.0f, -1.0f, -1.0f, // Back bottom left
-
-	 1.0f,  1.0f,  1.0f, // Front top right
-	 1.0f,  1.0f, -1.0f, // Back top right
-
-	 1.0f, -1.0f,  1.0f, // Front bottom right
-	 1.0f, -1.0f, -1.0f, // Back bottom right
-};
-
-static inline void
-mat4Identity(mat4 m)
+static inline int
+logError(const char* fmt, ...)
 {
-	for (int c = 0; c < 4; ++c) {
-		for (int r = 0; r < 4; ++r) {
-			m[c][r] = c == r ? 1.0f : 0.0f;
-		}
-	}
-}
+	fprintf(stderr, "error: ");
 
-static inline void
-mat4Translate(mat4 m, const float x, const float y, const float z)
-{
-	m[3][0] = x;
-	m[3][1] = y;
-	m[3][2] = z;
-}
+	va_list args;
+	va_start(args, fmt);
+	vfprintf(stderr, fmt, args);
+	va_end(args);
 
-static inline void
-mat4Mul(mat4 m, mat4 a, mat4 b)
-{
-	for (int c = 0; c < 4; ++c) {
-		for (int r = 0; r < 4; ++r) {
-			m[c][r] = 0.0f;
-			for (int k = 0; k < 4; ++k) {
-				m[c][r] += a[k][r] * b[c][k];
-			}
-		}
-	}
-}
-
-static inline void
-mat4Ortho(mat4        m,
-          const float l,
-          const float r,
-          const float b,
-          const float t,
-          const float n,
-          const float f)
-{
-	m[0][0] = 2.0f / (r - l);
-	m[0][1] = m[0][2] = m[0][3] = 0.0f;
-
-	m[1][1] = 2.0f / (t - b);
-	m[1][0] = m[1][2] = m[1][3] = 0.0f;
-
-	m[2][2] = -2.0f / (f - n);
-	m[2][0] = m[2][1] = m[2][3] = 0.0f;
-
-	m[3][0] = -(r + l) / (r - l);
-	m[3][1] = -(t + b) / (t - b);
-	m[3][2] = -(f + n) / (f - n);
-	m[3][3] = 1.0f;
-}
-
-/** Calculate a projection matrix for a given perspective. */
-static inline void
-perspective(float* m, float fov, float aspect, float zNear, float zFar)
-{
-	const float h     = tanf(fov);
-	const float w     = h / aspect;
-	const float depth = zNear - zFar;
-	const float q     = (zFar + zNear) / depth;
-	const float qn    = 2 * zFar * zNear / depth;
-
-	m[0]  = w;  m[1]  = 0;  m[2]  = 0;   m[3]  = 0;
-	m[4]  = 0;  m[5]  = h;  m[6]  = 0;   m[7]  = 0;
-	m[8]  = 0;  m[9]  = 0;  m[10] = q;   m[11] = -1;
-	m[12] = 0;  m[13] = 0;  m[14] = qn;  m[15] = 0;
+	return 1;
 }
 
 static inline int
@@ -164,48 +61,119 @@ printModifiers(const uint32_t mods)
 }
 
 static inline int
-printEvent(const PuglEvent* event, const char* prefix)
+printEvent(const PuglEvent* event, const char* prefix, const bool verbose)
 {
+#define FFMT            "%6.1f"
+#define PFMT            FFMT " " FFMT
+#define PRINT(fmt, ...) fprintf(stderr, fmt, __VA_ARGS__)
+
 	switch (event->type) {
+	case PUGL_NOTHING:
+		return 0;
 	case PUGL_KEY_PRESS:
-		return fprintf(stderr, "%sKey press   code %3u key  U+%04X\n",
-		               prefix, event->key.keycode, event->key.key);
+		return PRINT("%sKey press   code %3u key  U+%04X\n",
+		             prefix,
+		             event->key.keycode,
+		             event->key.key);
 	case PUGL_KEY_RELEASE:
-		return fprintf(stderr, "%sKey release code %3u key  U+%04X\n",
-		               prefix, event->key.keycode, event->key.key);
+		return PRINT("%sKey release code %3u key  U+%04X\n",
+		             prefix,
+		             event->key.keycode,
+		             event->key.key);
 	case PUGL_TEXT:
-		return fprintf(stderr, "%sText entry  code %3u char U+%04X (%s)\n",
-		               prefix, event->text.keycode,
-		               event->text.character, event->text.string);
+		return PRINT("%sText entry  code %3u char U+%04X (%s)\n",
+		             prefix,
+		             event->text.keycode,
+		             event->text.character,
+		             event->text.string);
 	case PUGL_BUTTON_PRESS:
 	case PUGL_BUTTON_RELEASE:
-		return (fprintf(stderr, "%sMouse %d %s at %f,%f ",
-		                prefix,
-		                event->button.button,
-		                (event->type == PUGL_BUTTON_PRESS) ? "down" : "up",
-		                event->button.x,
-		                event->button.y) +
+		return (PRINT("%sMouse %d %s at " PFMT " ",
+		              prefix,
+		              event->button.button,
+		              (event->type == PUGL_BUTTON_PRESS) ? "down" : "up  ",
+		              event->button.x,
+		              event->button.y) +
 		        printModifiers(event->scroll.state));
 	case PUGL_SCROLL:
-		return (fprintf(stderr, "%sScroll %f %f %f %f ",
-		                prefix,
-		                event->scroll.x, event->scroll.y,
-		                event->scroll.dx, event->scroll.dy) +
+		return (PRINT("%sScroll %5.1f %5.1f at " PFMT " ",
+		              prefix,
+		              event->scroll.dx,
+		              event->scroll.dy,
+		              event->scroll.x,
+		              event->scroll.y) +
 		        printModifiers(event->scroll.state));
-	case PUGL_ENTER_NOTIFY:
-		return fprintf(stderr, "%sMouse enter at %f,%f\n",
-		               prefix, event->crossing.x, event->crossing.y);
-	case PUGL_LEAVE_NOTIFY:
-		return fprintf(stderr, "%sMouse leave at %f,%f\n",
-		               prefix, event->crossing.x, event->crossing.y);
+	case PUGL_POINTER_IN:
+		return PRINT("%sMouse enter  at " PFMT "\n",
+		             prefix,
+		             event->crossing.x,
+		             event->crossing.y);
+	case PUGL_POINTER_OUT:
+		return PRINT("%sMouse leave  at " PFMT "\n",
+		             prefix,
+		             event->crossing.x,
+		             event->crossing.y);
 	case PUGL_FOCUS_IN:
-		return fprintf(stderr, "%sFocus in%s\n",
-		               prefix, event->focus.grab ? " (grab)" : "");
+		return PRINT("%sFocus in%s\n",
+		             prefix,
+		             event->focus.grab ? " (grab)" : "");
 	case PUGL_FOCUS_OUT:
-		return fprintf(stderr, "%sFocus out%s\n",
-		               prefix, event->focus.grab ? " (ungrab)" : "");
-	default: break;
+		return PRINT("%sFocus out%s\n",
+		             prefix,
+		             event->focus.grab ? " (ungrab)" : "");
+	case PUGL_CLIENT:
+		return PRINT("%sClient %" PRIXPTR " %" PRIXPTR "\n",
+		             prefix,
+		             event->client.data1,
+		             event->client.data2);
+	case PUGL_TIMER:
+		return PRINT("%sTimer %" PRIuPTR "\n", prefix, event->timer.id);
+	default:
+		break;
 	}
+
+	if (verbose) {
+		switch (event->type) {
+		case PUGL_CREATE:
+			return fprintf(stderr, "%sCreate\n", prefix);
+		case PUGL_DESTROY:
+			return fprintf(stderr, "%sDestroy\n", prefix);
+		case PUGL_MAP:
+			return fprintf(stderr, "%sMap\n", prefix);
+		case PUGL_UNMAP:
+			return fprintf(stderr, "%sUnmap\n", prefix);
+		case PUGL_UPDATE:
+			return fprintf(stderr, "%sUpdate\n", prefix);
+		case PUGL_CONFIGURE:
+			return PRINT("%sConfigure " PFMT " " PFMT "\n",
+			             prefix,
+			             event->configure.x,
+			             event->configure.y,
+			             event->configure.width,
+			             event->configure.height);
+		case PUGL_EXPOSE:
+			return PRINT("%sExpose    " PFMT " " PFMT "\n",
+			             prefix,
+			             event->expose.x,
+			             event->expose.y,
+			             event->expose.width,
+			             event->expose.height);
+		case PUGL_CLOSE:
+			return PRINT("%sClose\n", prefix);
+		case PUGL_MOTION:
+			return PRINT("%sMouse motion at " PFMT "\n",
+			             prefix,
+			             event->motion.x,
+			             event->motion.y);
+		default:
+			fprintf(stderr, "%sUnknown event type %d\n", prefix, event->type);
+			break;
+		}
+	}
+
+#undef PRINT
+#undef PFMT
+#undef FFMT
 
 	return 0;
 }
@@ -216,17 +184,31 @@ puglPrintTestUsage(const char* prog, const char* posHelp)
 	printf("Usage: %s [OPTION]... %s\n\n"
 	       "  -a  Enable anti-aliasing\n"
 	       "  -c  Continuously animate and draw\n"
-	       "  -d  Enable double-buffering\n"
+	       "  -d  Directly draw to window (no double-buffering)\n"
+	       "  -e  Enable platform error-checking\n"
+	       "  -f  Fast drawing, explicitly disable vertical sync\n"
 	       "  -h  Display this help\n"
 	       "  -i  Ignore key repeat\n"
-	       "  -r  Resizable window\n",
+	       "  -v  Print verbose output\n"
+	       "  -r  Resizable window\n"
+	       "  -s  Explicitly enable vertical sync\n",
 	       prog, posHelp);
 }
 
 static inline PuglTestOptions
 puglParseTestOptions(int* pargc, char*** pargv)
 {
-	PuglTestOptions opts = { 0, 0, false, false, false, false };
+	PuglTestOptions opts = {
+	    0,
+	    PUGL_TRUE,
+	    PUGL_DONT_CARE,
+	    false,
+	    false,
+	    false,
+	    false,
+	    false,
+	    false,
+	};
 
 	char** const argv = *pargv;
 	int          i    = 1;
@@ -236,7 +218,11 @@ puglParseTestOptions(int* pargc, char*** pargv)
 		} else if (!strcmp(argv[i], "-c")) {
 			opts.continuous = true;
 		} else if (!strcmp(argv[i], "-d")) {
-			opts.doubleBuffer = PUGL_TRUE;
+			opts.doubleBuffer = PUGL_FALSE;
+		} else if (!strcmp(argv[i], "-e")) {
+			opts.errorChecking = PUGL_TRUE;
+		} else if (!strcmp(argv[i], "-f")) {
+			opts.sync = PUGL_FALSE;
 		} else if (!strcmp(argv[i], "-h")) {
 			opts.help = true;
 			return opts;
@@ -244,11 +230,15 @@ puglParseTestOptions(int* pargc, char*** pargv)
 			opts.ignoreKeyRepeat = true;
 		} else if (!strcmp(argv[i], "-r")) {
 			opts.resizable = true;
+		} else if (!strcmp(argv[i], "-s")) {
+			opts.sync = PUGL_TRUE;
+		} else if (!strcmp(argv[i], "-v")) {
+			opts.verbose = true;
 		} else if (argv[i][0] != '-') {
 			break;
 		} else {
 			opts.help = true;
-			fprintf(stderr, "error: Unknown option: %s\n", argv[i]);
+			logError("Unknown option: %s\n", argv[i]);
 		}
 	}
 
@@ -256,23 +246,4 @@ puglParseTestOptions(int* pargc, char*** pargv)
 	*pargv += i;
 
 	return opts;
-}
-
-static inline void
-puglPrintFps(const PuglWorld* world,
-             PuglFpsPrinter*  printer,
-             unsigned* const  framesDrawn)
-{
-	const double thisTime = puglGetTime(world);
-	if (thisTime > printer->lastReportTime + 5) {
-		const double fps = *framesDrawn / (thisTime - printer->lastReportTime);
-		fprintf(stderr,
-		        "%u frames in %.0f seconds = %.3f FPS\n",
-		        *framesDrawn,
-		        thisTime - printer->lastReportTime,
-		        fps);
-
-		printer->lastReportTime = thisTime;
-		*framesDrawn            = 0;
-	}
 }

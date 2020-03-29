@@ -1,5 +1,5 @@
 /*
-  Copyright 2012-2019 David Robillard <http://drobilla.net>
+  Copyright 2012-2020 David Robillard <http://drobilla.net>
 
   Permission to use, copy, modify, and/or distribute this software for any
   purpose with or without fee is hereby granted, provided that the above
@@ -27,18 +27,17 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+PUGL_BEGIN_DECLS
 
 /** Set `blob` to `data` with length `len`, reallocating if necessary. */
-void puglSetBlob(PuglBlob* blob, const void* data, size_t len);
+void puglSetBlob(PuglBlob* dest, const void* data, size_t len);
 
 /** Reallocate and set `*dest` to `string`. */
 void puglSetString(char** dest, const char* string);
 
 /** Allocate and initialise world internals (implemented once per platform) */
-PuglWorldInternals* puglInitWorldInternals(void);
+PuglWorldInternals*
+puglInitWorldInternals(PuglWorldType type, PuglWorldFlags flags);
 
 /** Destroy and free world internals (implemented once per platform) */
 void puglFreeWorldInternals(PuglWorld* world);
@@ -52,7 +51,13 @@ void puglFreeViewInternals(PuglView* view);
 /** Return the Unicode code point for `buf` or the replacement character. */
 uint32_t puglDecodeUTF8(const uint8_t* buf);
 
-/** Dispatch `event` to `view`, optimising configure/expose if possible. */
+/** Dispatch an event with a simple `type` to `view`. */
+void puglDispatchSimpleEvent(PuglView* view, PuglEventType type);
+
+/** Dispatch `event` to `view` while already in the graphics context. */
+void puglDispatchEventInContext(PuglView* view, const PuglEvent* event);
+
+/** Dispatch `event` to `view`, entering graphics context if necessary. */
 void puglDispatchEvent(PuglView* view, const PuglEvent* event);
 
 /** Set internal (stored in view) clipboard contents. */
@@ -66,8 +71,6 @@ puglSetInternalClipboard(PuglView*   view,
                          const void* data,
                          size_t      len);
 
-#ifdef __cplusplus
-}  /* extern "C" */
-#endif
+PUGL_END_DECLS
 
 #endif // PUGL_DETAIL_IMPLEMENTATION_H

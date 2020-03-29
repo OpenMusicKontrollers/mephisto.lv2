@@ -178,7 +178,7 @@ _test_move_to()
 
 	d2tk_core_set_dimensions(core, DIM_W, DIM_H);
 
-	d2tk_core_pre(core);
+	d2tk_core_pre(core, NULL);
 	const ssize_t ref = d2tk_core_bbox_push(core, true,
 		&D2TK_RECT(CLIP_X, CLIP_Y, CLIP_W, CLIP_H));
 	assert(ref >= 0);
@@ -191,7 +191,7 @@ _test_move_to()
 	// trigger garbage collector
 	for(unsigned i = 0; i < 0x400; i++)
 	{
-		d2tk_core_pre(core);
+		d2tk_core_pre(core, NULL);
 		d2tk_core_post(core);
 	}
 
@@ -232,7 +232,7 @@ _test_line_to()
 
 	d2tk_core_set_dimensions(core, DIM_W, DIM_H);
 
-	d2tk_core_pre(core);
+	d2tk_core_pre(core, NULL);
 	const ssize_t ref = d2tk_core_bbox_push(core, true,
 		&D2TK_RECT(CLIP_X, CLIP_Y, CLIP_W, CLIP_H));
 	assert(ref >= 0);
@@ -282,7 +282,7 @@ _test_rect()
 
 	d2tk_core_set_dimensions(core, DIM_W, DIM_H);
 
-	d2tk_core_pre(core);
+	d2tk_core_pre(core, NULL);
 	const ssize_t ref = d2tk_core_bbox_push(core, true,
 		&D2TK_RECT(CLIP_X, CLIP_Y, CLIP_W, CLIP_H));
 	assert(ref >= 0);
@@ -336,7 +336,7 @@ _test_rounded_rect()
 
 	d2tk_core_set_dimensions(core, DIM_W, DIM_H);
 
-	d2tk_core_pre(core);
+	d2tk_core_pre(core, NULL);
 	const ssize_t ref = d2tk_core_bbox_push(core, true,
 		&D2TK_RECT(CLIP_X, CLIP_Y, CLIP_W, CLIP_H));
 	assert(ref >= 0);
@@ -395,7 +395,7 @@ _test_arc()
 
 	d2tk_core_set_dimensions(core, DIM_W, DIM_H);
 
-	d2tk_core_pre(core);
+	d2tk_core_pre(core, NULL);
 	const ssize_t ref = d2tk_core_bbox_push(core, true,
 		&D2TK_RECT(CLIP_X, CLIP_Y, CLIP_W, CLIP_H));
 	assert(ref >= 0);
@@ -453,7 +453,7 @@ _test_curve_to()
 
 	d2tk_core_set_dimensions(core, DIM_W, DIM_H);
 
-	d2tk_core_pre(core);
+	d2tk_core_pre(core, NULL);
 	const ssize_t ref = d2tk_core_bbox_push(core, true,
 		&D2TK_RECT(CLIP_X, CLIP_Y, CLIP_W, CLIP_H));
 	assert(ref >= 0);
@@ -502,7 +502,7 @@ _test_color()
 
 	d2tk_core_set_dimensions(core, DIM_W, DIM_H);
 
-	d2tk_core_pre(core);
+	d2tk_core_pre(core, NULL);
 	const ssize_t ref = d2tk_core_bbox_push(core, true,
 		&D2TK_RECT(CLIP_X, CLIP_Y, CLIP_W, CLIP_H));
 	assert(ref >= 0);
@@ -555,7 +555,7 @@ _test_linear_gradient()
 
 	d2tk_core_set_dimensions(core, DIM_W, DIM_H);
 
-	d2tk_core_pre(core);
+	d2tk_core_pre(core, NULL);
 	const ssize_t ref = d2tk_core_bbox_push(core, true,
 		&D2TK_RECT(CLIP_X, CLIP_Y, CLIP_W, CLIP_H));
 	assert(ref >= 0);
@@ -608,7 +608,7 @@ _test_stroke()
 
 	d2tk_core_set_dimensions(core, DIM_W, DIM_H);
 
-	d2tk_core_pre(core);
+	d2tk_core_pre(core, NULL);
 	const ssize_t ref = d2tk_core_bbox_push(core, true,
 		&D2TK_RECT(CLIP_X, CLIP_Y, CLIP_W, CLIP_H));
 	assert(ref >= 0);
@@ -646,7 +646,7 @@ _test_fill()
 
 	d2tk_core_set_dimensions(core, DIM_W, DIM_H);
 
-	d2tk_core_pre(core);
+	d2tk_core_pre(core, NULL);
 	const ssize_t ref = d2tk_core_bbox_push(core, true,
 		&D2TK_RECT(CLIP_X, CLIP_Y, CLIP_W, CLIP_H));
 	assert(ref >= 0);
@@ -684,7 +684,7 @@ _test_save()
 
 	d2tk_core_set_dimensions(core, DIM_W, DIM_H);
 
-	d2tk_core_pre(core);
+	d2tk_core_pre(core, NULL);
 	const ssize_t ref = d2tk_core_bbox_push(core, true,
 		&D2TK_RECT(CLIP_X, CLIP_Y, CLIP_W, CLIP_H));
 	assert(ref >= 0);
@@ -722,7 +722,7 @@ _test_restore()
 
 	d2tk_core_set_dimensions(core, DIM_W, DIM_H);
 
-	d2tk_core_pre(core);
+	d2tk_core_pre(core, NULL);
 	const ssize_t ref = d2tk_core_bbox_push(core, true,
 		&D2TK_RECT(CLIP_X, CLIP_Y, CLIP_W, CLIP_H));
 	assert(ref >= 0);
@@ -763,7 +763,7 @@ _test_rotate()
 
 	d2tk_core_set_dimensions(core, DIM_W, DIM_H);
 
-	d2tk_core_pre(core);
+	d2tk_core_pre(core, NULL);
 	const ssize_t ref = d2tk_core_bbox_push(core, true,
 		&D2TK_RECT(CLIP_X, CLIP_Y, CLIP_W, CLIP_H));
 	assert(ref >= 0);
@@ -803,7 +803,7 @@ _test_begin_path()
 
 	d2tk_core_set_dimensions(core, DIM_W, DIM_H);
 
-	d2tk_core_pre(core);
+	d2tk_core_pre(core, NULL);
 	const ssize_t ref = d2tk_core_bbox_push(core, true,
 		&D2TK_RECT(CLIP_X, CLIP_Y, CLIP_W, CLIP_H));
 	assert(ref >= 0);
@@ -841,7 +841,7 @@ _test_close_path()
 
 	d2tk_core_set_dimensions(core, DIM_W, DIM_H);
 
-	d2tk_core_pre(core);
+	d2tk_core_pre(core, NULL);
 	const ssize_t ref = d2tk_core_bbox_push(core, true,
 		&D2TK_RECT(CLIP_X, CLIP_Y, CLIP_W, CLIP_H));
 	assert(ref >= 0);
@@ -888,7 +888,7 @@ _test_scissor()
 
 	d2tk_core_set_dimensions(core, DIM_W, DIM_H);
 
-	d2tk_core_pre(core);
+	d2tk_core_pre(core, NULL);
 	const ssize_t ref = d2tk_core_bbox_push(core, true,
 		&D2TK_RECT(CLIP_X, CLIP_Y, CLIP_W, CLIP_H));
 	assert(ref >= 0);
@@ -931,7 +931,7 @@ _test_reset_scissor()
 
 	d2tk_core_set_dimensions(core, DIM_W, DIM_H);
 
-	d2tk_core_pre(core);
+	d2tk_core_pre(core, NULL);
 	const ssize_t ref = d2tk_core_bbox_push(core, true,
 		&D2TK_RECT(CLIP_X, CLIP_Y, CLIP_W, CLIP_H));
 	assert(ref >= 0);
@@ -972,7 +972,7 @@ _test_font_size()
 
 	d2tk_core_set_dimensions(core, DIM_W, DIM_H);
 
-	d2tk_core_pre(core);
+	d2tk_core_pre(core, NULL);
 	const ssize_t ref = d2tk_core_bbox_push(core, true,
 		&D2TK_RECT(CLIP_X, CLIP_Y, CLIP_W, CLIP_H));
 	assert(ref >= 0);
@@ -1015,7 +1015,7 @@ _test_font_face()
 
 	d2tk_core_set_dimensions(core, DIM_W, DIM_H);
 
-	d2tk_core_pre(core);
+	d2tk_core_pre(core, NULL);
 	const ssize_t ref = d2tk_core_bbox_push(core, true,
 		&D2TK_RECT(CLIP_X, CLIP_Y, CLIP_W, CLIP_H));
 	assert(ref >= 0);
@@ -1068,7 +1068,7 @@ _test_text()
 
 	d2tk_core_set_dimensions(core, DIM_W, DIM_H);
 
-	d2tk_core_pre(core);
+	d2tk_core_pre(core, NULL);
 	const ssize_t ref = d2tk_core_bbox_push(core, true,
 		&D2TK_RECT(CLIP_X, CLIP_Y, CLIP_W, CLIP_H));
 	assert(ref >= 0);
@@ -1127,7 +1127,7 @@ _test_image()
 
 	d2tk_core_set_dimensions(core, DIM_W, DIM_H);
 
-	d2tk_core_pre(core);
+	d2tk_core_pre(core, NULL);
 	const ssize_t ref = d2tk_core_bbox_push(core, true,
 		&D2TK_RECT(CLIP_X, CLIP_Y, CLIP_W, CLIP_H));
 	assert(ref >= 0);
@@ -1201,7 +1201,7 @@ _test_bitmap()
 
 	d2tk_core_set_dimensions(core, DIM_W, DIM_H);
 
-	d2tk_core_pre(core);
+	d2tk_core_pre(core, NULL);
 	const ssize_t ref = d2tk_core_bbox_push(core, true,
 		&D2TK_RECT(CLIP_X, CLIP_Y, CLIP_W, CLIP_H));
 	assert(ref >= 0);
@@ -1286,7 +1286,7 @@ _test_custom()
 
 	d2tk_core_set_dimensions(core, DIM_W, DIM_H);
 
-	d2tk_core_pre(core);
+	d2tk_core_pre(core, NULL);
 	const ssize_t ref = d2tk_core_bbox_push(core, true,
 		&D2TK_RECT(CLIP_X, CLIP_Y, CLIP_W, CLIP_H));
 	assert(ref >= 0);
@@ -1335,7 +1335,7 @@ _test_stroke_width()
 
 	d2tk_core_set_dimensions(core, DIM_W, DIM_H);
 
-	d2tk_core_pre(core);
+	d2tk_core_pre(core, NULL);
 	const ssize_t ref = d2tk_core_bbox_push(core, true,
 		&D2TK_RECT(CLIP_X, CLIP_Y, CLIP_W, CLIP_H));
 	assert(ref >= 0);
@@ -1376,7 +1376,7 @@ _test_triple()
 
 	for(unsigned i = 0; i < 3; i++)
 	{
-		d2tk_core_pre(core);
+		d2tk_core_pre(core, NULL);
 
 		if(i != 0)
 		{

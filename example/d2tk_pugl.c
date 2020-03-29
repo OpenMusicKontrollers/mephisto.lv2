@@ -27,7 +27,7 @@
 typedef struct _app_t app_t;
 
 struct _app_t {
-	d2tk_pugl_t *dpugl;
+	d2tk_frontend_t *dpugl;
 };
 
 static sig_atomic_t done = false;
@@ -42,8 +42,8 @@ static int
 _expose(void *data, d2tk_coord_t w, d2tk_coord_t h)
 {
 	app_t *app = data;
-	d2tk_pugl_t *dpugl = app->dpugl;
-	d2tk_base_t *base = d2tk_pugl_get_base(dpugl);
+	d2tk_frontend_t *dpugl = app->dpugl;
+	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
 	d2tk_example_run(base, w, h);
 
@@ -55,7 +55,7 @@ main(int argc __attribute__((unused)), char **argv __attribute__((unused)))
 {
 	static app_t app;
 
-	const float scale = d2tk_pugl_get_scale();
+	const float scale = d2tk_frontend_get_scale();
 	d2tk_coord_t w = scale * 1280;
 	d2tk_coord_t h = scale * 720;
 
@@ -108,9 +108,9 @@ main(int argc __attribute__((unused)), char **argv __attribute__((unused)))
 	{
 		d2tk_example_init();
 
-		d2tk_pugl_run(app.dpugl, &done);
+		d2tk_frontend_run(app.dpugl, &done);
 
-		d2tk_pugl_free(app.dpugl);
+		d2tk_frontend_free(app.dpugl);
 
 		d2tk_example_deinit();
 

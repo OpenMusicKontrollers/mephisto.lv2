@@ -1,5 +1,5 @@
 /*
-  Copyright 2012-2019 David Robillard <http://drobilla.net>
+  Copyright 2012-2020 David Robillard <http://drobilla.net>
 
   Permission to use, copy, modify, and/or distribute this software for any
   purpose with or without fee is hereby granted, provided that the above
@@ -15,16 +15,16 @@
 */
 
 /**
-   @file pugl_test.c A simple Pugl test that creates a top-level window.
+   @file pugl_embed_demo.c An example of embedding a view in another.
 */
 
-#define GL_SILENCE_DEPRECATION 1
-
-#include "test_utils.h"
+#include "cube_view.h"
+#include "demo_utils.h"
+#include "test/test_utils.h"
 
 #include "pugl/gl.h"
 #include "pugl/pugl.h"
-#include "pugl/pugl_gl_backend.h"
+#include "pugl/pugl_gl.h"
 
 #include <math.h>
 #include <stdbool.h>
@@ -32,7 +32,8 @@
 #include <stdio.h>
 #include <string.h>
 
-static const int borderWidth = 64;
+static const int       borderWidth    = 64;
+static const uintptr_t reverseTimerId = 1u;
 
 typedef struct
 {
@@ -41,15 +42,23 @@ typedef struct
 	PuglView*  child;
 	bool       continuous;
 	int        quit;
-	float      xAngle;
-	float      yAngle;
+	double     xAngle;
+	double     yAngle;
 	float      dist;
 	double     lastMouseX;
 	double     lastMouseY;
 	double     lastDrawTime;
-	unsigned   framesDrawn;
 	bool       mouseEntered;
+	bool       verbose;
+	bool       reversing;
 } PuglTestApp;
+
+static const float backgroundVertices[] = {
+	-1.0f,  1.0f,  -1.0f, // Top left
+	 1.0f,  1.0f,  -1.0f, // Top right
+	-1.0f, -1.0f,  -1.0f, // Bottom left
+	 1.0f, -1.0f,  -1.0f, // Bottom right
+};
 
 static PuglRect
 getChildFrame(const PuglRect parentFrame)
@@ -65,72 +74,22 @@ getChildFrame(const PuglRect parentFrame)
 }
 
 static void
-onReshape(PuglView* view, int width, int height)
-{
-	(void)view;
-
-	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_LESS);
-	glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
-
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glViewport(0, 0, width, height);
-
-	float projection[16];
-	perspective(projection, 1.8f, width / (float)height, 1.0, 100.0f);
-	glLoadMatrixf(projection);
-}
-
-static void
 onDisplay(PuglView* view)
 {
 	PuglTestApp* app = (PuglTestApp*)puglGetHandle(view);
 
 	const double thisTime = puglGetTime(app->world);
 	if (app->continuous) {
-		const double dTime = thisTime - app->lastDrawTime;
-		app->xAngle = fmodf((float)(app->xAngle + dTime * 100.0f), 360.0f);
-		app->yAngle = fmodf((float)(app->yAngle + dTime * 100.0f), 360.0f);
+		const double dTime = (thisTime - app->lastDrawTime) *
+		                     (app->reversing ? -1.0 : 1.0);
+
+		app->xAngle = fmod(app->xAngle + dTime * 100.0, 360.0);
+		app->yAngle = fmod(app->yAngle + dTime * 100.0, 360.0);
 	}
 
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-	glTranslatef(0.0f, 0.0f, app->dist * -1);
-	glRotatef(app->xAngle, 0.0f, 1.0f, 0.0f);
-	glRotatef(app->yAngle, 1.0f, 0.0f, 0.0f);
-
-	const float bg = app->mouseEntered ? 0.2f : 0.1f;
-	glClearColor(bg, bg, bg, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	if (puglHasFocus(app->child)) {
-		// Draw cube surfaces
-		glEnableClientState(GL_VERTEX_ARRAY);
-		glEnableClientState(GL_COLOR_ARRAY);
-		glVertexPointer(3, GL_FLOAT, 0, cubeStripVertices);
-		glColorPointer(3, GL_FLOAT, 0, cubeStripVertices);
-		glDrawArrays(GL_TRIANGLE_STRIP, 0, 14);
-		glDisableClientState(GL_COLOR_ARRAY);
-		glDisableClientState(GL_VERTEX_ARRAY);
-
-		glColor3f(0.0f, 0.0f, 0.0f);
-	} else {
-		glColor3f(1.0f, 1.0f, 1.0f);
-	}
-
-	// Draw cube wireframe
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glVertexPointer(3, GL_FLOAT, 0, cubeFrontLineLoop);
-	glDrawArrays(GL_LINE_LOOP, 0, 4);
-	glVertexPointer(3, GL_FLOAT, 0, cubeBackLineLoop);
-	glDrawArrays(GL_LINE_LOOP, 0, 4);
-	glVertexPointer(3, GL_FLOAT, 0, cubeSideLines);
-	glDrawArrays(GL_LINES, 0, 8);
-	glDisableClientState(GL_VERTEX_ARRAY);
+	displayCube(view, app->dist, app->xAngle, app->yAngle, app->mouseEntered);
 
 	app->lastDrawTime = thisTime;
-	++app->framesDrawn;
 }
 
 static void
@@ -142,8 +101,10 @@ swapFocus(PuglTestApp* app)
 		puglGrabFocus(app->parent);
 	}
 
-	puglPostRedisplay(app->parent);
-	puglPostRedisplay(app->child);
+	if (!app->continuous) {
+		puglPostRedisplay(app->parent);
+		puglPostRedisplay(app->child);
+	}
 }
 
 static void
@@ -199,15 +160,17 @@ onParentEvent(PuglView* view, const PuglEvent* event)
 	PuglTestApp*   app         = (PuglTestApp*)puglGetHandle(view);
 	const PuglRect parentFrame = puglGetFrame(view);
 
-	printEvent(event, "Parent: ");
+	printEvent(event, "Parent: ", app->verbose);
 
 	switch (event->type) {
 	case PUGL_CONFIGURE:
-		onReshape(view,
-		          (int)event->configure.width,
-		          (int)event->configure.height);
-
+		reshapeCube((int)event->configure.width, (int)event->configure.height);
 		puglSetFrame(app->child, getChildFrame(parentFrame));
+		break;
+	case PUGL_UPDATE:
+		if (app->continuous) {
+			puglPostRedisplay(view);
+		}
 		break;
 	case PUGL_EXPOSE:
 		if (puglHasFocus(app->parent)) {
@@ -217,9 +180,9 @@ onParentEvent(PuglView* view, const PuglEvent* event)
 
 			glEnableClientState(GL_VERTEX_ARRAY);
 			glEnableClientState(GL_COLOR_ARRAY);
-			glVertexPointer(3, GL_FLOAT, 0, cubeStripVertices);
-			glColorPointer(3, GL_FLOAT, 0, cubeStripVertices);
-			glDrawArrays(GL_TRIANGLE_STRIP, 0, 14);
+			glVertexPointer(3, GL_FLOAT, 0, backgroundVertices);
+			glColorPointer(3, GL_FLOAT, 0, backgroundVertices);
+			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 			glDisableClientState(GL_COLOR_ARRAY);
 			glDisableClientState(GL_VERTEX_ARRAY);
 		} else {
@@ -230,7 +193,7 @@ onParentEvent(PuglView* view, const PuglEvent* event)
 	case PUGL_KEY_PRESS:
 		onKeyPress(view, &event->key, "Parent: ");
 		break;
-	case PUGL_MOTION_NOTIFY:
+	case PUGL_MOTION:
 		break;
 	case PUGL_CLOSE:
 		app->quit = 1;
@@ -247,11 +210,16 @@ onEvent(PuglView* view, const PuglEvent* event)
 {
 	PuglTestApp* app = (PuglTestApp*)puglGetHandle(view);
 
-	printEvent(event, "Child: ");
+	printEvent(event, "Child:  ", app->verbose);
 
 	switch (event->type) {
 	case PUGL_CONFIGURE:
-		onReshape(view, (int)event->configure.width, (int)event->configure.height);
+		reshapeCube((int)event->configure.width, (int)event->configure.height);
+		break;
+	case PUGL_UPDATE:
+		if (app->continuous) {
+			puglPostRedisplay(view);
+		}
 		break;
 	case PUGL_EXPOSE:
 		onDisplay(view);
@@ -260,25 +228,32 @@ onEvent(PuglView* view, const PuglEvent* event)
 		app->quit = 1;
 		break;
 	case PUGL_KEY_PRESS:
-		onKeyPress(view, &event->key, "Child: ");
+		onKeyPress(view, &event->key, "Child:  ");
 		break;
-	case PUGL_MOTION_NOTIFY:
-		app->xAngle = fmodf(app->xAngle - (float)(event->motion.x - app->lastMouseX), 360.0f);
-		app->yAngle = fmodf(app->yAngle + (float)(event->motion.y - app->lastMouseY), 360.0f);
+	case PUGL_MOTION:
+		app->xAngle -= event->motion.x - app->lastMouseX;
+		app->yAngle += event->motion.y - app->lastMouseY;
 		app->lastMouseX = event->motion.x;
 		app->lastMouseY = event->motion.y;
-		puglPostRedisplay(view);
-		puglPostRedisplay(app->parent);
+		if (!app->continuous) {
+			puglPostRedisplay(view);
+			puglPostRedisplay(app->parent);
+		}
 		break;
 	case PUGL_SCROLL:
 		app->dist = fmaxf(10.0f, app->dist + (float)event->scroll.dy);
-		puglPostRedisplay(view);
+		if (!app->continuous) {
+			puglPostRedisplay(view);
+		}
 		break;
-	case PUGL_ENTER_NOTIFY:
+	case PUGL_POINTER_IN:
 		app->mouseEntered = true;
 		break;
-	case PUGL_LEAVE_NOTIFY:
+	case PUGL_POINTER_OUT:
 		app->mouseEntered = false;
+		break;
+	case PUGL_TIMER:
+		app->reversing = !app->reversing;
 		break;
 	default:
 		break;
@@ -291,6 +266,7 @@ int
 main(int argc, char** argv)
 {
 	PuglTestApp app = {0};
+
 	app.dist = 10;
 
 	const PuglTestOptions opts = puglParseTestOptions(&argc, &argv);
@@ -300,8 +276,9 @@ main(int argc, char** argv)
 	}
 
 	app.continuous = opts.continuous;
+	app.verbose    = opts.verbose;
 
-	app.world  = puglNewWorld();
+	app.world  = puglNewWorld(PUGL_PROGRAM, 0);
 	app.parent = puglNewView(app.world);
 	app.child  = puglNewView(app.world);
 
@@ -313,54 +290,53 @@ main(int argc, char** argv)
 	puglSetAspectRatio(app.parent, 1, 1, 16, 9);
 	puglSetBackend(app.parent, puglGlBackend());
 
+	puglSetViewHint(app.parent, PUGL_USE_DEBUG_CONTEXT, opts.errorChecking);
 	puglSetViewHint(app.parent, PUGL_RESIZABLE, opts.resizable);
 	puglSetViewHint(app.parent, PUGL_SAMPLES, opts.samples);
 	puglSetViewHint(app.parent, PUGL_DOUBLE_BUFFER, opts.doubleBuffer);
-	puglSetViewHint(app.parent, PUGL_SWAP_INTERVAL, opts.doubleBuffer);
+	puglSetViewHint(app.parent, PUGL_SWAP_INTERVAL, opts.sync);
 	puglSetViewHint(app.parent, PUGL_IGNORE_KEY_REPEAT, opts.ignoreKeyRepeat);
 	puglSetHandle(app.parent, &app);
 	puglSetEventFunc(app.parent, onParentEvent);
 
+	PuglStatus st         = PUGL_SUCCESS;
 	const uint8_t title[] = { 'P', 'u', 'g', 'l', ' ',
 	                          'P', 'r', 0xC3, 0xBC, 'f', 'u', 'n', 'g', 0 };
-	if (puglCreateWindow(app.parent, (const char*)title)) {
-		fprintf(stderr, "error: Failed to create parent window\n");
-		return 1;
+	if ((st = puglCreateWindow(app.parent, (const char*)title))) {
+		return logError("Failed to create parent window (%s)\n",
+		                puglStrerror(st));
 	}
 
 	puglSetFrame(app.child, getChildFrame(parentFrame));
 	puglSetParentWindow(app.child, puglGetNativeWindow(app.parent));
 
+	puglSetViewHint(app.child, PUGL_USE_DEBUG_CONTEXT, opts.errorChecking);
 	puglSetViewHint(app.child, PUGL_SAMPLES, opts.samples);
 	puglSetViewHint(app.child, PUGL_DOUBLE_BUFFER, opts.doubleBuffer);
-	puglSetViewHint(app.child, PUGL_SWAP_INTERVAL, 0);
+	puglSetViewHint(app.child, PUGL_SWAP_INTERVAL, opts.sync);
 	puglSetBackend(app.child, puglGlBackend());
 	puglSetViewHint(app.child, PUGL_IGNORE_KEY_REPEAT, opts.ignoreKeyRepeat);
 	puglSetHandle(app.child, &app);
 	puglSetEventFunc(app.child, onEvent);
 
-	const int st = puglCreateWindow(app.child, NULL);
-	if (st) {
-		fprintf(stderr, "error: Failed to create child window (%d)\n", st);
-		return 1;
+	if ((st = puglCreateWindow(app.child, NULL))) {
+		return logError("Failed to create child window (%s)\n",
+		                puglStrerror(st));
 	}
 
 	puglShowWindow(app.parent);
 	puglShowWindow(app.child);
 
+	puglStartTimer(app.child, reverseTimerId, 3.6);
+
 	PuglFpsPrinter fpsPrinter         = { puglGetTime(app.world) };
+	unsigned       framesDrawn        = 0;
 	bool           requestedAttention = false;
 	while (!app.quit) {
 		const double thisTime = puglGetTime(app.world);
 
-		if (app.continuous) {
-			puglPostRedisplay(app.parent);
-			puglPostRedisplay(app.child);
-		} else {
-			puglPollEvents(app.world, -1);
-		}
-
-		puglDispatchEvents(app.world);
+		puglUpdate(app.world, app.continuous ? 0.0 : -1.0);
+		++framesDrawn;
 
 		if (!requestedAttention && thisTime > 5.0) {
 			puglRequestAttention(app.parent);
@@ -368,7 +344,7 @@ main(int argc, char** argv)
 		}
 
 		if (app.continuous) {
-			puglPrintFps(app.world, &fpsPrinter, &app.framesDrawn);
+			puglPrintFps(app.world, &fpsPrinter, &framesDrawn);
 		}
 	}
 

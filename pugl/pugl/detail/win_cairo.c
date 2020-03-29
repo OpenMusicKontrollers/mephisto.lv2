@@ -1,5 +1,5 @@
 /*
-  Copyright 2012-2019 David Robillard <http://drobilla.net>
+  Copyright 2012-2020 David Robillard <http://drobilla.net>
 
   Permission to use, copy, modify, and/or distribute this software for any
   purpose with or without fee is hereby granted, provided that the above
@@ -20,7 +20,8 @@
 
 #include "pugl/detail/types.h"
 #include "pugl/detail/win.h"
-#include "pugl/pugl_cairo_backend.h"
+#include "pugl/pugl_cairo.h"
+#include "pugl/pugl_stub.h"
 
 #include <cairo-win32.h>
 #include <cairo.h>
@@ -46,15 +47,6 @@ puglWinCairoCreateDrawContext(PuglView* view)
 
 	DeleteObject(SelectObject(surface->drawDc, surface->drawBitmap));
 
-	cairo_status_t st = CAIRO_STATUS_SUCCESS;
-	if (!(surface->surface = cairo_win32_surface_create(surface->drawDc)) ||
-	    (st = cairo_surface_status(surface->surface)) ||
-	    !(surface->cr = cairo_create(surface->surface)) ||
-	    (st = cairo_status(surface->cr))) {
-		return PUGL_CREATE_CONTEXT_FAILED;
-	}
-
-	cairo_save(surface->cr);
 	return PUGL_SUCCESS;
 }
 
@@ -66,11 +58,7 @@ puglWinCairoDestroyDrawContext(PuglView* view)
 
 	DeleteDC(surface->drawDc);
 	DeleteObject(surface->drawBitmap);
-	cairo_destroy(surface->cr);
-	cairo_surface_destroy(surface->surface);
 
-	surface->surface    = NULL;
-	surface->cr         = NULL;
 	surface->drawDc     = NULL;
 	surface->drawBitmap = NULL;
 
@@ -80,34 +68,42 @@ puglWinCairoDestroyDrawContext(PuglView* view)
 static PuglStatus
 puglWinCairoConfigure(PuglView* view)
 {
-	PuglInternals* const impl = view->impl;
-	PuglStatus           st   = PUGL_SUCCESS;
+	const PuglStatus st = puglWinStubConfigure(view);
 
-	if ((st = puglWinCreateWindow(view, "Pugl", &impl->hwnd, &impl->hdc))) {
-		return st;
+	if (!st) {
+		view->impl->surface = (PuglWinCairoSurface*)calloc(
+			1, sizeof(PuglWinCairoSurface));
 	}
 
-	impl->pfd  = puglWinGetPixelFormatDescriptor(view->hints);
-	impl->pfId = ChoosePixelFormat(impl->hdc, &impl->pfd);
+	return st;
+}
 
-	if (!SetPixelFormat(impl->hdc, impl->pfId, &impl->pfd)) {
-		ReleaseDC(impl->hwnd, impl->hdc);
-		DestroyWindow(impl->hwnd);
-		impl->hwnd = NULL;
-		impl->hdc  = NULL;
-		return PUGL_SET_FORMAT_FAILED;
-	}
+static void
+puglWinCairoClose(PuglView* view)
+{
+	PuglInternals* const       impl    = view->impl;
+	PuglWinCairoSurface* const surface = (PuglWinCairoSurface*)impl->surface;
 
-	impl->surface = (PuglWinCairoSurface*)calloc(
-		1, sizeof(PuglWinCairoSurface));
+	cairo_surface_destroy(surface->surface);
 
-	return PUGL_SUCCESS;
+	surface->surface = NULL;
 }
 
 static PuglStatus
-puglWinCairoCreate(PuglView* view)
+puglWinCairoOpen(PuglView* view)
 {
-	return puglWinCairoCreateDrawContext(view);
+	PuglInternals* const       impl    = view->impl;
+	PuglWinCairoSurface* const surface = (PuglWinCairoSurface*)impl->surface;
+
+	cairo_status_t st = CAIRO_STATUS_SUCCESS;
+	if (!(surface->surface = cairo_win32_surface_create(surface->drawDc)) ||
+	    (st = cairo_surface_status(surface->surface)) ||
+	    !(surface->cr = cairo_create(surface->surface)) ||
+	    (st = cairo_status(surface->cr))) {
+		return PUGL_CREATE_CONTEXT_FAILED;
+	}
+
+	return PUGL_SUCCESS;
 }
 
 static PuglStatus
@@ -116,6 +112,7 @@ puglWinCairoDestroy(PuglView* view)
 	PuglInternals* const       impl    = view->impl;
 	PuglWinCairoSurface* const surface = (PuglWinCairoSurface*)impl->surface;
 
+	puglWinCairoClose(view);
 	puglWinCairoDestroyDrawContext(view);
 	free(surface);
 	impl->surface = NULL;
@@ -124,52 +121,38 @@ puglWinCairoDestroy(PuglView* view)
 }
 
 static PuglStatus
-puglWinCairoEnter(PuglView* view, bool drawing)
-{
-	PuglInternals* const       impl    = view->impl;
-	PuglWinCairoSurface* const surface = (PuglWinCairoSurface*)impl->surface;
-	if (!drawing) {
-		return PUGL_SUCCESS;
-	}
-
-	PAINTSTRUCT ps;
-	BeginPaint(view->impl->hwnd, &ps);
-	cairo_save(surface->cr);
-
-	return PUGL_SUCCESS;
-}
-
-static PuglStatus
-puglWinCairoLeave(PuglView* view, bool drawing)
-{
-	PuglInternals* const       impl    = view->impl;
-	PuglWinCairoSurface* const surface = (PuglWinCairoSurface*)impl->surface;
-	if (!drawing) {
-		return PUGL_SUCCESS;
-	}
-
-	cairo_restore(surface->cr);
-	cairo_surface_flush(surface->surface);
-	BitBlt(impl->hdc,
-	       0, 0, (int)view->frame.width, (int)view->frame.height,
-	       surface->drawDc, 0, 0, SRCCOPY);
-
-	PAINTSTRUCT ps;
-	EndPaint(view->impl->hwnd, &ps);
-	SwapBuffers(view->impl->hdc);
-
-	return PUGL_SUCCESS;
-}
-
-static PuglStatus
-puglWinCairoResize(PuglView* view,
-                   int       PUGL_UNUSED(width),
-                   int       PUGL_UNUSED(height))
+puglWinCairoEnter(PuglView* view, const PuglEventExpose* expose)
 {
 	PuglStatus st = PUGL_SUCCESS;
-	if ((st = puglWinCairoDestroyDrawContext(view)) ||
-	    (st = puglWinCairoCreateDrawContext(view))) {
-		return st;
+
+	if (expose &&
+	    !(st = puglWinCairoCreateDrawContext(view)) &&
+	    !(st = puglWinCairoOpen(view))) {
+		PAINTSTRUCT ps;
+		BeginPaint(view->impl->hwnd, &ps);
+	}
+
+	return st;
+}
+
+static PuglStatus
+puglWinCairoLeave(PuglView* view, const PuglEventExpose* expose)
+{
+	PuglInternals* const       impl    = view->impl;
+	PuglWinCairoSurface* const surface = (PuglWinCairoSurface*)impl->surface;
+
+	if (expose) {
+		cairo_surface_flush(surface->surface);
+		BitBlt(impl->hdc,
+		       0, 0, (int)view->frame.width, (int)view->frame.height,
+		       surface->drawDc, 0, 0, SRCCOPY);
+
+		puglWinCairoClose(view);
+		puglWinCairoDestroyDrawContext(view);
+
+		PAINTSTRUCT ps;
+		EndPaint(view->impl->hwnd, &ps);
+		SwapBuffers(view->impl->hdc);
 	}
 
 	return PUGL_SUCCESS;
@@ -184,15 +167,12 @@ puglWinCairoGetContext(PuglView* view)
 const PuglBackend*
 puglCairoBackend()
 {
-	static const PuglBackend backend = {
-		puglWinCairoConfigure,
-		puglWinCairoCreate,
-		puglWinCairoDestroy,
-		puglWinCairoEnter,
-		puglWinCairoLeave,
-		puglWinCairoResize,
-		puglWinCairoGetContext
-	};
+	static const PuglBackend backend = {puglWinCairoConfigure,
+	                                    puglStubCreate,
+	                                    puglWinCairoDestroy,
+	                                    puglWinCairoEnter,
+	                                    puglWinCairoLeave,
+	                                    puglWinCairoGetContext};
 
 	return &backend;
 }

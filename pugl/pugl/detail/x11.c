@@ -1,5 +1,5 @@
 /*
-  Copyright 2012-2019 David Robillard <http://drobilla.net>
+  Copyright 2012-2020 David Robillard <http://drobilla.net>
   Copyright 2013 Robin Gareus <robin@gareus.org>
   Copyright 2011-2012 Ben Loftis, Harrison Consoles
 
@@ -22,10 +22,12 @@
 
 #define _POSIX_C_SOURCE 199309L
 
+#include "pugl/detail/x11.h"
+
 #include "pugl/detail/implementation.h"
 #include "pugl/detail/types.h"
-#include "pugl/detail/x11.h"
 #include "pugl/pugl.h"
+#include "pugl/pugl_stub.h"
 
 #include <X11/X.h>
 #include <X11/Xatom.h>
@@ -33,13 +35,16 @@
 #include <X11/Xutil.h>
 #include <X11/keysym.h>
 
+#ifdef HAVE_XSYNC
+#	include <X11/extensions/sync.h>
+#endif
+
 #include <sys/select.h>
 #include <sys/time.h>
 
-#include <limits.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -59,13 +64,49 @@ enum WmClientStateMessageAction {
 };
 
 static const long eventMask =
-	(ExposureMask | StructureNotifyMask | FocusChangeMask |
+	(ExposureMask | StructureNotifyMask |
+	 VisibilityChangeMask | FocusChangeMask |
 	 EnterWindowMask | LeaveWindowMask | PointerMotionMask |
 	 ButtonPressMask | ButtonReleaseMask | KeyPressMask | KeyReleaseMask);
 
-PuglWorldInternals*
-puglInitWorldInternals(void)
+static bool
+puglInitXSync(PuglWorldInternals* impl)
 {
+#ifdef HAVE_XSYNC
+	int                 syncMajor;
+	int                 syncMinor;
+	int                 errorBase;
+	XSyncSystemCounter* counters;
+	int                 numCounters;
+
+	if (XSyncQueryExtension(impl->display, &impl->syncEventBase, &errorBase) &&
+	    XSyncInitialize(impl->display, &syncMajor, &syncMinor) &&
+	    (counters = XSyncListSystemCounters(impl->display, &numCounters))) {
+
+		for (int n = 0; n < numCounters; ++n) {
+			if (!strcmp(counters[n].name, "SERVERTIME")) {
+				impl->serverTimeCounter = counters[n].counter;
+				impl->syncSupported     = true;
+				break;
+			}
+		}
+
+		XSyncFreeSystemCounterList(counters);
+	}
+#else
+	(void)impl;
+#endif
+
+	return false;
+}
+
+PuglWorldInternals*
+puglInitWorldInternals(PuglWorldType type, PuglWorldFlags flags)
+{
+	if (type == PUGL_PROGRAM && (flags & PUGL_WORLD_THREADS)) {
+		XInitThreads();
+	}
+
 	Display* display = XOpenDisplay(NULL);
 	if (!display) {
 		return NULL;
@@ -81,6 +122,7 @@ puglInitWorldInternals(void)
 	impl->atoms.UTF8_STRING      = XInternAtom(display, "UTF8_STRING", 0);
 	impl->atoms.WM_PROTOCOLS     = XInternAtom(display, "WM_PROTOCOLS", 0);
 	impl->atoms.WM_DELETE_WINDOW = XInternAtom(display, "WM_DELETE_WINDOW", 0);
+	impl->atoms.PUGL_CLIENT_MSG  = XInternAtom(display, "_PUGL_CLIENT_MSG", 0);
 	impl->atoms.NET_WM_NAME      = XInternAtom(display, "_NET_WM_NAME", 0);
 	impl->atoms.NET_WM_STATE     = XInternAtom(display, "_NET_WM_STATE", 0);
 	impl->atoms.NET_WM_STATE_DEMANDS_ATTENTION =
@@ -90,14 +132,19 @@ puglInitWorldInternals(void)
 	XSetLocaleModifiers("");
 	if (!(impl->xim = XOpenIM(display, NULL, NULL, NULL))) {
 		XSetLocaleModifiers("@im=");
-		if (!(impl->xim = XOpenIM(display, NULL, NULL, NULL))) {
-			fprintf(stderr, "warning: XOpenIM failed\n");
-		}
+		impl->xim = XOpenIM(display, NULL, NULL, NULL);
 	}
 
+	puglInitXSync(impl);
 	XFlush(display);
 
 	return impl;
+}
+
+void*
+puglGetNativeWorld(PuglWorld* world)
+{
+	return world->impl->display;
 }
 
 PuglInternals*
@@ -106,29 +153,30 @@ puglInitViewInternals(void)
 	return (PuglInternals*)calloc(1, sizeof(PuglInternals));
 }
 
-PuglStatus
-puglPollEvents(PuglWorld* world, const double timeout)
+static PuglStatus
+puglPollX11Socket(PuglWorld* world, const double timeout)
 {
-	XFlush(world->impl->display);
+	if (XPending(world->impl->display) > 0) {
+		return PUGL_SUCCESS;
+	}
 
 	const int fd   = ConnectionNumber(world->impl->display);
 	const int nfds = fd + 1;
 	int       ret  = 0;
 	fd_set    fds;
-	FD_ZERO(&fds);
+	FD_ZERO(&fds); // NOLINT
 	FD_SET(fd, &fds);
 
 	if (timeout < 0.0) {
 		ret = select(nfds, &fds, NULL, NULL, NULL);
 	} else {
 		const long     sec  = (long)timeout;
-		const long     msec = (long)((timeout - (double)sec) * 1e6);
-		struct timeval tv   = {sec, msec};
+		const long     usec = (long)((timeout - (double)sec) * 1e6);
+		struct timeval tv   = {sec, usec};
 		ret = select(nfds, &fds, NULL, NULL, &tv);
 	}
 
-	return ret < 0 ? PUGL_UNKNOWN_ERROR
-	               : ret == 0 ? PUGL_FAILURE : PUGL_SUCCESS;
+	return ret < 0 ? PUGL_UNKNOWN_ERROR : PUGL_SUCCESS;
 }
 
 static PuglView*
@@ -179,8 +227,6 @@ puglCreateWindow(PuglView* view, const char* title)
 	PuglWorld* const     world   = view->world;
 	PuglX11Atoms* const  atoms   = &view->world->impl->atoms;
 	Display* const       display = world->impl->display;
-	const int            width   = (int)view->frame.width;
-	const int            height  = (int)view->frame.height;
 
 	impl->display = display;
 	impl->screen  = DefaultScreen(display);
@@ -207,7 +253,8 @@ puglCreateWindow(PuglView* view, const char* title)
 
 	const Window win = impl->win = XCreateWindow(
 		display, xParent,
-		(int)view->frame.x, (int)view->frame.y, width, height,
+		(int)view->frame.x, (int)view->frame.y,
+		(unsigned)view->frame.width, (unsigned)view->frame.height,
 		0, impl->vi->depth, InputOutput,
 		impl->vi->visual, CWColormap | CWEventMask, &attr);
 
@@ -240,8 +287,12 @@ puglCreateWindow(PuglView* view, const char* title)
 	                            XNClientWindow, win,
 	                            XNFocusWindow,  win,
 	                            NULL))) {
-		fprintf(stderr, "warning: XCreateIC failed\n");
+		view->world->logFunc(view->world,
+		                     PUGL_LOG_LEVEL_WARNING,
+		                     "XCreateID failed\n");
 	}
+
+	puglDispatchSimpleEvent(view, PUGL_CREATE);
 
 	return PUGL_SUCCESS;
 }
@@ -251,7 +302,6 @@ puglShowWindow(PuglView* view)
 {
 	XMapRaised(view->impl->display, view->impl->win);
 	puglPostRedisplay(view);
-	view->visible = true;
 	return PUGL_SUCCESS;
 }
 
@@ -259,19 +309,22 @@ PuglStatus
 puglHideWindow(PuglView* view)
 {
 	XUnmapWindow(view->impl->display, view->impl->win);
-	view->visible = false;
 	return PUGL_SUCCESS;
 }
 
 void
 puglFreeViewInternals(PuglView* view)
 {
-	if (view) {
+	if (view && view->impl) {
 		if (view->impl->xic) {
 			XDestroyIC(view->impl->xic);
 		}
-		view->backend->destroy(view);
-		XDestroyWindow(view->impl->display, view->impl->win);
+		if (view->backend) {
+			view->backend->destroy(view);
+		}
+		if (view->impl->display) {
+			XDestroyWindow(view->impl->display, view->impl->win);
+		}
 		XFree(view->impl->vi);
 		free(view->impl);
 	}
@@ -284,6 +337,7 @@ puglFreeWorldInternals(PuglWorld* world)
 		XCloseIM(world->impl->xim);
 	}
 	XCloseDisplay(world->impl->display);
+	free(world->impl->timers);
 	free(world->impl);
 }
 
@@ -291,11 +345,6 @@ static PuglKey
 keySymToSpecial(KeySym sym)
 {
 	switch (sym) {
-	case XK_BackSpace:   return PUGL_KEY_BACKSPACE;
-	case XK_Tab:         return PUGL_KEY_TAB;
-	case XK_Return:      return PUGL_KEY_RETURN;
-	case XK_Escape:      return PUGL_KEY_ESCAPE;
-	case XK_Delete:      return PUGL_KEY_DELETE;
 	case XK_F1:          return PUGL_KEY_F1;
 	case XK_F2:          return PUGL_KEY_F2;
 	case XK_F3:          return PUGL_KEY_F3;
@@ -332,7 +381,7 @@ keySymToSpecial(KeySym sym)
 	case XK_Num_Lock:    return PUGL_KEY_NUM_LOCK;
 	case XK_Print:       return PUGL_KEY_PRINT_SCREEN;
 	case XK_Pause:       return PUGL_KEY_PAUSE;
-	default:             break;
+	default: break;
 	}
 	return (PuglKey)0;
 }
@@ -402,7 +451,7 @@ translateEvent(PuglView* view, XEvent xevent)
 {
 	const PuglX11Atoms* atoms = &view->world->impl->atoms;
 
-	PuglEvent event = {0};
+	PuglEvent event = {{PUGL_NOTHING, 0}};
 	event.any.flags = xevent.xany.send_event ? PUGL_IS_SEND_EVENT : 0;
 
 	switch (xevent.type) {
@@ -412,18 +461,22 @@ translateEvent(PuglView* view, XEvent xevent)
 			if (protocol == atoms->WM_DELETE_WINDOW) {
 				event.type = PUGL_CLOSE;
 			}
+		} else if (xevent.xclient.message_type == atoms->PUGL_CLIENT_MSG) {
+			event.type         = PUGL_CLIENT;
+			event.client.data1 = (uintptr_t)xevent.xclient.data.l[0];
+			event.client.data2 = (uintptr_t)xevent.xclient.data.l[1];
 		}
 		break;
-	case MapNotify: {
-		XWindowAttributes attrs = {0};
-		XGetWindowAttributes(view->impl->display, view->impl->win, &attrs);
-		event.type             = PUGL_CONFIGURE;
-		event.configure.x      = attrs.x;
-		event.configure.y      = attrs.y;
-		event.configure.width  = attrs.width;
-		event.configure.height = attrs.height;
+	case VisibilityNotify:
+		view->visible = xevent.xvisibility.state != VisibilityFullyObscured;
 		break;
-	}
+	case MapNotify:
+		event.type = PUGL_MAP;
+		break;
+	case UnmapNotify:
+		event.type = PUGL_UNMAP;
+		view->visible = false;
+		break;
 	case ConfigureNotify:
 		event.type             = PUGL_CONFIGURE;
 		event.configure.x      = xevent.xconfigure.x;
@@ -440,7 +493,7 @@ translateEvent(PuglView* view, XEvent xevent)
 		event.expose.count  = xevent.xexpose.count;
 		break;
 	case MotionNotify:
-		event.type           = PUGL_MOTION_NOTIFY;
+		event.type           = PUGL_MOTION;
 		event.motion.time    = xevent.xmotion.time / 1e3;
 		event.motion.x       = xevent.xmotion.x;
 		event.motion.y       = xevent.xmotion.y;
@@ -499,8 +552,8 @@ translateEvent(PuglView* view, XEvent xevent)
 	case EnterNotify:
 	case LeaveNotify:
 		event.type            = ((xevent.type == EnterNotify)
-		                         ? PUGL_ENTER_NOTIFY
-		                         : PUGL_LEAVE_NOTIFY);
+		                         ? PUGL_POINTER_IN
+		                         : PUGL_POINTER_OUT);
 		event.crossing.time   = xevent.xcrossing.time / 1e3;
 		event.crossing.x      = xevent.xcrossing.x;
 		event.crossing.y      = xevent.xcrossing.y;
@@ -557,7 +610,7 @@ puglRequestAttention(PuglView* view)
 	event.xclient.format       = 32;
 	event.xclient.message_type = atoms->NET_WM_STATE;
 	event.xclient.data.l[0]    = WM_STATE_ADD;
-	event.xclient.data.l[1]    = atoms->NET_WM_STATE_DEMANDS_ATTENTION;
+	event.xclient.data.l[1]    = (long)atoms->NET_WM_STATE_DEMANDS_ATTENTION;
 	event.xclient.data.l[2]    = 0;
 	event.xclient.data.l[3]    = 1;
 	event.xclient.data.l[4]    = 0;
@@ -573,15 +626,148 @@ puglRequestAttention(PuglView* view)
 }
 
 PuglStatus
+puglStartTimer(PuglView* view, uintptr_t id, double timeout)
+{
+#ifdef HAVE_XSYNC
+	if (view->world->impl->syncSupported) {
+		XSyncValue value;
+		XSyncIntToValue(&value, (int)floor(timeout * 1000.0));
+
+		PuglWorldInternals*  w       = view->world->impl;
+		Display* const       display = w->display;
+		const XSyncCounter   counter = w->serverTimeCounter;
+		const XSyncTrigger   trigger = {counter, XSyncRelative, value, 0};
+		XSyncAlarmAttributes attr    = {trigger, value, True, XSyncAlarmActive};
+		const XSyncAlarm     alarm   = XSyncCreateAlarm(display, 0x17, &attr);
+		const PuglTimer      timer   = {alarm, view, id};
+
+		if (alarm != None) {
+			for (size_t i = 0; i < w->numTimers; ++i) {
+				if (w->timers[i].view == view && w->timers[i].id == id) {
+					// Replace existing timer
+					XSyncDestroyAlarm(w->display, w->timers[i].alarm);
+					w->timers[i] = timer;
+					return PUGL_SUCCESS;
+				}
+			}
+
+			// Add new timer
+			const size_t size           = ++w->numTimers * sizeof(timer);
+			w->timers                   = (PuglTimer*)realloc(w->timers, size);
+			w->timers[w->numTimers - 1] = timer;
+			return PUGL_SUCCESS;
+		}
+	}
+#else
+	(void)view;
+	(void)id;
+	(void)timeout;
+#endif
+
+	return PUGL_FAILURE;
+}
+
+PuglStatus
+puglStopTimer(PuglView* view, uintptr_t id)
+{
+#ifdef HAVE_XSYNC
+	PuglWorldInternals* w = view->world->impl;
+
+	for (size_t i = 0; i < w->numTimers; ++i) {
+		if (w->timers[i].view == view && w->timers[i].id == id) {
+			XSyncDestroyAlarm(w->display, w->timers[i].alarm);
+
+			if (i == w->numTimers - 1) {
+				memset(&w->timers[i], 0, sizeof(PuglTimer));
+			} else {
+				memmove(w->timers + i,
+				        w->timers + i + 1,
+				        sizeof(PuglTimer) * (w->numTimers - i - 1));
+
+				memset(&w->timers[i], 0, sizeof(PuglTimer));
+			}
+
+			--w->numTimers;
+			return PUGL_SUCCESS;
+		}
+	}
+#else
+	(void)view;
+	(void)id;
+#endif
+
+	return PUGL_FAILURE;
+}
+
+static XEvent
+puglEventToX(PuglView* view, const PuglEvent* event)
+{
+	XEvent xev          = {0};
+	xev.xany.send_event = True;
+
+	switch (event->type) {
+	case PUGL_EXPOSE: {
+		const double x = floor(event->expose.x);
+		const double y = floor(event->expose.y);
+		const double w = ceil(event->expose.x + event->expose.width) - x;
+		const double h = ceil(event->expose.y + event->expose.height) - y;
+
+		xev.xexpose.type    = Expose;
+		xev.xexpose.serial  = 0;
+		xev.xexpose.display = view->impl->display;
+		xev.xexpose.window  = view->impl->win;
+		xev.xexpose.x       = (int)x;
+		xev.xexpose.y       = (int)y;
+		xev.xexpose.width   = (int)w;
+		xev.xexpose.height  = (int)h;
+		break;
+	}
+
+	case PUGL_CLIENT:
+		xev.xclient.type         = ClientMessage;
+		xev.xclient.serial       = 0;
+		xev.xclient.send_event   = True;
+		xev.xclient.display      = view->impl->display;
+		xev.xclient.window       = view->impl->win;
+		xev.xclient.message_type = view->world->impl->atoms.PUGL_CLIENT_MSG;
+		xev.xclient.format       = 32;
+		xev.xclient.data.l[0]    = (long)event->client.data1;
+		xev.xclient.data.l[1]    = (long)event->client.data2;
+		break;
+
+	default:
+		break;
+	}
+
+	return xev;
+}
+
+PuglStatus
+puglSendEvent(PuglView* view, const PuglEvent* event)
+{
+	XEvent xev = puglEventToX(view, event);
+
+	if (xev.type) {
+		if (XSendEvent(view->impl->display, view->impl->win, False, 0, &xev)) {
+			return PUGL_SUCCESS;
+		}
+	}
+
+	return PUGL_UNSUPPORTED_TYPE;
+}
+
+#ifndef PUGL_DISABLE_DEPRECATED
+PuglStatus
 puglWaitForEvent(PuglView* view)
 {
 	XEvent xevent;
 	XPeekEvent(view->impl->display, &xevent);
 	return PUGL_SUCCESS;
 }
+#endif
 
 static void
-merge_expose_events(PuglEvent* dst, const PuglEvent* src)
+mergeExposeEvents(PuglEvent* dst, const PuglEvent* src)
 {
 	if (!dst->type) {
 		*dst = *src;
@@ -599,19 +785,139 @@ merge_expose_events(PuglEvent* dst, const PuglEvent* src)
 	}
 }
 
-PUGL_API PuglStatus
-puglDispatchEvents(PuglWorld* world)
+static void
+handleSelectionNotify(const PuglWorld* world, PuglView* view)
+{
+	uint8_t*      str  = NULL;
+	Atom          type = 0;
+	int           fmt  = 0;
+	unsigned long len  = 0;
+	unsigned long left = 0;
+
+	XGetWindowProperty(world->impl->display,
+	                   view->impl->win,
+	                   XA_PRIMARY,
+	                   0,
+	                   0x1FFFFFFF,
+	                   False,
+	                   AnyPropertyType,
+	                   &type,
+	                   &fmt,
+	                   &len,
+	                   &left,
+	                   &str);
+
+	if (str && fmt == 8 && type == world->impl->atoms.UTF8_STRING &&
+	    left == 0) {
+		puglSetBlob(&view->clipboard, str, len);
+	}
+
+	XFree(str);
+}
+
+static void
+handleSelectionRequest(const PuglWorld*              world,
+                       PuglView*                     view,
+                       const XSelectionRequestEvent* request)
+{
+	XSelectionEvent note = {SelectionNotify,
+	                        request->serial,
+	                        False,
+	                        world->impl->display,
+	                        request->requestor,
+	                        request->selection,
+	                        request->target,
+	                        None,
+	                        request->time};
+
+	const char* type = NULL;
+	size_t      len  = 0;
+	const void* data = puglGetInternalClipboard(view, &type, &len);
+	if (data && request->selection == world->impl->atoms.CLIPBOARD &&
+	    request->target == world->impl->atoms.UTF8_STRING) {
+		note.property = request->property;
+		XChangeProperty(world->impl->display,
+		                note.requestor,
+		                note.property,
+		                note.target,
+		                8,
+		                PropModeReplace,
+		                (const uint8_t*)data,
+		                (int)len);
+	} else {
+		note.property = None;
+	}
+
+	XSendEvent(world->impl->display, note.requestor, True, 0, (XEvent*)&note);
+}
+
+/// Flush pending configure and expose events for all views
+static void
+flushExposures(PuglWorld* world)
+{
+	for (size_t i = 0; i < world->numViews; ++i) {
+		PuglView* const view = world->views[i];
+
+		if (view->visible) {
+			puglDispatchSimpleEvent(view, PUGL_UPDATE);
+		}
+
+		const PuglEvent configure = view->impl->pendingConfigure;
+		const PuglEvent expose    = view->impl->pendingExpose;
+
+		view->impl->pendingConfigure.type = PUGL_NOTHING;
+		view->impl->pendingExpose.type    = PUGL_NOTHING;
+
+		if (configure.type || expose.type) {
+			view->backend->enter(view, expose.type ? &expose.expose : NULL);
+			puglDispatchEventInContext(view, &configure);
+			puglDispatchEventInContext(view, &expose);
+			view->backend->leave(view, expose.type ? &expose.expose : NULL);
+		}
+	}
+}
+
+static bool
+handleTimerEvent(PuglWorld* world, XEvent xevent)
+{
+#ifdef HAVE_XSYNC
+	if (xevent.type == world->impl->syncEventBase + XSyncAlarmNotify) {
+		XSyncAlarmNotifyEvent* notify = ((XSyncAlarmNotifyEvent*)&xevent);
+
+		for (size_t i = 0; i < world->impl->numTimers; ++i) {
+			if (world->impl->timers[i].alarm == notify->alarm) {
+				const PuglEventTimer ev = {PUGL_TIMER, 0, world->impl->timers[i].id};
+				puglDispatchEvent(world->impl->timers[i].view, (const PuglEvent*)&ev);
+			}
+		}
+
+		return true;
+	}
+#else
+	(void)world;
+	(void)xevent;
+#endif
+
+	return false;
+}
+
+static PuglStatus
+puglDispatchX11Events(PuglWorld* world)
 {
 	const PuglX11Atoms* const atoms = &world->impl->atoms;
 
-	// Flush just once at the start to fill event queue
+	// Flush output to the server once at the start
 	Display* display = world->impl->display;
 	XFlush(display);
 
-	// Process all queued events (locally, without flushing or reading)
-	while (XEventsQueued(display, QueuedAlready) > 0) {
+	// Process all queued events (without further flushing)
+	while (XEventsQueued(display, QueuedAfterReading) > 0) {
 		XEvent xevent;
 		XNextEvent(display, &xevent);
+
+		if (handleTimerEvent(world, xevent)) {
+			continue;
+		}
 
 		PuglView* view = puglFindView(world, xevent.xany.window);
 		if (!view) {
@@ -634,53 +940,13 @@ puglDispatchEvents(PuglWorld* world)
 			XUnsetICFocus(impl->xic);
 		} else if (xevent.type == SelectionClear) {
 			puglSetBlob(&view->clipboard, NULL, 0);
-			continue;
 		} else if (xevent.type == SelectionNotify &&
 		           xevent.xselection.selection == atoms->CLIPBOARD &&
 		           xevent.xselection.target == atoms->UTF8_STRING &&
 		           xevent.xselection.property == XA_PRIMARY) {
-
-			uint8_t*      str  = NULL;
-			Atom          type = 0;
-			int           fmt  = 0;
-			unsigned long len  = 0;
-			unsigned long left = 0;
-			XGetWindowProperty(impl->display, impl->win, XA_PRIMARY,
-			                   0, 8, False, AnyPropertyType,
-			                   &type, &fmt, &len, &left, &str);
-
-			if (str && fmt == 8 && type == atoms->UTF8_STRING && left == 0) {
-				puglSetBlob(&view->clipboard, str, len);
-			}
-
-			XFree(str);
-			continue;
+			handleSelectionNotify(world, view);
 		} else if (xevent.type == SelectionRequest) {
-			const XSelectionRequestEvent* request = &xevent.xselectionrequest;
-
-			XSelectionEvent note = {0};
-			note.type            = SelectionNotify;
-			note.requestor       = request->requestor;
-			note.selection       = request->selection;
-			note.target          = request->target;
-			note.time            = request->time;
-
-			const char* type = NULL;
-			size_t      len  = 0;
-			const void* data = puglGetInternalClipboard(view, &type, &len);
-			if (data &&
-			    request->selection == atoms->CLIPBOARD &&
-			    request->target == atoms->UTF8_STRING) {
-				note.property = request->property;
-				XChangeProperty(impl->display, note.requestor,
-				                note.property, note.target, 8, PropModeReplace,
-				                (const uint8_t*)data, len);
-			} else {
-				note.property = None;
-			}
-
-			XSendEvent(impl->display, note.requestor, True, 0, (XEvent*)&note);
-			continue;
+			handleSelectionRequest(world, view, &xevent.xselectionrequest);
 		}
 
 		// Translate X11 event to Pugl event
@@ -688,61 +954,68 @@ puglDispatchEvents(PuglWorld* world)
 
 		if (event.type == PUGL_EXPOSE) {
 			// Expand expose event to be dispatched after loop
-			merge_expose_events(&view->impl->pendingExpose, &event);
+			mergeExposeEvents(&view->impl->pendingExpose, &event);
 		} else if (event.type == PUGL_CONFIGURE) {
 			// Expand configure event to be dispatched after loop
 			view->impl->pendingConfigure = event;
+			view->frame.x                = event.configure.x;
+			view->frame.y                = event.configure.y;
+			view->frame.width            = event.configure.width;
+			view->frame.height           = event.configure.height;
+		} else if (event.type == PUGL_MAP && view->parent) {
+			XWindowAttributes attrs;
+			XGetWindowAttributes(view->impl->display, view->impl->win, &attrs);
+
+			const PuglEventConfigure configure = {
+			    PUGL_CONFIGURE, 0, attrs.x, attrs.y, attrs.width, attrs.height};
+
+			puglDispatchEvent(view, (const PuglEvent*)&configure);
+			puglDispatchEvent(view, &event);
 		} else {
 			// Dispatch event to application immediately
 			puglDispatchEvent(view, &event);
 		}
 	}
 
-	// Flush pending configure and expose events for all views
-	for (size_t i = 0; i < world->numViews; ++i) {
-		PuglView* const  view      = world->views[i];
-		PuglEvent* const configure = &view->impl->pendingConfigure;
-		PuglEvent* const expose    = &view->impl->pendingExpose;
-
-		if (view->redisplay)
-		{
-			expose->type = PUGL_EXPOSE;
-			view->redisplay = false;
-		}
-
-		if (configure->type || expose->type) {
-			const bool mustExpose = expose->type && expose->expose.count == 0;
-			puglEnterContext(view, mustExpose);
-
-			if (configure->type) {
-				view->frame.x      = configure->configure.x;
-				view->frame.y      = configure->configure.y;
-				view->frame.width  = configure->configure.width;
-				view->frame.height = configure->configure.height;
-
-				view->backend->resize(view,
-				                      (int)view->frame.width,
-				                      (int)view->frame.height);
-				view->eventFunc(view, &view->impl->pendingConfigure);
-			}
-
-			if (mustExpose) {
-				view->eventFunc(view, &view->impl->pendingExpose);
-			}
-
-			puglLeaveContext(view, mustExpose);
-			configure->type = 0;
-			expose->type    = 0;
-		}
-	}
-
 	return PUGL_SUCCESS;
 }
 
+#ifndef PUGL_DISABLE_DEPRECATED
 PuglStatus
 puglProcessEvents(PuglView* view)
 {
-	return puglDispatchEvents(view->world);
+	return puglUpdate(view->world, 0.0);
+}
+#endif
+
+PuglStatus
+puglUpdate(PuglWorld* world, double timeout)
+{
+	const double startTime = puglGetTime(world);
+	PuglStatus   st        = PUGL_SUCCESS;
+
+	world->impl->dispatchingEvents = true;
+
+	if (timeout < 0.0) {
+		st = puglPollX11Socket(world, timeout);
+		st = st ? st : puglDispatchX11Events(world);
+	} else if (timeout == 0.0) {
+		st = puglDispatchX11Events(world);
+	} else {
+		const double endTime = startTime + timeout - 0.001;
+		for (double t = startTime; t < endTime; t = puglGetTime(world)) {
+			if ((st = puglPollX11Socket(world, endTime - t)) ||
+			    (st = puglDispatchX11Events(world))) {
+				break;
+			}
+		}
+	}
+
+	flushExposures(world);
+
+	world->impl->dispatchingEvents = false;
+
+	return st;
 }
 
 double
@@ -756,7 +1029,26 @@ puglGetTime(const PuglWorld* world)
 PuglStatus
 puglPostRedisplay(PuglView* view)
 {
-	view->redisplay = true;
+	const PuglRect rect = { 0, 0, view->frame.width, view->frame.height };
+
+	return puglPostRedisplayRect(view, rect);
+}
+
+PuglStatus
+puglPostRedisplayRect(PuglView* view, PuglRect rect)
+{
+	const PuglEventExpose event = {
+		PUGL_EXPOSE, 0, rect.x, rect.y, rect.width, rect.height, 0
+	};
+
+	if (view->world->impl->dispatchingEvents) {
+		// Currently dispatching events, add/expand expose for the loop end
+		mergeExposeEvents(&view->impl->pendingExpose, (const PuglEvent*)&event);
+	} else if (view->visible) {
+		// Not dispatching events, send an X expose so we wake up next time
+		return puglSendEvent(view, (const PuglEvent*)&event);
+	}
+
 	return PUGL_SUCCESS;
 }
 
@@ -787,9 +1079,9 @@ puglSetFrame(PuglView* view, const PuglRect frame)
 	view->frame = frame;
 
 	if (view->impl->win &&
-	    XMoveResizeWindow(view->world->impl->display, view->impl->win,
-	                      (int)frame.x, (int)frame.y,
-	                      (int)frame.width, (int)frame.height)) {
+	    !XMoveResizeWindow(view->world->impl->display, view->impl->win,
+	                       (int)frame.x, (int)frame.y,
+	                       (unsigned)frame.width, (unsigned)frame.height)) {
 		return PUGL_UNKNOWN_ERROR;
 	}
 
@@ -872,8 +1164,7 @@ puglGetClipboard(PuglView* const    view,
 
 		// Run event loop until data is received
 		while (!view->clipboard.data) {
-			puglPollEvents(view->world, -1);
-			puglDispatchEvents(view->world);
+			puglUpdate(view->world, -1.0);
 		}
 	}
 
@@ -896,4 +1187,19 @@ puglSetClipboard(PuglView* const   view,
 
 	XSetSelectionOwner(impl->display, atoms->CLIPBOARD, impl->win, CurrentTime);
 	return PUGL_SUCCESS;
+}
+
+const PuglBackend*
+puglStubBackend(void)
+{
+	static const PuglBackend backend = {
+	    puglX11StubConfigure,
+	    puglStubCreate,
+	    puglStubDestroy,
+	    puglStubEnter,
+	    puglStubLeave,
+	    puglStubGetContext,
+	};
+
+	return &backend;
 }

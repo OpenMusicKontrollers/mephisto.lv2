@@ -1,5 +1,5 @@
 /*
-  Copyright 2019 David Robillard <http://drobilla.net>
+  Copyright 2019-2020 David Robillard <http://drobilla.net>
 
   Permission to use, copy, modify, and/or distribute this software for any
   purpose with or without fee is hereby granted, provided that the above
@@ -20,7 +20,8 @@
 
 #include "pugl/detail/implementation.h"
 #include "pugl/detail/mac.h"
-#include "pugl/pugl_gl_backend.h"
+#include "pugl/pugl_gl.h"
+#include "pugl/pugl_stub.h"
 
 #ifndef __MAC_10_10
 #    define NSOpenGLProfileVersion4_1Core NSOpenGLProfileVersion3_2Core
@@ -92,12 +93,6 @@
 @end
 
 static PuglStatus
-puglMacGlConfigure(PuglView* PUGL_UNUSED(view))
-{
-	return PUGL_SUCCESS;
-}
-
-static PuglStatus
 puglMacGlCreate(PuglView* view)
 {
 	PuglInternals*  impl     = view->impl;
@@ -130,7 +125,7 @@ puglMacGlDestroy(PuglView* view)
 }
 
 static PuglStatus
-puglMacGlEnter(PuglView* view, bool PUGL_UNUSED(drawing))
+puglMacGlEnter(PuglView* view, const PuglEventExpose* PUGL_UNUSED(expose))
 {
 	PuglOpenGLView* const drawView = (PuglOpenGLView*)view->impl->drawView;
 
@@ -139,11 +134,11 @@ puglMacGlEnter(PuglView* view, bool PUGL_UNUSED(drawing))
 }
 
 static PuglStatus
-puglMacGlLeave(PuglView* view, bool drawing)
+puglMacGlLeave(PuglView* view, const PuglEventExpose* expose)
 {
 	PuglOpenGLView* const drawView = (PuglOpenGLView*)view->impl->drawView;
 
-	if (drawing) {
+	if (expose) {
 		[[drawView openGLContext] flushBuffer];
 	}
 
@@ -152,33 +147,31 @@ puglMacGlLeave(PuglView* view, bool drawing)
 	return PUGL_SUCCESS;
 }
 
-static PuglStatus
-puglMacGlResize(PuglView* view, int PUGL_UNUSED(width), int PUGL_UNUSED(height))
+PuglGlFunc
+puglGetProcAddress(const char *name)
 {
-	PuglOpenGLView* const drawView = (PuglOpenGLView*)view->impl->drawView;
+	CFBundleRef framework =
+		CFBundleGetBundleWithIdentifier(CFSTR("com.apple.opengl"));
 
-	[drawView reshape];
+	CFStringRef symbol = CFStringCreateWithCString(
+		kCFAllocatorDefault, name, kCFStringEncodingASCII);
 
-	return PUGL_SUCCESS;
-}
+	PuglGlFunc func = (PuglGlFunc)CFBundleGetFunctionPointerForName(
+		framework, symbol);
 
-static void*
-puglMacGlGetContext(PuglView* PUGL_UNUSED(view))
-{
-	return NULL;
+	CFRelease(symbol);
+
+	return func;
 }
 
 const PuglBackend* puglGlBackend(void)
 {
-	static const PuglBackend backend = {
-		puglMacGlConfigure,
-		puglMacGlCreate,
-		puglMacGlDestroy,
-		puglMacGlEnter,
-		puglMacGlLeave,
-		puglMacGlResize,
-		puglMacGlGetContext
-	};
+	static const PuglBackend backend = {puglStubConfigure,
+	                                    puglMacGlCreate,
+	                                    puglMacGlDestroy,
+	                                    puglMacGlEnter,
+	                                    puglMacGlLeave,
+	                                    puglStubGetContext};
 
 	return &backend;
 }

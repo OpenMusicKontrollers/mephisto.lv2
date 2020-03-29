@@ -690,23 +690,6 @@ _term_behave(d2tk_base_t *base, d2tk_atom_body_pty_t *vpty,
 
 	if(d2tk_state_is_focused(state))
 	{
-		if(d2tk_base_get_keymask(base, D2TK_KEYMASK_ENTER, true))
-		{
-			vterm_keyboard_key(vpty->vterm, VTERM_KEY_ENTER, mod);
-		}
-		if(d2tk_base_get_keymask(base, D2TK_KEYMASK_TAB, true))
-		{
-			vterm_keyboard_key(vpty->vterm, VTERM_KEY_TAB, mod);
-		}
-		if(d2tk_base_get_keymask(base, D2TK_KEYMASK_BACKSPACE, true))
-		{
-			vterm_keyboard_key(vpty->vterm, VTERM_KEY_BACKSPACE, mod);
-		}
-		if(d2tk_base_get_keymask(base, D2TK_KEYMASK_ESCAPE, true))
-		{
-			vterm_keyboard_key(vpty->vterm, VTERM_KEY_ESCAPE, mod);
-		}
-
 		if(d2tk_base_get_keymask(base, D2TK_KEYMASK_UP, true))
 		{
 			vterm_keyboard_key(vpty->vterm, VTERM_KEY_UP, mod);
