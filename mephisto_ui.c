@@ -57,7 +57,7 @@ struct _plughandle_t {
 	LV2_Log_Logger logger;
 
 	d2tk_pugl_config_t config;
-	d2tk_pugl_t *dpugl;
+	d2tk_frontend_t *dpugl;
 
 	LV2UI_Controller *controller;
 	LV2UI_Write_Function writer;
@@ -335,8 +335,8 @@ _message_get(plughandle_t *handle, LV2_URID key)
 static inline void
 _expose_header(plughandle_t *handle, const d2tk_rect_t *rect)
 {
-	d2tk_pugl_t *dpugl = handle->dpugl;
-	d2tk_base_t *base = d2tk_pugl_get_base(dpugl);
+	d2tk_frontend_t *dpugl = handle->dpugl;
+	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
 	const d2tk_coord_t frac [3] = { 1, 1, 1 };
 	D2TK_BASE_LAYOUT(rect, 3, frac, D2TK_FLAG_LAYOUT_X_REL, lay)
@@ -369,8 +369,8 @@ _expose_header(plughandle_t *handle, const d2tk_rect_t *rect)
 static inline void
 _expose_vkb(plughandle_t *handle, const d2tk_rect_t *rect)
 {
-	d2tk_pugl_t *dpugl = handle->dpugl;
-	d2tk_base_t *base = d2tk_pugl_get_base(dpugl);
+	d2tk_frontend_t *dpugl = handle->dpugl;
+	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
 	static const uint8_t off_black [7] = {
 		0, 1, 3, 0, 6, 8, 10,
@@ -457,8 +457,8 @@ _expose_vkb(plughandle_t *handle, const d2tk_rect_t *rect)
 static inline void
 _expose_xfade(plughandle_t *handle, const d2tk_rect_t *rect)
 {
-	d2tk_pugl_t *dpugl = handle->dpugl;
-	d2tk_base_t *base = d2tk_pugl_get_base(dpugl);
+	d2tk_frontend_t *dpugl = handle->dpugl;
+	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
 	if(d2tk_base_prop_int32_is_changed(base, D2TK_ID, rect,
 		10, &handle->state.xfade_dur, 1000))
@@ -470,8 +470,8 @@ _expose_xfade(plughandle_t *handle, const d2tk_rect_t *rect)
 static inline void
 _expose_release(plughandle_t *handle, const d2tk_rect_t *rect)
 {
-	d2tk_pugl_t *dpugl = handle->dpugl;
-	d2tk_base_t *base = d2tk_pugl_get_base(dpugl);
+	d2tk_frontend_t *dpugl = handle->dpugl;
+	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
 	if(d2tk_base_prop_int32_is_changed(base, D2TK_ID, rect,
 		0, &handle->state.release_dur, 100))
@@ -483,8 +483,8 @@ _expose_release(plughandle_t *handle, const d2tk_rect_t *rect)
 static inline void
 _expose_panic(plughandle_t *handle, const d2tk_rect_t *rect)
 {
-	d2tk_pugl_t *dpugl = handle->dpugl;
-	d2tk_base_t *base = d2tk_pugl_get_base(dpugl);
+	d2tk_frontend_t *dpugl = handle->dpugl;
+	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
 	static const char path [] = "libre-gui-exclamation-circle.png";
 
@@ -497,8 +497,8 @@ _expose_panic(plughandle_t *handle, const d2tk_rect_t *rect)
 static inline void
 _expose_footer(plughandle_t *handle, const d2tk_rect_t *rect)
 {
-	d2tk_pugl_t *dpugl = handle->dpugl;
-	d2tk_base_t *base = d2tk_pugl_get_base(dpugl);
+	d2tk_frontend_t *dpugl = handle->dpugl;
+	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
 	D2TK_BASE_TABLE(rect, 3, 2, D2TK_FLAG_TABLE_REL, tab)
 	{
@@ -547,8 +547,8 @@ _expose_footer(plughandle_t *handle, const d2tk_rect_t *rect)
 static inline void
 _expose_slot(plughandle_t *handle, const d2tk_rect_t *rect, unsigned k)
 {
-	d2tk_pugl_t *dpugl = handle->dpugl;
-	d2tk_base_t *base = d2tk_pugl_get_base(dpugl);
+	d2tk_frontend_t *dpugl = handle->dpugl;
+	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
 	static const char lbl [16][9] = {
 		"slot•01",
@@ -630,8 +630,8 @@ _expose_sidebar_right(plughandle_t *handle, const d2tk_rect_t *rect)
 static inline void
 _expose_term(plughandle_t *handle, const d2tk_rect_t *rect)
 {
-	d2tk_pugl_t *dpugl = handle->dpugl;
-	d2tk_base_t *base = d2tk_pugl_get_base(dpugl);
+	d2tk_frontend_t *dpugl = handle->dpugl;
+	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
 	char *editor = getenv("EDITOR");
 
@@ -674,8 +674,8 @@ _num_lines(const char *err)
 static inline void
 _expose_error(plughandle_t *handle, const d2tk_rect_t *rect)
 {
-	d2tk_pugl_t *dpugl = handle->dpugl;
-	d2tk_base_t *base = d2tk_pugl_get_base(dpugl);
+	d2tk_frontend_t *dpugl = handle->dpugl;
+	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
 	const char *from = handle->state.error;
 	const unsigned nlines = _num_lines(from);
@@ -927,7 +927,7 @@ instantiate(const LV2UI_Descriptor *descriptor,
 		return NULL;
 	}
 
-	const float scale = d2tk_pugl_get_scale(handle->dpugl);
+	const float scale = d2tk_frontend_get_scale(handle->dpugl);
 	handle->header_height = 32 * scale;
 	handle->footer_height = 64 * scale;
 	handle->sidebar_width = 150 * scale;
@@ -965,7 +965,7 @@ cleanup(LV2UI_Handle instance)
 {
 	plughandle_t *handle = instance;
 
-	d2tk_pugl_free(handle->dpugl);
+	d2tk_frontend_free(handle->dpugl);
 
 	unlink(handle->template);
 	close(handle->fd);
@@ -994,7 +994,7 @@ port_event(LV2UI_Handle instance, uint32_t index __attribute__((unused)),
 
 	ser_atom_deinit(&ser);
 
-	d2tk_pugl_redisplay(handle->dpugl);
+	d2tk_frontend_redisplay(handle->dpugl);
 }
 
 static void
@@ -1031,7 +1031,7 @@ _idle(LV2UI_Handle instance)
 		handle->modtime = st.st_mtime;
 	}
 
-	d2tk_base_t *base = d2tk_pugl_get_base(handle->dpugl);
+	d2tk_base_t *base = d2tk_frontend_get_base(handle->dpugl);
 	d2tk_style_t style = *d2tk_base_get_default_style(base);
 	/*
 	style.fill_color[D2TK_TRIPLE_ACTIVE] = handle.dark_reddest;
@@ -1042,7 +1042,7 @@ _idle(LV2UI_Handle instance)
 	style.font_face = "FiraCode-Regular.ttf";
 	d2tk_base_set_style(base, &style);
 
-	if(d2tk_pugl_step(handle->dpugl))
+	if(d2tk_frontend_step(handle->dpugl))
 	{
 		handle->done = 1;
 	}
@@ -1059,7 +1059,7 @@ _resize(LV2UI_Handle instance, int width, int height)
 {
 	plughandle_t *handle = instance;
 
-	return d2tk_pugl_set_size(handle->dpugl, width, height);
+	return d2tk_frontend_set_size(handle->dpugl, width, height);
 }
 
 static const LV2UI_Resize resize_ext = {
