@@ -580,6 +580,20 @@ d2tk_base_bar_int32(d2tk_base_t *base, d2tk_id_t id, const d2tk_rect_t *rect,
 #define d2tk_base_bar_int32_is_changed(...) \
 	d2tk_state_is_changed(d2tk_base_bar_int32(__VA_ARGS__))
 
+D2TK_API d2tk_state_t
+d2tk_base_spinner_float(d2tk_base_t *base, d2tk_id_t id, const d2tk_rect_t *rect,
+	float min, float *value, float max);
+
+#define d2tk_base_spinner_float_is_changed(...) \
+	d2tk_state_is_changed(d2tk_base_spinner_float(__VA_ARGS__))
+
+D2TK_API d2tk_state_t
+d2tk_base_bar_float(d2tk_base_t *base, d2tk_id_t id, const d2tk_rect_t *rect,
+	float min, float *value, float max);
+
+#define d2tk_base_bar_float_is_changed(...) \
+	d2tk_state_is_changed(d2tk_base_bar_float(__VA_ARGS__))
+
 D2TK_API d2tk_flowmatrix_t *
 d2tk_flowmatrix_begin(d2tk_base_t *base, const d2tk_rect_t *rect, d2tk_id_t id,
 	d2tk_flowmatrix_t *flowmatrix);
@@ -669,8 +683,8 @@ d2tk_base_set_ttls(d2tk_base_t *base, uint32_t sprites, uint32_t memcaches);
 D2TK_API void
 d2tk_base_free(d2tk_base_t *base);
 
-D2TK_API void
-d2tk_base_pre(d2tk_base_t *base);
+D2TK_API int
+d2tk_base_pre(d2tk_base_t *base, void *pctx);
 
 D2TK_API void
 d2tk_base_post(d2tk_base_t *base);

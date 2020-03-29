@@ -776,8 +776,8 @@ d2tk_base_free(d2tk_base_t *base)
 	free(base);
 }
 
-D2TK_API void
-d2tk_base_pre(d2tk_base_t *base)
+D2TK_API int
+d2tk_base_pre(d2tk_base_t *base, void *pctx)
 {
 	// reset hot item
 	_d2tk_flip_clear(&base->hotitem);
@@ -792,7 +792,7 @@ d2tk_base_pre(d2tk_base_t *base)
 	const d2tk_style_t *style = d2tk_base_get_style(base);
 	d2tk_core_set_bg_color(base->core, style->bg_color);
 
-	d2tk_core_pre(base->core);
+	return d2tk_core_pre(base->core, pctx);
 }
 
 D2TK_API void

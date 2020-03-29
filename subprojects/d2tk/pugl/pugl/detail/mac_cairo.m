@@ -20,7 +20,8 @@
 
 #include "pugl/detail/implementation.h"
 #include "pugl/detail/mac.h"
-#include "pugl/pugl_cairo_backend.h"
+#include "pugl/pugl_cairo.h"
+#include "pugl/pugl_stub.h"
 
 #include <cairo-quartz.h>
 
@@ -62,12 +63,6 @@
 @end
 
 static PuglStatus
-puglMacCairoConfigure(PuglView* PUGL_UNUSED(view))
-{
-	return PUGL_SUCCESS;
-}
-
-static PuglStatus
 puglMacCairoCreate(PuglView* view)
 {
 	PuglInternals* impl     = view->impl;
@@ -98,10 +93,10 @@ puglMacCairoDestroy(PuglView* view)
 }
 
 static PuglStatus
-puglMacCairoEnter(PuglView* view, bool drawing)
+puglMacCairoEnter(PuglView* view, const PuglEventExpose* expose)
 {
 	PuglCairoView* const drawView = (PuglCairoView*)view->impl->drawView;
-	if (!drawing) {
+	if (!expose) {
 		return PUGL_SUCCESS;
 	}
 
@@ -119,10 +114,10 @@ puglMacCairoEnter(PuglView* view, bool drawing)
 }
 
 static PuglStatus
-puglMacCairoLeave(PuglView* view, bool drawing)
+puglMacCairoLeave(PuglView* view, const PuglEventExpose* expose)
 {
 	PuglCairoView* const drawView = (PuglCairoView*)view->impl->drawView;
-	if (!drawing) {
+	if (!expose) {
 		return PUGL_SUCCESS;
 	}
 
@@ -141,15 +136,6 @@ puglMacCairoLeave(PuglView* view, bool drawing)
 	return PUGL_SUCCESS;
 }
 
-static PuglStatus
-puglMacCairoResize(PuglView* PUGL_UNUSED(view),
-                   int       PUGL_UNUSED(width),
-                   int       PUGL_UNUSED(height))
-{
-	// No need to resize, the surface is created for the drawing context
-	return PUGL_SUCCESS;
-}
-
 static void*
 puglMacCairoGetContext(PuglView* view)
 {
@@ -158,15 +144,12 @@ puglMacCairoGetContext(PuglView* view)
 
 const PuglBackend* puglCairoBackend(void)
 {
-	static const PuglBackend backend = {
-		puglMacCairoConfigure,
-		puglMacCairoCreate,
-		puglMacCairoDestroy,
-		puglMacCairoEnter,
-		puglMacCairoLeave,
-		puglMacCairoResize,
-		puglMacCairoGetContext
-	};
+	static const PuglBackend backend = {puglStubConfigure,
+	                                    puglMacCairoCreate,
+	                                    puglMacCairoDestroy,
+	                                    puglMacCairoEnter,
+	                                    puglMacCairoLeave,
+	                                    puglMacCairoGetContext};
 
 	return &backend;
 }

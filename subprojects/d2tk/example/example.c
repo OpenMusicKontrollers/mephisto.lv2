@@ -254,7 +254,10 @@ _render_c_spinner(d2tk_base_t *base, const d2tk_rect_t *rect)
 {
 #define N 8
 #define M 24
-	static int32_t val [N*M];
+	static union {
+		int32_t i32;
+		float f32;
+	} val [N*M];
 
 	D2TK_BASE_TABLE(rect, N, M, D2TK_FLAG_TABLE_REL, tab)
 	{
@@ -262,9 +265,19 @@ _render_c_spinner(d2tk_base_t *base, const d2tk_rect_t *rect)
 		const unsigned k = d2tk_table_get_index(tab);
 		const d2tk_id_t id = D2TK_ID_IDX(k);
 
-		if(d2tk_base_spinner_int32_is_changed(base, id, trect, -99, &val[k], 99))
+		if(k % 2)
 		{
-			fprintf(stdout, "spinner %016"PRIx64" %"PRIi32"\n", id, val[k]);
+			if(d2tk_base_spinner_int32_is_changed(base, id, trect, -99, &val[k].i32, 99))
+			{
+				fprintf(stdout, "spinner %016"PRIx64" %"PRIi32"\n", id, val[k].i32);
+			}
+		}
+		else
+		{
+			if(d2tk_base_spinner_float_is_changed(base, id, trect, -1.f, &val[k].f32, 1.f))
+			{
+				fprintf(stdout, "spinner %016"PRIx64" %f\n", id, val[k].f32);
+			}
 		}
 	}
 #undef N

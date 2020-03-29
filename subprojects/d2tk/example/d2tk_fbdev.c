@@ -32,7 +32,7 @@ typedef struct _app_t app_t;
 typedef void (*foreach_t)(const char *path, const char *d_name);
 
 struct _app_t {
-	d2tk_fbdev_t *fbdev;
+	d2tk_frontend_t *fbdev;
 	bool show_cursor;
 };
 
@@ -48,8 +48,8 @@ static inline int
 _expose(void *data, d2tk_coord_t w, d2tk_coord_t h)
 {
 	app_t *app = data;
-	d2tk_fbdev_t *fbdev = app->fbdev;
-	d2tk_base_t *base = d2tk_fbdev_get_base(fbdev);
+	d2tk_frontend_t *fbdev = app->fbdev;
+	d2tk_base_t *base = d2tk_frontend_get_base(fbdev);
 
 	d2tk_example_run(base, w, h);
 
@@ -218,9 +218,9 @@ main(int argc, char **argv)
 
 		d2tk_example_init();
 
-		d2tk_fbdev_run(app.fbdev, &done);
+		d2tk_frontend_run(app.fbdev, &done);
 
-		d2tk_fbdev_free(app.fbdev);
+		d2tk_frontend_free(app.fbdev);
 
 		d2tk_example_deinit();
 

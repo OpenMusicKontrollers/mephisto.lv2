@@ -14,29 +14,10 @@
   OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
-/**
-   @file pugl_gl_backend.h Declaration of OpenGL backend accessor.
-*/
+#ifndef PUGL_PUGL_GL_BACKEND_H
+#define PUGL_PUGL_GL_BACKEND_H
 
-#ifndef PUGL_GL_BACKEND_H
-#define PUGL_GL_BACKEND_H
+#warning "This header is deprecated, use pugl/pugl_gl.h instead."
+#include "pugl/pugl_gl.h"
 
-#include "pugl/pugl.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-/**
-   OpenGL graphics backend.
-
-   Pass the return value to puglInitBackend() to draw to a view with OpenGL.
-*/
-PUGL_API const PuglBackend*
-puglGlBackend(void);
-
-#ifdef __cplusplus
-}  /* extern "C" */
-#endif
-
-#endif // PUGL_GL_BACKEND_H
+#endif // PUGL_PUGL_GL_BACKEND_H

@@ -82,7 +82,7 @@ _test_hot()
 
 		d2tk_base_set_mouse_pos(base, mx, my);
 
-		d2tk_base_pre(base);
+		d2tk_base_pre(base, NULL);
 
 		_expose_hot(base, &rect, N, p);
 
@@ -93,7 +93,7 @@ _test_hot()
 	// trigger garbage collector
 	for(unsigned i = 0; i < 0x400; i++)
 	{
-		d2tk_base_pre(base);
+		d2tk_base_pre(base, NULL);
 		d2tk_base_post(base);
 		assert(!d2tk_base_get_again(base));
 	}
@@ -199,7 +199,7 @@ _test_mouse_fwd_focus()
 			d2tk_base_set_mouse_pos(base, mx, my);
 			d2tk_base_set_butmask(base, D2TK_BUTMASK_LEFT, true);
 
-			d2tk_base_pre(base);
+			d2tk_base_pre(base, NULL);
 
 			_expose_mouse_fwd_focus(base, &rect, N, p, true);
 
@@ -210,7 +210,7 @@ _test_mouse_fwd_focus()
 		{
 			d2tk_base_set_butmask(base, D2TK_BUTMASK_LEFT, false);
 
-			d2tk_base_pre(base);
+			d2tk_base_pre(base, NULL);
 
 			_expose_mouse_fwd_focus(base, &rect, N, p, false);
 
@@ -222,7 +222,7 @@ _test_mouse_fwd_focus()
 	// trigger garbage collector
 	for(unsigned i = 0; i < 0x400; i++)
 	{
-		d2tk_base_pre(base);
+		d2tk_base_pre(base, NULL);
 		d2tk_base_post(base);
 		assert(!d2tk_base_get_again(base));
 	}
@@ -327,7 +327,7 @@ _test_mouse_bwd_focus()
 			d2tk_base_set_mouse_pos(base, mx, my);
 			d2tk_base_set_butmask(base, D2TK_BUTMASK_LEFT, true);
 
-			d2tk_base_pre(base);
+			d2tk_base_pre(base, NULL);
 
 			_expose_mouse_bwd_focus(base, &rect, N, p, true);
 
@@ -338,7 +338,7 @@ _test_mouse_bwd_focus()
 		{
 			d2tk_base_set_butmask(base, D2TK_BUTMASK_LEFT, false);
 
-			d2tk_base_pre(base);
+			d2tk_base_pre(base, NULL);
 
 			_expose_mouse_bwd_focus(base, &rect, N, p, false);
 
@@ -350,7 +350,7 @@ _test_mouse_bwd_focus()
 	// trigger garbage collector
 	for(unsigned i = 0; i < 0x400; i++)
 	{
-		d2tk_base_pre(base);
+		d2tk_base_pre(base, NULL);
 		d2tk_base_post(base);
 		assert(!d2tk_base_get_again(base));
 	}
@@ -440,7 +440,7 @@ _test_key_fwd_focus()
 			d2tk_base_set_modmask(base, D2TK_MODMASK_CTRL, true);
 			d2tk_base_set_keymask(base, D2TK_KEYMASK_RIGHT, true);
 
-			d2tk_base_pre(base);
+			d2tk_base_pre(base, NULL);
 
 			_expose_key_fwd_focus(base, &rect, N, p, true);
 
@@ -452,7 +452,7 @@ _test_key_fwd_focus()
 			d2tk_base_set_keymask(base, D2TK_KEYMASK_RIGHT, false);
 			d2tk_base_set_modmask(base, D2TK_MODMASK_CTRL, false);
 
-			d2tk_base_pre(base);
+			d2tk_base_pre(base, NULL);
 
 			_expose_key_fwd_focus(base, &rect, N, p, false);
 
@@ -464,7 +464,7 @@ _test_key_fwd_focus()
 	// trigger garbage collector
 	for(unsigned i = 0; i < 0x400; i++)
 	{
-		d2tk_base_pre(base);
+		d2tk_base_pre(base, NULL);
 		d2tk_base_post(base);
 		assert(!d2tk_base_get_again(base));
 	}
@@ -546,7 +546,7 @@ _test_key_bwd_focus()
 			d2tk_base_set_modmask(base, D2TK_MODMASK_CTRL, true);
 			d2tk_base_set_keymask(base, D2TK_KEYMASK_LEFT, true);
 
-			d2tk_base_pre(base);
+			d2tk_base_pre(base, NULL);
 
 			_expose_key_bwd_focus(base, &rect, N, p, true);
 
@@ -558,7 +558,7 @@ _test_key_bwd_focus()
 			d2tk_base_set_keymask(base, D2TK_KEYMASK_LEFT, false);
 			d2tk_base_set_modmask(base, D2TK_MODMASK_CTRL, false);
 
-			d2tk_base_pre(base);
+			d2tk_base_pre(base, NULL);
 
 			_expose_key_bwd_focus(base, &rect, N, p, false);
 
@@ -570,7 +570,7 @@ _test_key_bwd_focus()
 	// trigger garbage collector
 	for(unsigned i = 0; i < 0x400; i++)
 	{
-		d2tk_base_pre(base);
+		d2tk_base_pre(base, NULL);
 		d2tk_base_post(base);
 		assert(!d2tk_base_get_again(base));
 	}

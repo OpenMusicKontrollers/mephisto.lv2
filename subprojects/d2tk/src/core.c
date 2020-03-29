@@ -1233,8 +1233,8 @@ d2tk_core_stroke_width(d2tk_core_t *core, d2tk_coord_t width)
 	}
 }
 
-D2TK_API void
-d2tk_core_pre(d2tk_core_t *core)
+D2TK_API int
+d2tk_core_pre(d2tk_core_t *core, void *pctx)
 {
 	d2tk_mem_t *curmem = &core->mem[core->curmem];
 
@@ -1242,6 +1242,8 @@ d2tk_core_pre(d2tk_core_t *core)
 
 	core->parent = d2tk_core_bbox_container_push(core, 0,
 		&D2TK_RECT(0, 0, core->w, core->h));
+
+	return core->driver->context(core->data, pctx);
 }
 
 static inline bool
@@ -1541,6 +1543,8 @@ d2tk_core_post(d2tk_core_t *core)
 			}
 		}
 	}
+
+	core->driver->end(core->data, core, core->w, core->h);
 
 	_d2tk_sprites_gc(core);
 	_d2tk_memcaches_gc(core);

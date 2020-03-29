@@ -29,9 +29,9 @@
 
 #include <pugl/pugl.h>
 #if defined(PUGL_HAVE_CAIRO)
-#	include <pugl/pugl_cairo_backend.h>
+#	include <pugl/pugl_cairo.h>
 #else
-#	include <pugl/pugl_gl_backend.h>
+#	include <pugl/pugl_gl.h>
 #endif
 
 #include "core_internal.h"
@@ -39,7 +39,10 @@
 
 #include <d2tk/backend.h>
 
-struct _d2tk_pugl_t {
+#define KEY_TAB '\t'
+#define KEY_RETURN '\r'
+
+struct _d2tk_frontend_t {
 	const d2tk_pugl_config_t *config;
 	bool done;
 	PuglWorld *world;
@@ -49,13 +52,13 @@ struct _d2tk_pugl_t {
 };
 
 static inline void
-_d2tk_pugl_close(d2tk_pugl_t *dpugl)
+_d2tk_frontend_close(d2tk_frontend_t *dpugl)
 {
 	dpugl->done = true;
 }
 
 static inline void
-_d2tk_pugl_expose(d2tk_pugl_t *dpugl)
+_d2tk_frontend_expose(d2tk_frontend_t *dpugl)
 {
 	d2tk_base_t *base = dpugl->base;
 
@@ -63,15 +66,16 @@ _d2tk_pugl_expose(d2tk_pugl_t *dpugl)
 	d2tk_coord_t h;
 	d2tk_base_get_dimensions(base, &w, &h);
 
-	d2tk_base_pre(base);
+	if(d2tk_base_pre(base, puglGetContext(dpugl->view)) == 0)
+	{
+		dpugl->config->expose(dpugl->config->data, w, h);
 
-	dpugl->config->expose(dpugl->config->data, w, h);
-
-	d2tk_base_post(base);
+		d2tk_base_post(base);
+	}
 }
 
 static void
-_d2tk_pugl_modifiers(d2tk_pugl_t *dpugl, unsigned state)
+_d2tk_frontend_modifiers(d2tk_frontend_t *dpugl, unsigned state)
 {
 	d2tk_base_t *base = dpugl->base;
 
@@ -84,9 +88,9 @@ _d2tk_pugl_modifiers(d2tk_pugl_t *dpugl, unsigned state)
 }
 
 static PuglStatus
-_d2tk_pugl_event_func(PuglView *view, const PuglEvent *e)
+_d2tk_frontend_event_func(PuglView *view, const PuglEvent *e)
 {
-	d2tk_pugl_t *dpugl = puglGetHandle(view);
+	d2tk_frontend_t *dpugl = puglGetHandle(view);
 	d2tk_base_t *base = dpugl->base;
 
 	switch(e->type)
@@ -103,15 +107,15 @@ _d2tk_pugl_event_func(PuglView *view, const PuglEvent *e)
 			}
 
 			d2tk_base_set_dimensions(base, e->configure.width, e->configure.height);
-			puglPostRedisplay(dpugl->view);
+			//puglPostRedisplay(dpugl->view);
 		}	break;
 		case PUGL_EXPOSE:
 		{
-			_d2tk_pugl_expose(dpugl);
+			_d2tk_frontend_expose(dpugl);
 		}	break;
 		case PUGL_CLOSE:
 		{
-			_d2tk_pugl_close(dpugl);
+			_d2tk_frontend_close(dpugl);
 		}	break;
 
 		case PUGL_FOCUS_IN:
@@ -123,10 +127,10 @@ _d2tk_pugl_event_func(PuglView *view, const PuglEvent *e)
 			puglPostRedisplay(dpugl->view);
 		} break;
 
-		case PUGL_ENTER_NOTIFY:
-		case PUGL_LEAVE_NOTIFY:
+		case PUGL_POINTER_IN:
+		case PUGL_POINTER_OUT:
 		{
-			_d2tk_pugl_modifiers(dpugl, e->crossing.state);
+			_d2tk_frontend_modifiers(dpugl, e->crossing.state);
 			d2tk_base_set_mouse_pos(base, e->crossing.x, e->crossing.y);
 			d2tk_base_set_full_refresh(base);
 
@@ -136,7 +140,7 @@ _d2tk_pugl_event_func(PuglView *view, const PuglEvent *e)
 		case PUGL_BUTTON_PRESS:
 		case PUGL_BUTTON_RELEASE:
 		{
-			_d2tk_pugl_modifiers(dpugl, e->button.state);
+			_d2tk_frontend_modifiers(dpugl, e->button.state);
 			d2tk_base_set_mouse_pos(base, e->button.x, e->button.y);
 
 			switch(e->button.button)
@@ -163,9 +167,9 @@ _d2tk_pugl_event_func(PuglView *view, const PuglEvent *e)
 			puglPostRedisplay(dpugl->view);
 		} break;
 
-		case PUGL_MOTION_NOTIFY:
+		case PUGL_MOTION:
 		{
-			_d2tk_pugl_modifiers(dpugl, e->motion.state);
+			_d2tk_frontend_modifiers(dpugl, e->motion.state);
 			d2tk_base_set_mouse_pos(base, e->motion.x, e->motion.y);
 
 			puglPostRedisplay(dpugl->view);
@@ -173,7 +177,7 @@ _d2tk_pugl_event_func(PuglView *view, const PuglEvent *e)
 
 		case PUGL_SCROLL:
 		{
-			_d2tk_pugl_modifiers(dpugl, e->scroll.state);
+			_d2tk_frontend_modifiers(dpugl, e->scroll.state);
 			d2tk_base_set_mouse_pos(base, e->scroll.x, e->scroll.y);
 			d2tk_base_add_mouse_scroll(base, e->scroll.dx, e->scroll.dy);
 
@@ -182,7 +186,7 @@ _d2tk_pugl_event_func(PuglView *view, const PuglEvent *e)
 
 		case PUGL_KEY_PRESS:
 		{
-			_d2tk_pugl_modifiers(dpugl, e->key.state);
+			_d2tk_frontend_modifiers(dpugl, e->key.state);
 
 			bool handled = false;
 
@@ -193,12 +197,12 @@ _d2tk_pugl_event_func(PuglView *view, const PuglEvent *e)
 					d2tk_base_set_keymask(base, D2TK_KEYMASK_BACKSPACE, true);
 					handled = true;
 				} break;
-				case PUGL_KEY_TAB:
+				case KEY_TAB:
 				{
 					d2tk_base_set_keymask(base, D2TK_KEYMASK_TAB, true);
 					handled = true;
 				} break;
-				case PUGL_KEY_RETURN:
+				case KEY_RETURN:
 				{
 					d2tk_base_set_keymask(base, D2TK_KEYMASK_ENTER, true);
 					handled = true;
@@ -289,7 +293,7 @@ _d2tk_pugl_event_func(PuglView *view, const PuglEvent *e)
 		} break;
 		case PUGL_KEY_RELEASE:
 		{
-			_d2tk_pugl_modifiers(dpugl, e->key.state);
+			_d2tk_frontend_modifiers(dpugl, e->key.state);
 
 			bool handled = false;
 
@@ -300,12 +304,12 @@ _d2tk_pugl_event_func(PuglView *view, const PuglEvent *e)
 					d2tk_base_set_keymask(base, D2TK_KEYMASK_BACKSPACE, false);
 					handled = true;
 				} break;
-				case PUGL_KEY_TAB:
+				case KEY_TAB:
 				{
 					d2tk_base_set_keymask(base, D2TK_KEYMASK_TAB, false);
 					handled = true;
 				} break;
-				case PUGL_KEY_RETURN:
+				case KEY_RETURN:
 				{
 					d2tk_base_set_keymask(base, D2TK_KEYMASK_ENTER, false);
 					handled = true;
@@ -396,9 +400,60 @@ _d2tk_pugl_event_func(PuglView *view, const PuglEvent *e)
 		} break;
 		case PUGL_TEXT:
 		{
-			d2tk_base_append_utf8(base, e->text.character);
+			if(e->text.character != PUGL_KEY_DELETE)
+			{
+				d2tk_base_append_utf8(base, e->text.character);
+			}
 
 			puglPostRedisplay(dpugl->view);
+		} break;
+		case PUGL_CREATE:
+		{
+			dpugl->ctx = d2tk_core_driver.new(dpugl->config->bundle_path);
+
+			if(!dpugl->ctx)
+			{
+				return PUGL_FAILURE;
+			}
+
+			dpugl->base = d2tk_base_new(&d2tk_core_driver, dpugl->ctx);
+			if(!dpugl->base)
+			{
+				return PUGL_FAILURE;
+			}
+
+			d2tk_base_set_dimensions(dpugl->base, dpugl->config->w, dpugl->config->h);
+		} break;
+		case PUGL_DESTROY:
+		{
+			if(dpugl->ctx)
+			{
+				if(dpugl->base)
+				{
+					d2tk_base_free(dpugl->base);
+				}
+				d2tk_core_driver.free(dpugl->ctx);
+			}
+		} break;
+		case PUGL_MAP:
+		{
+			// FIXME
+		} break;
+		case PUGL_UNMAP:
+		{
+			// FIXME
+		} break;
+		case PUGL_UPDATE:
+		{
+			puglPostRedisplay(dpugl->view);
+		} break;
+		case PUGL_CLIENT:
+		{
+			// FIXME
+		} break;
+		case PUGL_TIMER:
+		{
+			// FIXME
 		} break;
 		case PUGL_NOTHING:
 		{
@@ -410,7 +465,7 @@ _d2tk_pugl_event_func(PuglView *view, const PuglEvent *e)
 }
 
 D2TK_API int
-d2tk_pugl_step(d2tk_pugl_t *dpugl)
+d2tk_frontend_poll(d2tk_frontend_t *dpugl, double timeout)
 {
 	d2tk_base_probe(dpugl->base);
 
@@ -419,35 +474,24 @@ d2tk_pugl_step(d2tk_pugl_t *dpugl)
 		puglPostRedisplay(dpugl->view);
 	}
 
-	const PuglStatus stat = puglDispatchEvents(dpugl->world);
+	const PuglStatus stat = puglUpdate(dpugl->world, timeout);
 	(void)stat;
 
 	return dpugl->done;
 }
 
 D2TK_API int
-d2tk_pugl_poll(d2tk_pugl_t *dpugl, double timeout)
+d2tk_frontend_step(d2tk_frontend_t *dpugl)
 {
-	const PuglStatus stat = puglPollEvents(dpugl->world, timeout);
-	(void)stat;
-
-	return dpugl->done;
+	return d2tk_frontend_poll(dpugl, 0.0);
 }
 
 D2TK_API void
-d2tk_pugl_run(d2tk_pugl_t *dpugl, const sig_atomic_t *done)
+d2tk_frontend_run(d2tk_frontend_t *dpugl, const sig_atomic_t *done)
 {
-	const unsigned fps = 25;
-	const double timeout = 1.0 / fps;
-
 	while(!*done)
 	{
-		if(d2tk_pugl_poll(dpugl, timeout))
-		{
-			break;
-		}
-
-		if(d2tk_pugl_step(dpugl))
+		if(d2tk_frontend_poll(dpugl, -1.0))
 		{
 			break;
 		}
@@ -455,19 +499,8 @@ d2tk_pugl_run(d2tk_pugl_t *dpugl, const sig_atomic_t *done)
 }
 
 D2TK_API void
-d2tk_pugl_free(d2tk_pugl_t *dpugl)
+d2tk_frontend_free(d2tk_frontend_t *dpugl)
 {
-	if(dpugl->ctx)
-	{
-		puglEnterContext(dpugl->view, false);
-		if(dpugl->base)
-		{
-			d2tk_base_free(dpugl->base);
-		}
-		d2tk_core_driver.free(dpugl->ctx);
-		puglLeaveContext(dpugl->view, false);
-	}
-
 	if(dpugl->world)
 	{
 		if(dpugl->view)
@@ -485,7 +518,7 @@ d2tk_pugl_free(d2tk_pugl_t *dpugl)
 }
 
 D2TK_API float
-d2tk_pugl_get_scale()
+d2tk_frontend_get_scale()
 {
 	const char *D2TK_SCALE = getenv("D2TK_SCALE");
 	const float scale = D2TK_SCALE ? atof(D2TK_SCALE) : 1.f;
@@ -522,6 +555,8 @@ d2tk_pugl_get_scale()
 				{
 					dpi1 = atof(value.addr);
 				}
+
+				XrmDestroyDatabase(db);
 			}
 		}
 
@@ -532,10 +567,10 @@ d2tk_pugl_get_scale()
 	return scale * dpi1 / dpi0;
 }
 
-D2TK_API d2tk_pugl_t *
+D2TK_API d2tk_frontend_t *
 d2tk_pugl_new(const d2tk_pugl_config_t *config, uintptr_t *widget)
 {
-	d2tk_pugl_t *dpugl = calloc(1, sizeof(d2tk_pugl_t));
+	d2tk_frontend_t *dpugl = calloc(1, sizeof(d2tk_frontend_t));
 	if(!dpugl)
 	{
 		goto fail;
@@ -543,7 +578,8 @@ d2tk_pugl_new(const d2tk_pugl_config_t *config, uintptr_t *widget)
 
 	dpugl->config = config;
 
-	dpugl->world = puglNewWorld();
+	dpugl->world = puglNewWorld(config->parent ? PUGL_MODULE : PUGL_PROGRAM,
+		PUGL_WORLD_THREADS);
 	if(!dpugl->world)
 	{
 		fprintf(stderr, "puglNewWorld failed\n");
@@ -584,8 +620,10 @@ d2tk_pugl_new(const d2tk_pugl_config_t *config, uintptr_t *widget)
 			config->w, config->h);
 	}
 	puglSetViewHint(dpugl->view, PUGL_RESIZABLE, !config->fixed_size);
+	puglSetViewHint(dpugl->view, PUGL_DOUBLE_BUFFER, false);
+	puglSetViewHint(dpugl->view, PUGL_SWAP_INTERVAL, 1);
 	puglSetHandle(dpugl->view, dpugl);
-	puglSetEventFunc(dpugl->view, _d2tk_pugl_event_func);
+	puglSetEventFunc(dpugl->view, _d2tk_frontend_event_func);
 
 #if defined(PUGL_HAVE_CAIRO)
 	puglSetBackend(dpugl->view, puglCairoBackend());
@@ -606,24 +644,6 @@ d2tk_pugl_new(const d2tk_pugl_config_t *config, uintptr_t *widget)
 		*widget = puglGetNativeWindow(dpugl->view);
 	}
 
-	puglEnterContext(dpugl->view, false);
-	void *ctx = puglGetContext(dpugl->view);
-	dpugl->ctx = d2tk_core_driver.new(config->bundle_path, ctx);
-	puglLeaveContext(dpugl->view, false);
-
-	if(!dpugl->ctx)
-	{
-		goto fail;
-	}
-
-	dpugl->base = d2tk_base_new(&d2tk_core_driver, dpugl->ctx);
-	if(!dpugl->base)
-	{
-		goto fail;
-	}
-
-	d2tk_base_set_dimensions(dpugl->base, config->w, config->h);
-
 	return dpugl;
 
 fail:
@@ -633,13 +653,6 @@ fail:
 		{
 			if(dpugl->view)
 			{
-				if(dpugl->ctx)
-				{
-					puglEnterContext(dpugl->view, false);
-					d2tk_core_driver.free(dpugl->ctx);
-					puglLeaveContext(dpugl->view, false);
-				}
-
 				puglFreeView(dpugl->view);
 			}
 			puglFreeWorld(dpugl->world);
@@ -652,13 +665,13 @@ fail:
 }
 
 D2TK_API void
-d2tk_pugl_redisplay(d2tk_pugl_t *dpugl)
+d2tk_frontend_redisplay(d2tk_frontend_t *dpugl)
 {
 	puglPostRedisplay(dpugl->view);
 }
 
 D2TK_API int
-d2tk_pugl_set_size(d2tk_pugl_t *dpugl, d2tk_coord_t w, d2tk_coord_t h)
+d2tk_frontend_set_size(d2tk_frontend_t *dpugl, d2tk_coord_t w, d2tk_coord_t h)
 {
 	d2tk_base_set_dimensions(dpugl->base, w, h);
 	puglPostRedisplay(dpugl->view);
@@ -667,7 +680,7 @@ d2tk_pugl_set_size(d2tk_pugl_t *dpugl, d2tk_coord_t w, d2tk_coord_t h)
 }
 
 D2TK_API int
-d2tk_pugl_get_size(d2tk_pugl_t *dpugl, d2tk_coord_t *w, d2tk_coord_t *h)
+d2tk_frontend_get_size(d2tk_frontend_t *dpugl, d2tk_coord_t *w, d2tk_coord_t *h)
 {
 	const PuglRect rect = puglGetFrame(dpugl->view);
 
@@ -685,7 +698,7 @@ d2tk_pugl_get_size(d2tk_pugl_t *dpugl, d2tk_coord_t *w, d2tk_coord_t *h)
 }
 
 D2TK_API d2tk_base_t *
-d2tk_pugl_get_base(d2tk_pugl_t *dpugl)
+d2tk_frontend_get_base(d2tk_frontend_t *dpugl)
 {
 	return dpugl->base;
 }

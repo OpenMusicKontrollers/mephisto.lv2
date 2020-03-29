@@ -21,14 +21,12 @@
 #include <signal.h>
 
 #include <d2tk/base.h>
+#include <d2tk/frontend.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef int (*d2tk_pugl_expose_t)(void *data, d2tk_coord_t w, d2tk_coord_t h);
-
-typedef struct _d2tk_pugl_t d2tk_pugl_t;
 typedef struct _d2tk_pugl_config_t d2tk_pugl_config_t;
 
 struct _d2tk_pugl_config_t {
@@ -40,39 +38,12 @@ struct _d2tk_pugl_config_t {
 	d2tk_coord_t h;
 	bool fixed_size;
 	bool fixed_aspect;
-	d2tk_pugl_expose_t expose;
+	d2tk_frontend_expose_t expose;
 	void *data;
 };
 
-D2TK_API d2tk_pugl_t *
+D2TK_API d2tk_frontend_t *
 d2tk_pugl_new(const d2tk_pugl_config_t *config, uintptr_t *widget);
-
-D2TK_API void
-d2tk_pugl_free(d2tk_pugl_t *dpugl);
-
-D2TK_API int
-d2tk_pugl_step(d2tk_pugl_t *dpugl);
-
-D2TK_API int
-d2tk_pugl_poll(d2tk_pugl_t *dpugl, double timeout);
-
-D2TK_API void
-d2tk_pugl_run(d2tk_pugl_t *dpugl, const sig_atomic_t *done);
-
-D2TK_API void
-d2tk_pugl_redisplay(d2tk_pugl_t *dpugl);
-
-D2TK_API int
-d2tk_pugl_set_size(d2tk_pugl_t *dpugl, d2tk_coord_t w, d2tk_coord_t h);
-
-D2TK_API int
-d2tk_pugl_get_size(d2tk_pugl_t *dpugl, d2tk_coord_t *w, d2tk_coord_t *h);
-
-D2TK_API d2tk_base_t *
-d2tk_pugl_get_base(d2tk_pugl_t *dpugl);
-
-D2TK_API float
-d2tk_pugl_get_scale();
 
 #ifdef __cplusplus
 }

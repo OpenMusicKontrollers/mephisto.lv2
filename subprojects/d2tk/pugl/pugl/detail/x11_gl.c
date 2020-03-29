@@ -21,15 +21,15 @@
 #include "pugl/detail/types.h"
 #include "pugl/detail/x11.h"
 #include "pugl/pugl.h"
-#include "pugl/pugl_gl_backend.h"
+#include "pugl/pugl_gl.h"
+#include "pugl/pugl_stub.h"
 
-#include <GL/gl.h>
 #include <GL/glx.h>
 #include <X11/X.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 
-#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -39,16 +39,16 @@ typedef struct {
 	int         double_buffered;
 } PuglX11GlSurface;
 
-static PuglStatus
+static int
 puglX11GlHintValue(const int value)
 {
 	return value == PUGL_DONT_CARE ? (int)GLX_DONT_CARE : value;
 }
 
-static PuglStatus
-puglX11GlGetAttrib(Display* const    display,
-                   const GLXFBConfig fb_config,
-                   const int         attrib)
+static int
+puglX11GlGetAttrib(Display* const display,
+                   GLXFBConfig    fb_config,
+                   const int      attrib)
 {
 	int value = 0;
 	glXGetFBConfigAttrib(display, fb_config, attrib, &value);
@@ -85,23 +85,28 @@ puglX11GlConfigure(PuglView* view)
 	int          n_fbc = 0;
 	GLXFBConfig* fbc   = glXChooseFBConfig(display, screen, attrs, &n_fbc);
 	if (n_fbc <= 0) {
-		fprintf(stderr, "error: Failed to create GL context\n");
 		return PUGL_CREATE_CONTEXT_FAILED;
 	}
 
 	surface->fb_config = fbc[0];
 	impl->vi           = glXGetVisualFromFBConfig(impl->display, fbc[0]);
 
-	printf("Using visual 0x%lX: R=%d G=%d B=%d A=%d D=%d"
-	       " DOUBLE=%d SAMPLES=%d\n",
-	       impl->vi->visualid,
-	       puglX11GlGetAttrib(display, fbc[0], GLX_RED_SIZE),
-	       puglX11GlGetAttrib(display, fbc[0], GLX_GREEN_SIZE),
-	       puglX11GlGetAttrib(display, fbc[0], GLX_BLUE_SIZE),
-	       puglX11GlGetAttrib(display, fbc[0], GLX_ALPHA_SIZE),
-	       puglX11GlGetAttrib(display, fbc[0], GLX_DEPTH_SIZE),
-	       puglX11GlGetAttrib(display, fbc[0], GLX_DOUBLEBUFFER),
-	       puglX11GlGetAttrib(display, fbc[0], GLX_SAMPLES));
+	char msg[128];
+
+	snprintf(
+	    msg,
+	    sizeof(msg),
+	    "Using visual 0x%lX: R=%d G=%d B=%d A=%d D=%d DOUBLE=%d SAMPLES=%d\n",
+	    impl->vi->visualid,
+	    puglX11GlGetAttrib(display, fbc[0], GLX_RED_SIZE),
+	    puglX11GlGetAttrib(display, fbc[0], GLX_GREEN_SIZE),
+	    puglX11GlGetAttrib(display, fbc[0], GLX_BLUE_SIZE),
+	    puglX11GlGetAttrib(display, fbc[0], GLX_ALPHA_SIZE),
+	    puglX11GlGetAttrib(display, fbc[0], GLX_DEPTH_SIZE),
+	    puglX11GlGetAttrib(display, fbc[0], GLX_DOUBLEBUFFER),
+	    puglX11GlGetAttrib(display, fbc[0], GLX_SAMPLES));
+
+	view->world->logFunc(view->world, PUGL_LOG_LEVEL_INFO, msg);
 
 	XFree(fbc);
 
@@ -114,7 +119,7 @@ puglX11GlCreate(PuglView* view)
 	PuglInternals* const    impl      = view->impl;
 	PuglX11GlSurface* const surface   = (PuglX11GlSurface*)impl->surface;
 	Display* const          display   = impl->display;
-	const GLXFBConfig       fb_config = surface->fb_config;
+	GLXFBConfig             fb_config = surface->fb_config;
 
 	const int ctx_attrs[] = {
 		GLX_CONTEXT_MAJOR_VERSION_ARB, view->hints[PUGL_CONTEXT_VERSION_MAJOR],
@@ -127,14 +132,15 @@ puglX11GlCreate(PuglView* view)
 		                               : GLX_CONTEXT_CORE_PROFILE_BIT_ARB),
 		0};
 
-	typedef GLXContext (*CreateContextAttribs)(
-		Display*, GLXFBConfig, GLXContext, Bool, const int*);
+	PFNGLXCREATECONTEXTATTRIBSARBPROC create_context =
+	    (PFNGLXCREATECONTEXTATTRIBSARBPROC)glXGetProcAddress(
+	        (const uint8_t*)"glXCreateContextAttribsARB");
 
-	CreateContextAttribs create_context =
-		(CreateContextAttribs)glXGetProcAddress(
-			(const GLubyte*)"glXCreateContextAttribsARB");
+	PFNGLXSWAPINTERVALEXTPROC glXSwapIntervalEXT =
+		(PFNGLXSWAPINTERVALEXTPROC) glXGetProcAddress(
+			(const uint8_t*)"glXSwapIntervalEXT");
 
-	surface->ctx = create_context(display, fb_config, 0, GL_TRUE, ctx_attrs);
+	surface->ctx = create_context(display, fb_config, 0, True, ctx_attrs);
 	if (!surface->ctx) {
 		surface->ctx =
 			glXCreateNewContext(display, fb_config, GLX_RGBA_TYPE, 0, True);
@@ -142,6 +148,11 @@ puglX11GlCreate(PuglView* view)
 
 	if (!surface->ctx) {
 		return PUGL_CREATE_CONTEXT_FAILED;
+	}
+
+	const int swapInterval = view->hints[PUGL_SWAP_INTERVAL];
+	if (glXSwapIntervalEXT && swapInterval != PUGL_DONT_CARE) {
+		glXSwapIntervalEXT(display, impl->win, swapInterval);
 	}
 
 	glXGetConfig(impl->display,
@@ -165,7 +176,7 @@ puglX11GlDestroy(PuglView* view)
 }
 
 static PuglStatus
-puglX11GlEnter(PuglView* view, bool PUGL_UNUSED(drawing))
+puglX11GlEnter(PuglView* view, const PuglEventExpose* PUGL_UNUSED(expose))
 {
 	PuglX11GlSurface* surface = (PuglX11GlSurface*)view->impl->surface;
 	glXMakeCurrent(view->impl->display, view->impl->win, surface->ctx);
@@ -173,14 +184,12 @@ puglX11GlEnter(PuglView* view, bool PUGL_UNUSED(drawing))
 }
 
 static PuglStatus
-puglX11GlLeave(PuglView* view, bool drawing)
+puglX11GlLeave(PuglView* view, const PuglEventExpose* expose)
 {
 	PuglX11GlSurface* surface = (PuglX11GlSurface*)view->impl->surface;
 
-	if (drawing && surface->double_buffered) {
+	if (expose && surface->double_buffered) {
 		glXSwapBuffers(view->impl->display, view->impl->win);
-	} else if (drawing) {
-		glFlush();
 	}
 
 	glXMakeCurrent(view->impl->display, None, NULL);
@@ -188,37 +197,20 @@ puglX11GlLeave(PuglView* view, bool drawing)
 	return PUGL_SUCCESS;
 }
 
-static PuglStatus
-puglX11GlResize(PuglView* PUGL_UNUSED(view),
-                int       PUGL_UNUSED(width),
-                int       PUGL_UNUSED(height))
-{
-	return PUGL_SUCCESS;
-}
-
-static void*
-puglX11GlGetContext(PuglView* PUGL_UNUSED(view))
-{
-	return NULL;
-}
-
 PuglGlFunc
 puglGetProcAddress(const char* name)
 {
-	return glXGetProcAddress((const GLubyte*)name);
+	return glXGetProcAddress((const uint8_t*)name);
 }
 
 const PuglBackend* puglGlBackend(void)
 {
-	static const PuglBackend backend = {
-		puglX11GlConfigure,
-		puglX11GlCreate,
-		puglX11GlDestroy,
-		puglX11GlEnter,
-		puglX11GlLeave,
-		puglX11GlResize,
-		puglX11GlGetContext
-	};
+	static const PuglBackend backend = {puglX11GlConfigure,
+	                                    puglX11GlCreate,
+	                                    puglX11GlDestroy,
+	                                    puglX11GlEnter,
+	                                    puglX11GlLeave,
+	                                    puglStubGetContext};
 
 	return &backend;
 }

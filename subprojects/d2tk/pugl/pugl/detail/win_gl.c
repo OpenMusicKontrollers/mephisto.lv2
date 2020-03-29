@@ -20,7 +20,8 @@
 
 #include "pugl/detail/types.h"
 #include "pugl/detail/win.h"
-#include "pugl/pugl_gl_backend.h"
+#include "pugl/pugl_gl.h"
+#include "pugl/pugl_stub.h"
 
 #include <windows.h>
 
@@ -108,6 +109,7 @@ puglWinGlConfigure(PuglView* view)
 {
 	PuglInternals* impl = view->impl;
 
+	// clang-format off
 	const int pixelAttrs[] = {
 		WGL_DRAW_TO_WINDOW_ARB, GL_TRUE,
 		WGL_ACCELERATION_ARB,   WGL_FULL_ACCELERATION_ARB,
@@ -124,16 +126,17 @@ puglWinGlConfigure(PuglView* view)
 		WGL_STENCIL_BITS_ARB,   view->hints[PUGL_STENCIL_BITS],
 		0,
 	};
+	// clang-format on
 
 	PuglWinGlSurface* const surface =
 		(PuglWinGlSurface*)calloc(1, sizeof(PuglWinGlSurface));
 	impl->surface = surface;
 
 	// Create fake window for getting at GL context
-	PuglStatus     st      = PUGL_SUCCESS;
-	PuglFakeWindow fakeWin = { 0, 0 };
-	if ((st = puglWinCreateWindow(view, "Pugl Configuration",
-	                              &fakeWin.hwnd, &fakeWin.hdc))) {
+	PuglStatus         st      = PUGL_SUCCESS;
+	PuglFakeWindow     fakeWin = {0, 0};
+	static const char* title   = "Pugl Configuration";
+	if ((st = puglWinCreateWindow(view, title, &fakeWin.hwnd, &fakeWin.hdc))) {
 		return puglWinError(&fakeWin, st);
 	}
 
@@ -189,16 +192,21 @@ puglWinGlCreate(PuglView* view)
 	PuglStatus              st      = PUGL_SUCCESS;
 
 	const int contextAttribs[] = {
-		WGL_CONTEXT_MAJOR_VERSION_ARB, view->hints[PUGL_CONTEXT_VERSION_MAJOR],
-		WGL_CONTEXT_MINOR_VERSION_ARB, view->hints[PUGL_CONTEXT_VERSION_MINOR],
-		WGL_CONTEXT_FLAGS_ARB, (view->hints[PUGL_USE_DEBUG_CONTEXT]
-		                        ? WGL_CONTEXT_DEBUG_BIT_ARB
-		                        : 0),
-		(view->hints[PUGL_USE_COMPAT_PROFILE]
-		 ? WGL_CONTEXT_CORE_PROFILE_BIT_ARB
-		 : WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB),
-		0
-	};
+	    WGL_CONTEXT_MAJOR_VERSION_ARB,
+	    view->hints[PUGL_CONTEXT_VERSION_MAJOR],
+
+	    WGL_CONTEXT_MINOR_VERSION_ARB,
+	    view->hints[PUGL_CONTEXT_VERSION_MINOR],
+
+	    WGL_CONTEXT_FLAGS_ARB,
+	    (view->hints[PUGL_USE_DEBUG_CONTEXT] ? WGL_CONTEXT_DEBUG_BIT_ARB : 0),
+
+	    WGL_CONTEXT_PROFILE_MASK_ARB,
+	    (view->hints[PUGL_USE_COMPAT_PROFILE]
+	         ? WGL_CONTEXT_CORE_PROFILE_BIT_ARB
+	         : WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB),
+
+	    0};
 
 	// Create real window with desired pixel format
 	if ((st = puglWinCreateWindow(view, "Pugl", &impl->hwnd, &impl->hdc))) {
@@ -222,8 +230,9 @@ puglWinGlCreate(PuglView* view)
 
 	// Enter context and set swap interval
 	wglMakeCurrent(impl->hdc, surface->hglrc);
-	if (surface->procs.wglSwapInterval) {
-		surface->procs.wglSwapInterval(view->hints[PUGL_SWAP_INTERVAL]);
+	const int swapInterval = view->hints[PUGL_SWAP_INTERVAL];
+	if (surface->procs.wglSwapInterval && swapInterval != PUGL_DONT_CARE) {
+		surface->procs.wglSwapInterval(swapInterval);
 	}
 
 	return PUGL_SUCCESS;
@@ -244,13 +253,13 @@ puglWinGlDestroy(PuglView* view)
 }
 
 static PuglStatus
-puglWinGlEnter(PuglView* view, bool drawing)
+puglWinGlEnter(PuglView* view, const PuglEventExpose* expose)
 {
 	PuglWinGlSurface* surface = (PuglWinGlSurface*)view->impl->surface;
 
 	wglMakeCurrent(view->impl->hdc, surface->hglrc);
 
-	if (drawing) {
+	if (expose) {
 		PAINTSTRUCT ps;
 		BeginPaint(view->impl->hwnd, &ps);
 	}
@@ -259,9 +268,9 @@ puglWinGlEnter(PuglView* view, bool drawing)
 }
 
 static PuglStatus
-puglWinGlLeave(PuglView* view, bool drawing)
+puglWinGlLeave(PuglView* view, const PuglEventExpose* expose)
 {
-	if (drawing) {
+	if (expose) {
 		PAINTSTRUCT ps;
 		EndPaint(view->impl->hwnd, &ps);
 		SwapBuffers(view->impl->hdc);
@@ -269,20 +278,6 @@ puglWinGlLeave(PuglView* view, bool drawing)
 
 	wglMakeCurrent(NULL, NULL);
 	return PUGL_SUCCESS;
-}
-
-static PuglStatus
-puglWinGlResize(PuglView* PUGL_UNUSED(view),
-                int       PUGL_UNUSED(width),
-                int       PUGL_UNUSED(height))
-{
-	return PUGL_SUCCESS;
-}
-
-static void*
-puglWinGlGetContext(PuglView* PUGL_UNUSED(view))
-{
-	return NULL;
 }
 
 PuglGlFunc
@@ -302,15 +297,12 @@ puglGetProcAddress(const char* name)
 const PuglBackend*
 puglGlBackend()
 {
-	static const PuglBackend backend = {
-		puglWinGlConfigure,
-		puglWinGlCreate,
-		puglWinGlDestroy,
-		puglWinGlEnter,
-		puglWinGlLeave,
-		puglWinGlResize,
-		puglWinGlGetContext
-	};
+	static const PuglBackend backend = {puglWinGlConfigure,
+	                                    puglWinGlCreate,
+	                                    puglWinGlDestroy,
+	                                    puglWinGlEnter,
+	                                    puglWinGlLeave,
+	                                    puglStubGetContext};
 
 	return &backend;
 }

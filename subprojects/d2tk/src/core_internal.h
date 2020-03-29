@@ -29,12 +29,15 @@ extern "C" {
 typedef struct _d2tk_clip_t d2tk_clip_t;
 typedef struct _d2tk_com_t d2tk_com_t;
 
-typedef void *(*d2tk_core_new_t)(const char *bundle_path, void *pctx);
+typedef void *(*d2tk_core_new_t)(const char *bundle_path);
 typedef void (*d2tk_core_free_t)(void *data);
+typedef int (*d2tk_core_context_t)(void *data, void *pctx);
 typedef void (*d2tk_core_pre_t)(void *data, d2tk_core_t *core,
 	d2tk_coord_t w, d2tk_coord_t h, unsigned pass);
 typedef bool (*d2tk_core_post_t)(void *data, d2tk_core_t *core,
 	d2tk_coord_t w, d2tk_coord_t h, unsigned pass);
+typedef void (*d2tk_core_end_t)(void *data, d2tk_core_t *core,
+	d2tk_coord_t w, d2tk_coord_t h);
 typedef void (*d2tk_core_process_t)(void *data, d2tk_core_t *core,
 	const d2tk_com_t *com, d2tk_coord_t xo, d2tk_coord_t yo,
 	const d2tk_clip_t *clip, unsigned pass);
@@ -73,9 +76,11 @@ struct _d2tk_clip_t {
 struct _d2tk_core_driver_t {
 	d2tk_core_new_t new;
 	d2tk_core_free_t free;
+	d2tk_core_context_t context;
 	d2tk_core_pre_t pre;
 	d2tk_core_process_t process;
 	d2tk_core_post_t post;
+	d2tk_core_end_t end;
 	d2tk_core_sprite_free_t sprite_free;
 };
 
