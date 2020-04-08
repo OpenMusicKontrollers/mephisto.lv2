@@ -475,7 +475,7 @@ handleCrossing(PuglWrapperView* view, NSEvent* event, const PuglEventType type)
 	(void)replacement;
 	[markedText release];
 	markedText = (
-		[string isKindOfClass:[NSAttributedString class]]
+		[(NSObject*)string isKindOfClass:[NSAttributedString class]]
 		? [[NSMutableAttributedString alloc] initWithAttributedString:string]
 		: [[NSMutableAttributedString alloc] initWithString:string]);
 }
@@ -511,7 +511,7 @@ handleCrossing(PuglWrapperView* view, NSEvent* event, const PuglEventType type)
 	(void)range;
 	(void)actual;
 
-	const NSRect frame = [(id)puglview bounds];
+	const NSRect frame = [self bounds];
 	return NSMakeRect(frame.origin.x, frame.origin.y, 0.0, 0.0);
 }
 
@@ -527,8 +527,8 @@ handleCrossing(PuglWrapperView* view, NSEvent* event, const PuglEventType type)
 
 	NSEvent* const  event      = [NSApp currentEvent];
 	NSString* const characters =
-		([string isKindOfClass:[NSAttributedString class]]
-		 ? [string string]
+		([(NSObject*)string isKindOfClass:[NSAttributedString class]]
+		 ? [(NSAttributedString*)string string]
 		 : (NSString*)string);
 
 	const NSPoint wloc = [self eventLocation:event];
@@ -569,7 +569,7 @@ handleCrossing(PuglWrapperView* view, NSEvent* event, const PuglEventType type)
 {
 	const uint32_t mods    = getModifiers(event);
 	PuglEventType  type    = PUGL_NOTHING;
-	PuglKey        special = 0;
+	PuglKey        special = (PuglKey)0;
 
 	if ((mods & PUGL_MOD_SHIFT) != (puglview->impl->mods & PUGL_MOD_SHIFT)) {
 		type = mods & PUGL_MOD_SHIFT ? PUGL_KEY_PRESS : PUGL_KEY_RELEASE;
@@ -753,7 +753,7 @@ puglConstraint(id item, NSLayoutAttribute attribute, float constant)
 }
 
 PuglStatus
-puglCreateWindow(PuglView* view, const char* title)
+puglRealize(PuglView* view)
 {
 	PuglInternals* impl = view->impl;
 
@@ -771,7 +771,7 @@ puglCreateWindow(PuglView* view, const char* title)
 		     puglConstraint(impl->wrapperView, NSLayoutAttributeHeight, view->minHeight)];
 
 	// Create draw view to be rendered to
-	int st = 0;
+	PuglStatus st = PUGL_SUCCESS;
 	if ((st = view->backend->configure(view)) ||
 	    (st = view->backend->create(view))) {
 		return st;
@@ -788,11 +788,6 @@ puglCreateWindow(PuglView* view, const char* title)
 		[impl->drawView setHidden:NO];
 		[[impl->drawView window] makeFirstResponder:impl->wrapperView];
 	} else {
-		NSString* titleString = [[NSString alloc]
-			                        initWithBytes:title
-			                               length:strlen(title)
-			                             encoding:NSUTF8StringEncoding];
-
 		const NSRect frame = rectToScreen(
 			NSMakeRect(view->frame.x, view->frame.y,
 			           view->minWidth, view->minHeight));
@@ -804,20 +799,28 @@ puglCreateWindow(PuglView* view, const char* title)
 			style |= NSResizableWindowMask;
 		}
 
-		id window = [[[PuglWindow alloc]
+		PuglWindow* window = [[[PuglWindow alloc]
 			initWithContentRect:frame
 			          styleMask:style
 			            backing:NSBackingStoreBuffered
 			              defer:NO
 		              ] retain];
 		[window setPuglview:view];
-		[window setTitle:titleString];
+
+		if (view->title) {
+			NSString* titleString = [[NSString alloc]
+				                        initWithBytes:view->title
+				                               length:strlen(view->title)
+				                             encoding:NSUTF8StringEncoding];
+
+			[window setTitle:titleString];
+		}
+
 		if (view->minWidth || view->minHeight) {
 			[window setContentMinSize:NSMakeSize(view->minWidth,
 			                                     view->minHeight)];
 		}
 		impl->window = window;
-		puglSetWindowTitle(view, title);
 
 		((NSWindow*)window).delegate = [[PuglWindowDelegate alloc]
 			                  initWithPuglWindow:window];
@@ -963,8 +966,8 @@ PuglStatus puglSendEvent(PuglView* view, const PuglEvent* event)
 		          windowNumber:window.windowNumber
 		               context:nil
 		               subtype:PUGL_CLIENT
-		                 data1:event->client.data1
-		                 data2:event->client.data2];
+		                 data1:(NSInteger)event->client.data1
+		                 data2:(NSInteger)event->client.data2];
 
 		[view->world->impl->app postEvent:nsevent atStart:false];
         return PUGL_SUCCESS;
@@ -992,8 +995,8 @@ dispatchClientEvent(PuglWorld* world, NSEvent* ev)
 		if ([wrapper window] == win && NSPointInRect(loc, [wrapper frame])) {
 			const PuglEventClient event = {PUGL_CLIENT,
 			                               0,
-			                               [ev data1],
-			                               [ev data2]};
+			                               (uintptr_t)[ev data1],
+			                               (uintptr_t)[ev data2]};
 
 			puglDispatchEvent(view, (const PuglEvent*)&event);
 		}
@@ -1064,15 +1067,15 @@ PuglStatus
 puglPostRedisplayRect(PuglView* view, const PuglRect rect)
 {
 	[view->impl->drawView setNeedsDisplayInRect:
-		CGRectMake(rect.x, rect.y, rect.width, rect.height)];
+		NSMakeRect(rect.x, rect.y, rect.width, rect.height)];
 
 	return PUGL_SUCCESS;
 }
 
-PuglNativeWindow
+PuglNativeView
 puglGetNativeWindow(PuglView* view)
 {
-	return (PuglNativeWindow)view->impl->wrapperView;
+	return (PuglNativeView)view->impl->wrapperView;
 }
 
 PuglStatus
@@ -1080,12 +1083,12 @@ puglSetWindowTitle(PuglView* view, const char* title)
 {
 	puglSetString(&view->title, title);
 
-	NSString* titleString = [[NSString alloc]
-		                        initWithBytes:title
-		                               length:strlen(title)
-		                             encoding:NSUTF8StringEncoding];
-
 	if (view->impl->window) {
+		NSString* titleString = [[NSString alloc]
+		    initWithBytes:title
+		           length:strlen(title)
+		         encoding:NSUTF8StringEncoding];
+
 		[view->impl->window setTitle:titleString];
 	}
 
@@ -1182,11 +1185,16 @@ puglSetClipboard(PuglView* const   view,
 		return st;
 	}
 
-	[pasteboard declareTypes:[NSArray arrayWithObjects:NSStringPboardType, nil]
-	                   owner:nil];
+	NSString* nsString = [NSString stringWithUTF8String:str];
+	if (nsString) {
+		[pasteboard
+		    declareTypes:[NSArray arrayWithObjects:NSStringPboardType, nil]
+		           owner:nil];
 
-	[pasteboard setString:[NSString stringWithUTF8String:str]
-	              forType:NSStringPboardType];
+		[pasteboard setString:nsString forType:NSStringPboardType];
 
-	return PUGL_SUCCESS;
+		return PUGL_SUCCESS;
+	}
+
+	return PUGL_UNKNOWN_ERROR;
 }

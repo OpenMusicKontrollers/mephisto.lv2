@@ -92,6 +92,7 @@ _d2tk_frontend_event_func(PuglView *view, const PuglEvent *e)
 {
 	d2tk_frontend_t *dpugl = puglGetHandle(view);
 	d2tk_base_t *base = dpugl->base;
+	bool redisplay = false;
 
 	switch(e->type)
 	{
@@ -107,7 +108,6 @@ _d2tk_frontend_event_func(PuglView *view, const PuglEvent *e)
 			}
 
 			d2tk_base_set_dimensions(base, e->configure.width, e->configure.height);
-			//puglPostRedisplay(dpugl->view);
 		}	break;
 		case PUGL_EXPOSE:
 		{
@@ -124,7 +124,7 @@ _d2tk_frontend_event_func(PuglView *view, const PuglEvent *e)
 		{
 			d2tk_base_set_full_refresh(base);
 
-			puglPostRedisplay(dpugl->view);
+			redisplay = true;
 		} break;
 
 		case PUGL_POINTER_IN:
@@ -134,7 +134,7 @@ _d2tk_frontend_event_func(PuglView *view, const PuglEvent *e)
 			d2tk_base_set_mouse_pos(base, e->crossing.x, e->crossing.y);
 			d2tk_base_set_full_refresh(base);
 
-			puglPostRedisplay(dpugl->view);
+			redisplay = true;
 		} break;
 
 		case PUGL_BUTTON_PRESS:
@@ -164,7 +164,7 @@ _d2tk_frontend_event_func(PuglView *view, const PuglEvent *e)
 				} break;
 			}
 
-			puglPostRedisplay(dpugl->view);
+			redisplay = true;
 		} break;
 
 		case PUGL_MOTION:
@@ -172,7 +172,7 @@ _d2tk_frontend_event_func(PuglView *view, const PuglEvent *e)
 			_d2tk_frontend_modifiers(dpugl, e->motion.state);
 			d2tk_base_set_mouse_pos(base, e->motion.x, e->motion.y);
 
-			puglPostRedisplay(dpugl->view);
+			redisplay = true;
 		} break;
 
 		case PUGL_SCROLL:
@@ -181,7 +181,7 @@ _d2tk_frontend_event_func(PuglView *view, const PuglEvent *e)
 			d2tk_base_set_mouse_pos(base, e->scroll.x, e->scroll.y);
 			d2tk_base_add_mouse_scroll(base, e->scroll.dx, e->scroll.dy);
 
-			puglPostRedisplay(dpugl->view);
+			redisplay = true;
 		} break;
 
 		case PUGL_KEY_PRESS:
@@ -288,7 +288,7 @@ _d2tk_frontend_event_func(PuglView *view, const PuglEvent *e)
 
 			if(handled)
 			{
-				puglPostRedisplay(dpugl->view);
+				redisplay = true;
 			}
 		} break;
 		case PUGL_KEY_RELEASE:
@@ -395,7 +395,7 @@ _d2tk_frontend_event_func(PuglView *view, const PuglEvent *e)
 
 			if(handled)
 			{
-				puglPostRedisplay(dpugl->view);
+				redisplay = true;
 			}
 		} break;
 		case PUGL_TEXT:
@@ -405,7 +405,7 @@ _d2tk_frontend_event_func(PuglView *view, const PuglEvent *e)
 				d2tk_base_append_utf8(base, e->text.character);
 			}
 
-			puglPostRedisplay(dpugl->view);
+			redisplay = true;
 		} break;
 		case PUGL_CREATE:
 		{
@@ -437,28 +437,33 @@ _d2tk_frontend_event_func(PuglView *view, const PuglEvent *e)
 		} break;
 		case PUGL_MAP:
 		{
-			// FIXME
+			// nothing
 		} break;
 		case PUGL_UNMAP:
 		{
-			// FIXME
+			// nothing
 		} break;
 		case PUGL_UPDATE:
 		{
-			puglPostRedisplay(dpugl->view);
+			// nothing
 		} break;
 		case PUGL_CLIENT:
 		{
-			// FIXME
+			// nothing
 		} break;
 		case PUGL_TIMER:
 		{
-			// FIXME
+			// nothing
 		} break;
 		case PUGL_NOTHING:
 		{
 			// nothing
 		}	break;
+	}
+
+	if(redisplay)
+	{
+		d2tk_frontend_redisplay(dpugl);
 	}
 
 	return PUGL_SUCCESS;
@@ -471,7 +476,7 @@ d2tk_frontend_poll(d2tk_frontend_t *dpugl, double timeout)
 
 	if(d2tk_base_get_again(dpugl->base))
 	{
-		puglPostRedisplay(dpugl->view);
+		d2tk_frontend_redisplay(dpugl);
 	}
 
 	const PuglStatus stat = puglUpdate(dpugl->world, timeout);
@@ -578,8 +583,7 @@ d2tk_pugl_new(const d2tk_pugl_config_t *config, uintptr_t *widget)
 
 	dpugl->config = config;
 
-	dpugl->world = puglNewWorld(config->parent ? PUGL_MODULE : PUGL_PROGRAM,
-		PUGL_WORLD_THREADS);
+	dpugl->world = puglNewWorld(config->parent ? PUGL_MODULE : PUGL_PROGRAM, 0);
 	if(!dpugl->world)
 	{
 		fprintf(stderr, "puglNewWorld failed\n");
@@ -630,7 +634,8 @@ d2tk_pugl_new(const d2tk_pugl_config_t *config, uintptr_t *widget)
 #else
 	puglSetBackend(dpugl->view, puglGlBackend());
 #endif
-	const int stat = puglCreateWindow(dpugl->view, "d2tk");
+	puglSetWindowTitle(dpugl->view, "d2tk");
+	const int stat = puglRealize(dpugl->view);
 
 	if(stat != 0)
 	{
@@ -674,7 +679,7 @@ D2TK_API int
 d2tk_frontend_set_size(d2tk_frontend_t *dpugl, d2tk_coord_t w, d2tk_coord_t h)
 {
 	d2tk_base_set_dimensions(dpugl->base, w, h);
-	puglPostRedisplay(dpugl->view);
+	d2tk_frontend_redisplay(dpugl);
 
 	return 0;
 }

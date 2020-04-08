@@ -23,13 +23,14 @@
 
 static inline void
 _d2tk_base_draw_bar(d2tk_core_t *core, const d2tk_rect_t *rect,
-	d2tk_state_t state, const d2tk_style_t *style, float rel)
+	d2tk_state_t state, const d2tk_style_t *style, float v, float z)
 {
 	const d2tk_hash_dict_t dict [] = {
 		{ rect, sizeof(d2tk_rect_t) },
 		{ &state , sizeof(d2tk_state_t) },
 		{ style, sizeof(d2tk_style_t) },
-		{ &rel, sizeof(float) },
+		{ &v, sizeof(float) },
+		{ &z, sizeof(float) },
 		{ NULL, 0 }
 	};
 	const uint64_t hash = d2tk_hash_dict(dict);
@@ -37,9 +38,30 @@ _d2tk_base_draw_bar(d2tk_core_t *core, const d2tk_rect_t *rect,
 	D2TK_CORE_WIDGET(core, hash, widget)
 	{
 		d2tk_rect_t bnd_outer;
-		d2tk_rect_t bnd_inner;
+		d2tk_rect_t bnd_inner_inactive;
+		d2tk_rect_t bnd_inner_active;
 		d2tk_rect_shrink(&bnd_outer, rect, style->padding);
-		d2tk_rect_shrink(&bnd_inner, &bnd_outer, 2*style->padding);
+		d2tk_rect_shrink(&bnd_inner_inactive, &bnd_outer, 2*style->padding);
+		d2tk_rect_shrink(&bnd_inner_active, &bnd_outer, 2*style->padding);
+
+		if(v < z) // in the negative
+		{
+			v = z - v;
+			const d2tk_coord_t wv = v != 0.f ? bnd_inner_active.w * v : 1;
+			const d2tk_coord_t wz = bnd_inner_active.w * z;
+
+			bnd_inner_active.x += wz - wv;
+			bnd_inner_active.w = wv;
+		}
+		else // in the positive
+		{
+			v = v - z;
+			const d2tk_coord_t wv = v != 0.f ? bnd_inner_active.w * v : 1;
+			const d2tk_coord_t wz = bnd_inner_active.w * z;
+
+			bnd_inner_active.x += wz;
+			bnd_inner_active.w = wv;
+		}
 
 		d2tk_triple_t triple = D2TK_TRIPLE_NONE;
 		d2tk_triple_t triple_active = D2TK_TRIPLE_ACTIVE;
@@ -68,21 +90,19 @@ _d2tk_base_draw_bar(d2tk_core_t *core, const d2tk_rect_t *rect,
 			const size_t ref = d2tk_core_bbox_push(core, true, rect);
 
 			d2tk_core_begin_path(core);
-			d2tk_core_rounded_rect(core, &bnd_inner, style->rounding);
+			d2tk_core_rect(core, &bnd_inner_inactive);
 			d2tk_core_color(core, style->fill_color[triple_inactive]);
 			d2tk_core_stroke_width(core, 0);
 			d2tk_core_fill(core);
 
-			bnd_inner.w *= rel;
-
 			d2tk_core_begin_path(core);
-			d2tk_core_rounded_rect(core, &bnd_inner, style->rounding);
+			d2tk_core_rect(core, &bnd_inner_active);
 			d2tk_core_color(core, style->fill_color[triple_active]);
 			d2tk_core_stroke_width(core, 0);
 			d2tk_core_fill(core);
 
 			d2tk_core_begin_path(core);
-			d2tk_core_rounded_rect(core, &bnd_outer, style->rounding);
+			d2tk_core_rect(core, &bnd_outer);
 			d2tk_core_color(core, style->stroke_color[triple]);
 			d2tk_core_stroke_width(core, style->border_width);
 			d2tk_core_stroke(core);
@@ -126,10 +146,14 @@ d2tk_base_bar_int32(d2tk_base_t *base, d2tk_id_t id, const d2tk_rect_t *rect,
 		state |= D2TK_STATE_CHANGED;
 	}
 
-	float rel = (float)(*value - min) / (max - min);
-	d2tk_clip_float(0.f, &rel, 1.f);
+	const float range_1 = 1.f / (max - min);
+	float v = (*value - min) * range_1;
+	float z = (   0.f - min) * range_1;
 
-	_d2tk_base_draw_bar(base->core, rect, state, d2tk_base_get_style(base), rel);
+	d2tk_clip_float(0.f, &v, 1.f);
+	d2tk_clip_float(0.f, &z, 1.f);
+
+	_d2tk_base_draw_bar(base->core, rect, state, d2tk_base_get_style(base), v, z);
 
 	return state;
 }
@@ -174,10 +198,14 @@ d2tk_base_bar_float(d2tk_base_t *base, d2tk_id_t id, const d2tk_rect_t *rect,
 		state |= D2TK_STATE_CHANGED;
 	}
 
-	float rel = (*value - min) / (max - min);
-	d2tk_clip_float(0.f, &rel, 1.f);
+	const float range_1 = 1.f / (max - min);
+	float v = (*value - min) * range_1;
+	float z = (   0.f - min) * range_1;
 
-	_d2tk_base_draw_bar(base->core, rect, state, d2tk_base_get_style(base), rel);
+	d2tk_clip_float(0.f, &v, 1.f);
+	d2tk_clip_float(0.f, &z, 1.f);
+
+	_d2tk_base_draw_bar(base->core, rect, state, d2tk_base_get_style(base), v, z);
 
 	return state;
 }

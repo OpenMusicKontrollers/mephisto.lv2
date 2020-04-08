@@ -108,9 +108,11 @@ onConfigure(PuglView* view, double width, double height)
 static void
 onExpose(PuglView* view)
 {
-	PuglTestApp*   app   = (PuglTestApp*)puglGetHandle(view);
-	const PuglRect frame = puglGetFrame(view);
-	const double   time  = puglGetTime(puglGetWorld(view));
+	PuglTestApp*   app    = (PuglTestApp*)puglGetHandle(view);
+	const PuglRect frame  = puglGetFrame(view);
+	const float    width  = (float)frame.width;
+	const float    height = (float)frame.height;
+	const double   time   = puglGetTime(puglGetWorld(view));
 
 	// Construct projection matrix for 2D window surface (in pixels)
 	mat4 proj;
@@ -136,14 +138,14 @@ onExpose(PuglView* view)
 		const float offset[2] = {normal * 128.0f, normal * 128.0f};
 
 		// Move rect around in an arbitrary way that looks cool
-		rect->pos[0] =
-		        (float)(frame.width - rect->size[0] + offset[0]) *
-		        (sinf((float)time * rect->size[0] / 64.0f + normal) + 1.0f) /
-		        2.0f;
-		rect->pos[1] =
-		        (float)(frame.height - rect->size[1] + offset[1]) *
-		        (cosf((float)time * rect->size[1] / 64.0f + normal) + 1.0f) /
-		        2.0f;
+		rect->pos[0] = (width - rect->size[0] + offset[0]) *
+		               (sinf((float)time * rect->size[0] / 64.0f + normal) +
+		                1.0f) /
+		               2.0f;
+		rect->pos[1] = (height - rect->size[1] + offset[1]) *
+		               (cosf((float)time * rect->size[1] / 64.0f + normal) +
+		                1.0f) /
+		               2.0f;
 	}
 
 	glBufferSubData(GL_ARRAY_BUFFER,
@@ -269,6 +271,7 @@ setupPugl(PuglTestApp* app, const PuglRect frame)
 
 	// Set up world and view
 	puglSetClassName(app->world, "PuglGL3Demo");
+	puglSetWindowTitle(app->view, "Pugl OpenGL 3");
 	puglSetFrame(app->view, frame);
 	puglSetMinSize(app->view, defaultWidth / 4, defaultHeight / 4);
 	puglSetAspectRatio(app->view, 1, 1, 16, 9);
@@ -403,7 +406,7 @@ main(int argc, char** argv)
 	setupPugl(&app, frame);
 
 	// Create window (which will send a PUGL_CREATE event)
-	const PuglStatus st = puglCreateWindow(app.view, "Pugl OpenGL 3");
+	const PuglStatus st = puglRealize(app.view);
 	if (st) {
 		return logError("Failed to create window (%s)\n", puglStrerror(st));
 	}

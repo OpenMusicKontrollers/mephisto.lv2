@@ -16,7 +16,7 @@
 */
 
 /**
-   @file win.h Shared definitions for MacOS implementation.
+   @file mac.h Shared definitions for MacOS implementation.
 */
 
 #include "pugl/pugl.h"
@@ -60,6 +60,6 @@ struct PuglInternalsImpl {
 	NSApplication*   app;
 	PuglWrapperView* wrapperView;
 	NSView*          drawView;
-	id               window;
+	PuglWindow*      window;
 	uint32_t         mods;
 };

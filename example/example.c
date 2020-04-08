@@ -265,19 +265,36 @@ _render_c_spinner(d2tk_base_t *base, const d2tk_rect_t *rect)
 		const unsigned k = d2tk_table_get_index(tab);
 		const d2tk_id_t id = D2TK_ID_IDX(k);
 
-		if(k % 2)
+		switch(k % 4)
 		{
-			if(d2tk_base_spinner_int32_is_changed(base, id, trect, -99, &val[k].i32, 99))
+			case 0:
 			{
-				fprintf(stdout, "spinner %016"PRIx64" %"PRIi32"\n", id, val[k].i32);
-			}
-		}
-		else
-		{
-			if(d2tk_base_spinner_float_is_changed(base, id, trect, -1.f, &val[k].f32, 1.f))
+				if(d2tk_base_spinner_int32_is_changed(base, id, trect, 0, &val[k].i32, 99))
+				{
+					fprintf(stdout, "spinner %016"PRIx64" %"PRIi32"\n", id, val[k].i32);
+				}
+			} break;
+			case 1:
 			{
-				fprintf(stdout, "spinner %016"PRIx64" %f\n", id, val[k].f32);
-			}
+				if(d2tk_base_spinner_float_is_changed(base, id, trect, -1.f, &val[k].f32, 0.f))
+				{
+					fprintf(stdout, "spinner %016"PRIx64" %f\n", id, val[k].f32);
+				}
+			} break;
+			case 2:
+			{
+				if(d2tk_base_spinner_int32_is_changed(base, id, trect, -99, &val[k].i32, 33))
+				{
+					fprintf(stdout, "spinner %016"PRIx64" %"PRIi32"\n", id, val[k].i32);
+				}
+			} break;
+			case 3:
+			{
+				if(d2tk_base_spinner_float_is_changed(base, id, trect, -0.5f, &val[k].f32, 1.f))
+				{
+					fprintf(stdout, "spinner %016"PRIx64" %f\n", id, val[k].f32);
+				}
+			} break;
 		}
 	}
 #undef N

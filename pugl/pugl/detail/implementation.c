@@ -60,9 +60,10 @@ puglStrerror(const PuglStatus status)
 	case PUGL_FAILURE:               return "Non-fatal failure";
 	case PUGL_UNKNOWN_ERROR:         return "Unknown system error";
 	case PUGL_BAD_BACKEND:           return "Invalid or missing backend";
+	case PUGL_BAD_PARAMETER:         return "Invalid parameter";
 	case PUGL_BACKEND_FAILED:        return "Backend initialisation failed";
-	case PUGL_REGISTRATION_FAILED:   return "Window class registration failed";
-	case PUGL_CREATE_WINDOW_FAILED:  return "Window creation failed";
+	case PUGL_REGISTRATION_FAILED:   return "Class registration failed";
+	case PUGL_REALIZE_FAILED:        return "View creation failed";
 	case PUGL_SET_FORMAT_FAILED:     return "Failed to set pixel format";
 	case PUGL_CREATE_CONTEXT_FAILED: return "Failed to create drawing context";
 	case PUGL_UNSUPPORTED_TYPE:      return "Unsupported data type";
@@ -75,10 +76,12 @@ puglStrerror(const PuglStatus status)
 void
 puglSetString(char** dest, const char* string)
 {
-	const size_t len = strlen(string);
+	if (*dest != string) {
+		const size_t len = strlen(string);
 
-	*dest = (char*)realloc(*dest, len + 1);
-	strncpy(*dest, string, len + 1);
+		*dest = (char*)realloc(*dest, len + 1);
+		strncpy(*dest, string, len + 1);
+	}
 }
 
 void
@@ -236,15 +239,16 @@ puglGetWorld(PuglView* view)
 PuglStatus
 puglSetViewHint(PuglView* view, PuglViewHint hint, int value)
 {
-	if (hint < PUGL_NUM_WINDOW_HINTS) {
+	if (hint < PUGL_NUM_VIEW_HINTS) {
 		view->hints[hint] = value;
+		return PUGL_SUCCESS;
 	}
 
-	return PUGL_SUCCESS;
+	return PUGL_BAD_PARAMETER;
 }
 
 PuglStatus
-puglSetParentWindow(PuglView* view, PuglNativeWindow parent)
+puglSetParentWindow(PuglView* view, PuglNativeView parent)
 {
 	view->parent = parent;
 	return PUGL_SUCCESS;
@@ -270,7 +274,7 @@ puglGetHandle(PuglView* view)
 }
 
 bool
-puglGetVisible(PuglView* view)
+puglGetVisible(const PuglView* view)
 {
 	return view->visible;
 }

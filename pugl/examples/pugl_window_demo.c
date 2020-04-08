@@ -15,7 +15,7 @@
 */
 
 /**
-   @file pugl_windows_demo.c A demonstration of multiple Pugl windows.
+   @file pugl_window_demo.c A demonstration of multiple Pugl windows.
 */
 
 #include "cube_view.h"
@@ -63,7 +63,11 @@ onDisplay(PuglView* view)
 		cube->yAngle = fmod(cube->yAngle + dTime * 100.0, 360.0);
 	}
 
-	displayCube(view, cube->dist, cube->xAngle, cube->yAngle, cube->entered);
+	displayCube(view,
+	            cube->dist,
+	            (float)cube->xAngle,
+	            (float)cube->yAngle,
+	            cube->entered);
 
 	cube->lastDrawTime = thisTime;
 }
@@ -126,7 +130,8 @@ onEvent(PuglView* view, const PuglEvent* event)
 
 	switch (event->type) {
 	case PUGL_CONFIGURE:
-		reshapeCube((int)event->configure.width, (int)event->configure.height);
+		reshapeCube((float)event->configure.width,
+		            (float)event->configure.height);
 		break;
 	case PUGL_UPDATE:
 		if (app->continuous) {
@@ -205,6 +210,7 @@ main(int argc, char** argv)
 
 		cube->dist = 10;
 
+		puglSetWindowTitle(view, "Pugl Window Demo");
 		puglSetFrame(view, frame);
 		puglSetMinSize(view, 128, 128);
 		puglSetBackend(view, puglGlBackend());
@@ -218,9 +224,8 @@ main(int argc, char** argv)
 		puglSetHandle(view, cube);
 		puglSetEventFunc(view, onEvent);
 
-		if ((st = puglCreateWindow(view, "Pugl"))) {
-			return logError("Failed to create window window (%s)\n",
-			                puglStrerror(st));
+		if ((st = puglRealize(view))) {
+			return logError("Failed to create window (%s)\n", puglStrerror(st));
 		}
 
 		puglShowWindow(view);
