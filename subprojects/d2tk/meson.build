@@ -85,6 +85,7 @@ glew_dep = dependency('glew',
 if use_backend_nanovg.enabled() and not glew_dep.found()
 	# use embedded glew
 	glew_dep = declare_dependency(
+		compile_args : '-DGLEW_STATIC',
 		include_directories : include_directories('glew-2.1.0'),
 		sources : join_paths('glew-2.1.0', 'glew.c'))
 endif
@@ -228,7 +229,6 @@ c_args = ['-fvisibility=hidden',
 	'-ffast-math']
 
 if host_machine.system() == 'windows'
-	add_project_arguments('-DGLEW_STATIC', language : 'c')
 	deps += cc.find_library('opengl32', required : use_frontend_pugl)
 	deps += cc.find_library('gdi32', required : use_frontend_pugl)
 	deps += cc.find_library('ws2_32', required : true)

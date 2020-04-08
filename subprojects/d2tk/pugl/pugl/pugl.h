@@ -176,14 +176,14 @@ typedef enum {
 */
 typedef enum {
 	PUGL_NOTHING,        ///< No event
-	PUGL_CREATE,         ///< View created, a #PuglEventAny
-	PUGL_DESTROY,        ///< View destroyed, a #PuglEventAny
+	PUGL_CREATE,         ///< View created, a #PuglEventCreate
+	PUGL_DESTROY,        ///< View destroyed, a #PuglEventDestroy
 	PUGL_CONFIGURE,      ///< View moved/resized, a #PuglEventConfigure
-	PUGL_MAP,            ///< View made visible, a #PuglEventAny
-	PUGL_UNMAP,          ///< View made invisible, a #PuglEventAny
-	PUGL_UPDATE,         ///< View ready to draw, a #PuglEventAny
+	PUGL_MAP,            ///< View made visible, a #PuglEventMap
+	PUGL_UNMAP,          ///< View made invisible, a #PuglEventUnmap
+	PUGL_UPDATE,         ///< View ready to draw, a #PuglEventUpdate
 	PUGL_EXPOSE,         ///< View must be drawn, a #PuglEventExpose
-	PUGL_CLOSE,          ///< View will be closed, a #PuglEventAny
+	PUGL_CLOSE,          ///< View will be closed, a #PuglEventClose
 	PUGL_FOCUS_IN,       ///< Keyboard focus entered view, a #PuglEventFocus
 	PUGL_FOCUS_OUT,      ///< Keyboard focus left view, a #PuglEventFocus
 	PUGL_KEY_PRESS,      ///< Key pressed, a #PuglEventKey
@@ -236,9 +236,35 @@ typedef struct {
 } PuglEventAny;
 
 /**
-   Window resize or move event.
+   View create event.
 
-   A configure event is sent whenever the window is resized or moved.  When a
+   This event is sent when a view is realized before it is first displayed,
+   with the graphics context entered.  This is typically used for setting up
+   the graphics system, for example by loading OpenGL extensions.
+
+   This event type has no extra fields.
+*/
+typedef PuglEventAny PuglEventCreate;
+
+/**
+   View destroy event.
+
+   This event is the counterpart to #PuglEventCreate, and it is sent when the
+   view is being destroyed.  This is typically used for tearing down the
+   graphics system, or otherwise freeing any resources allocated when the
+   create event was handled.
+
+   This is the last event sent to any view, and immediately after it is
+   processed, the view is destroyed and may no longer be used.
+
+   This event type has no extra fields.
+*/
+typedef PuglEventAny PuglEventDestroy;
+
+/**
+   View resize or move event.
+
+   A configure event is sent whenever the view is resized or moved.  When a
    configure event is received, the graphics context is active but not set up
    for drawing.  For example, it is valid to adjust the OpenGL viewport or
    otherwise configure the context, but not to draw anything.
@@ -251,6 +277,36 @@ typedef struct {
 	double         width;  ///< New width
 	double         height; ///< New height
 } PuglEventConfigure;
+
+/**
+   View show event.
+
+   This event is sent when a view is mapped to the screen and made visible.
+
+   This event type has no extra fields.
+*/
+typedef PuglEventAny PuglEventMap;
+
+/**
+   View hide event.
+
+   This event is sent when a view is unmapped from the screen and made
+   invisible.
+
+   This event type has no extra fields.
+*/
+typedef PuglEventAny PuglEventUnmap;
+
+/**
+   View update event.
+
+   This event is sent to every view near the end of a main loop iteration when
+   any pending exposures are about to be redrawn.  It is typically used to mark
+   regions to expose with puglPostRedisplay() or puglPostRedisplayRect().  For
+   example, to continuously animate, a view calls puglPostRedisplay() when an
+   update event is received, and it will then shortly receive an expose event.
+*/
+typedef PuglEventAny PuglEventUpdate;
 
 /**
    Expose event for when a region must be redrawn.
@@ -268,6 +324,16 @@ typedef struct {
 	double         height; ///< Height of exposed region
 	int            count;  ///< Number of expose events to follow
 } PuglEventExpose;
+
+/**
+   View close event.
+
+   This event is sent when the view is to be closed, for example when the user
+   clicks the close button.
+
+   This event type has no extra fields.
+*/
+typedef PuglEventAny PuglEventClose;
 
 /**
    Keyboard focus event.
@@ -383,7 +449,7 @@ typedef struct {
 	double         yRoot;  ///< Root-relative Y coordinate
 	PuglMods       state;  ///< Bitwise OR of #PuglMod flags
 	bool           isHint; ///< True iff this event is a motion hint
-	bool           focus;  ///< True iff this is the focused window
+	bool           focus;  ///< True iff this is the focused view
 } PuglEventMotion;
 
 /**
@@ -482,9 +548,10 @@ typedef enum {
 	PUGL_FAILURE,               ///< Non-fatal failure
 	PUGL_UNKNOWN_ERROR,         ///< Unknown system error
 	PUGL_BAD_BACKEND,           ///< Invalid or missing backend
+	PUGL_BAD_PARAMETER,         ///< Invalid parameter
 	PUGL_BACKEND_FAILED,        ///< Backend initialisation failed
-	PUGL_REGISTRATION_FAILED,   ///< Window class registration failed
-	PUGL_CREATE_WINDOW_FAILED,  ///< Window creation failed
+	PUGL_REGISTRATION_FAILED,   ///< Class registration failed
+	PUGL_REALIZE_FAILED,        ///< System view realization failed
 	PUGL_SET_FORMAT_FAILED,     ///< Failed to set pixel format
 	PUGL_CREATE_CONTEXT_FAILED, ///< Failed to create drawing context
 	PUGL_UNSUPPORTED_TYPE,      ///< Unsupported data type
@@ -714,7 +781,7 @@ typedef struct PuglViewImpl PuglView;
 typedef struct PuglBackendImpl PuglBackend;
 
 /**
-   A native window handle.
+   A native view handle.
 
    X11: This is a `Window`.
 
@@ -722,7 +789,7 @@ typedef struct PuglBackendImpl PuglBackend;
 
    Windows: This is a `HWND`.
 */
-typedef uintptr_t PuglNativeWindow;
+typedef uintptr_t PuglNativeView;
 
 /**
    Handle for a view's opaque user data.
@@ -746,10 +813,10 @@ typedef enum {
 	PUGL_SAMPLES,               ///< Number of samples per pixel (AA)
 	PUGL_DOUBLE_BUFFER,         ///< True if double buffering should be used
 	PUGL_SWAP_INTERVAL,         ///< Number of frames between buffer swaps
-	PUGL_RESIZABLE,             ///< True if window should be resizable
+	PUGL_RESIZABLE,             ///< True if view should be resizable
 	PUGL_IGNORE_KEY_REPEAT,     ///< True if key repeat events are ignored
 
-	PUGL_NUM_WINDOW_HINTS
+	PUGL_NUM_VIEW_HINTS
 } PuglViewHint;
 
 /**
@@ -776,7 +843,8 @@ typedef PuglStatus (*PuglEventFunc)(PuglView* view, const PuglEvent* event);
    Create a new view.
 
    A newly created view does not correspond to a real system view or window.
-   It must first be configured, then be realised by calling puglCreateWindow().
+   It must first be configured, then the system view can be created with
+   puglRealize().
 */
 PUGL_API PuglView*
 puglNewView(PuglWorld* world);
@@ -815,7 +883,7 @@ puglGetHandle(PuglView* view);
    Set the graphics backend to use for a view.
 
    This must be called once to set the graphics backend before calling
-   puglCreateWindow().
+   puglRealize().
 
    Pugl includes the following backends:
 
@@ -837,9 +905,9 @@ PUGL_API PuglStatus
 puglSetEventFunc(PuglView* view, PuglEventFunc eventFunc);
 
 /**
-   Set a hint to configure window properties.
+   Set a hint to configure view properties.
 
-   This only has an effect when called before puglCreateWindow().
+   This only has an effect when called before puglRealize().
 */
 PUGL_API PuglStatus
 puglSetViewHint(PuglView* view, PuglViewHint hint, int value);
@@ -872,14 +940,13 @@ puglSetFrame(PuglView* view, PuglRect frame);
    Set the minimum size of the view.
 
    If an initial minimum size is known, this should be called before
-   puglCreateWindow() to avoid stutter, though it can be called afterwards as
-   well.
+   puglRealize() to avoid stutter, though it can be called afterwards as well.
 */
 PUGL_API PuglStatus
 puglSetMinSize(PuglView* view, int width, int height);
 
 /**
-   Set the window aspect ratio range.
+   Set the view aspect ratio range.
 
    The x and y values here represent a ratio of width to height.  To set a
    fixed aspect ratio, set the minimum and maximum values to the same ratio.
@@ -889,8 +956,7 @@ puglSetMinSize(PuglView* view, int width, int height);
    ratio works properly across all platforms.
 
    If an initial aspect ratio is known, this should be called before
-   puglCreateWindow() to avoid stutter, though it can be called afterwards as
-   well.
+   puglRealize() to avoid stutter, though it can be called afterwards as well.
 */
 PUGL_API PuglStatus
 puglSetAspectRatio(PuglView* view, int minX, int minY, int maxX, int maxY);
@@ -898,7 +964,7 @@ puglSetAspectRatio(PuglView* view, int minX, int minY, int maxX, int maxY);
 /**
    @}
    @name Windows
-   Functions for working with top-level windows.
+   Functions for working with system views and the window hierarchy.
    @{
 */
 
@@ -915,35 +981,43 @@ puglSetWindowTitle(PuglView* view, const char* title);
 /**
    Set the parent window for embedding a view in an existing window.
 
-   This must be called before puglCreateWindow(), reparenting is not supported.
+   This must be called before puglRealize(), reparenting is not supported.
 */
 PUGL_API PuglStatus
-puglSetParentWindow(PuglView* view, PuglNativeWindow parent);
+puglSetParentWindow(PuglView* view, PuglNativeView parent);
 
 /**
    Set the transient parent of the window.
 
    Set this for transient children like dialogs, to have them properly
    associated with their parent window.  This should be called before
-   puglCreateWindow().
+   puglRealize().
 */
 PUGL_API PuglStatus
-puglSetTransientFor(PuglView* view, PuglNativeWindow parent);
+puglSetTransientFor(PuglView* view, PuglNativeView parent);
 
 /**
    Realise a view by creating a corresponding system view or window.
+
+   After this call, the (initially invisible) underlying system view exists and
+   can be accessed with puglGetNativeWindow().  There is currently no
+   corresponding unrealize function, the system view will be destroyed along
+   with the view when puglFreeView() is called.
 
    The view should be fully configured using the above functions before this is
    called.  This function may only be called once per view.
 */
 PUGL_API PuglStatus
-puglCreateWindow(PuglView* view, const char* title);
+puglRealize(PuglView* view);
 
 /**
-   Show the current window.
+   Show the view.
 
-   If the window is currently hidden, it will be shown and possibly raised to
-   the top depending on the platform.
+   If the view has not yet been realized, the first call to this function will
+   do so automatically.
+
+   If the view is currently hidden, it will be shown and possibly raised to the
+   top depending on the platform.
 */
 PUGL_API PuglStatus
 puglShowWindow(PuglView* view);
@@ -958,12 +1032,12 @@ puglHideWindow(PuglView* view);
    Return true iff the view is currently visible.
 */
 PUGL_API bool
-puglGetVisible(PuglView* view);
+puglGetVisible(const PuglView* view);
 
 /**
    Return the native window handle.
 */
-PUGL_API PuglNativeWindow
+PUGL_API PuglNativeView
 puglGetNativeWindow(PuglView* view);
 
 /**
@@ -1132,10 +1206,21 @@ puglSendEvent(PuglView* view, const PuglEvent* event);
 */
 
 /**
+   A native window handle.
+
+   X11: This is a `Window`.
+
+   MacOS: This is a pointer to an `NSView*`.
+
+   Windows: This is a `HWND`.
+*/
+typedef uintptr_t PuglNativeWindow;
+
+/**
    Create a Pugl application and view.
 
    To create a window, call the various puglInit* functions as necessary, then
-   call puglCreateWindow().
+   call puglRealize().
 
    @deprecated Use puglNewApp() and puglNewView().
 
@@ -1300,6 +1385,21 @@ static inline PUGL_DEPRECATED_BY("puglSetBackend") int
 puglInitBackend(PuglView* view, const PuglBackend* backend)
 {
 	return (int)puglSetBackend(view, backend);
+}
+
+/**
+   Realise a view by creating a corresponding system view or window.
+
+   The view should be fully configured using the above functions before this is
+   called.  This function may only be called once per view.
+
+   @deprecated Use puglRealize(), or just show the view.
+*/
+static inline PUGL_DEPRECATED_BY("puglRealize") PuglStatus
+puglCreateWindow(PuglView* view, const char* title)
+{
+	puglSetWindowTitle(view, title);
+	return puglRealize(view);
 }
 
 /**

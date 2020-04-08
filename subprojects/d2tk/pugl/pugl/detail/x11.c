@@ -37,6 +37,7 @@
 
 #ifdef HAVE_XSYNC
 #	include <X11/extensions/sync.h>
+#	include <X11/extensions/syncconst.h>
 #endif
 
 #include <sys/select.h>
@@ -221,7 +222,7 @@ getSizeHints(const PuglView* view)
 }
 
 PuglStatus
-puglCreateWindow(PuglView* view, const char* title)
+puglRealize(PuglView* view)
 {
 	PuglInternals* const impl    = view->impl;
 	PuglWorld* const     world   = view->world;
@@ -268,8 +269,8 @@ puglCreateWindow(PuglView* view, const char* title)
 	XClassHint classHint = { world->className, world->className };
 	XSetClassHint(display, win, &classHint);
 
-	if (title) {
-		puglSetWindowTitle(view, title);
+	if (view->title) {
+		puglSetWindowTitle(view, view->title);
 	}
 
 	if (!view->parent) {
@@ -300,9 +301,18 @@ puglCreateWindow(PuglView* view, const char* title)
 PuglStatus
 puglShowWindow(PuglView* view)
 {
+	PuglStatus st = PUGL_SUCCESS;
+
+	if (!view->impl->win) {
+		if ((st = puglRealize(view))) {
+			return st;
+		}
+	}
+
 	XMapRaised(view->impl->display, view->impl->win);
 	puglPostRedisplay(view);
-	return PUGL_SUCCESS;
+
+	return st;
 }
 
 PuglStatus
@@ -999,7 +1009,7 @@ puglUpdate(PuglWorld* world, double timeout)
 	if (timeout < 0.0) {
 		st = puglPollX11Socket(world, timeout);
 		st = st ? st : puglDispatchX11Events(world);
-	} else if (timeout == 0.0) {
+	} else if (timeout <= 0.001) {
 		st = puglDispatchX11Events(world);
 	} else {
 		const double endTime = startTime + timeout - 0.001;
@@ -1052,10 +1062,10 @@ puglPostRedisplayRect(PuglView* view, PuglRect rect)
 	return PUGL_SUCCESS;
 }
 
-PuglNativeWindow
+PuglNativeView
 puglGetNativeWindow(PuglView* view)
 {
-	return (PuglNativeWindow)view->impl->win;
+	return (PuglNativeView)view->impl->win;
 }
 
 PuglStatus
@@ -1065,10 +1075,13 @@ puglSetWindowTitle(PuglView* view, const char* title)
 	const PuglX11Atoms* const atoms   = &view->world->impl->atoms;
 
 	puglSetString(&view->title, title);
-	XStoreName(display, view->impl->win, title);
-	XChangeProperty(display, view->impl->win, atoms->NET_WM_NAME,
-	                atoms->UTF8_STRING, 8, PropModeReplace,
-	                (const uint8_t*)title, (int)strlen(title));
+
+	if (view->impl->win) {
+		XStoreName(display, view->impl->win, title);
+		XChangeProperty(display, view->impl->win, atoms->NET_WM_NAME,
+		                atoms->UTF8_STRING, 8, PropModeReplace,
+		                (const uint8_t*)title, (int)strlen(title));
+	}
 
 	return PUGL_SUCCESS;
 }
@@ -1127,7 +1140,7 @@ puglSetAspectRatio(PuglView* const view,
 }
 
 PuglStatus
-puglSetTransientFor(PuglView* view, PuglNativeWindow parent)
+puglSetTransientFor(PuglView* view, PuglNativeView parent)
 {
 	Display* display = view->world->impl->display;
 
