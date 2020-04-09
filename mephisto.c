@@ -125,8 +125,7 @@ struct _cntrl_t {
 typedef enum _voice_state_t {
 	VOICE_STATE_INACTIVE     = 0,
 	VOICE_STATE_ACTIVE       = (1 << 0),
-	VOICE_STATE_SUSTAIN      = (1 << 1),
-	VOICE_STATE_DEACTIVATING = (1 << 2)
+	VOICE_STATE_SUSTAIN      = (1 << 1)
 } voice_state_t;
 
 union _hash_t {
@@ -165,7 +164,6 @@ struct _voice_t {
 	pos_t pos;
 
 	voice_state_t state;
-	int32_t remaining;
 	hash_t hash;
 	bool retrigger;
 };
@@ -185,6 +183,7 @@ struct _dsp_t {
 	bool is_instrument;
 	timely_mask_t timely_mask;
 	int32_t idx;
+	uint32_t ivoice;
 };
 
 typedef enum _job_type_t {
@@ -231,7 +230,6 @@ struct _plughandle_t {
 
 	uint32_t xfade_max;
 	uint32_t xfade_cur;
-	uint32_t release_max;
 
 	uint32_t srate;
 	char bundle_path [PATH_MAX];
@@ -501,15 +499,6 @@ _intercept_xfade_duration(void *data, int64_t frames __attribute__((unused)),
 }
 
 static void
-_intercept_release_duration(void *data, int64_t frames __attribute__((unused)),
-	props_impl_t *impl __attribute__((unused)))
-{
-	plughandle_t *handle = data;
-
-	handle->release_max = handle->srate * handle->state.release_dur;
-}
-
-static void
 _intercept_control(void *data, int64_t frames __attribute__((unused)),
 	props_impl_t *impl)
 {
@@ -541,10 +530,9 @@ static const props_def_t defs [MAX_NPROPS] = {
 		.event_cb = _intercept_xfade_duration
 	},
 	{
-		.property = MEPHISTO__releaseDuration,
-		.offset = offsetof(plugstate_t, release_dur),
-		.type = LV2_ATOM__Int,
-		.event_cb = _intercept_release_duration
+		.property = MEPHISTO__fontHeight,
+		.offset = offsetof(plugstate_t, font_height),
+		.type = LV2_ATOM__Int
 	},
 	CONTROL(1),
 	CONTROL(2),
@@ -632,7 +620,6 @@ _play(plughandle_t *handle, int64_t from, int64_t to)
 
 		VOICE_FOREACH(dsp, voice)
 		{
-			if(voice->instance && (voice->state & VOICE_STATE_ACTIVE) )
 			{
 				if(voice->retrigger)
 				{
@@ -651,16 +638,6 @@ _play(plughandle_t *handle, int64_t from, int64_t to)
 					for(uint32_t i = 0; i < nsamples; i++)
 					{
 						handle->audio_out[n][from + i] += gain * audio_out[n][i];
-					}
-				}
-
-				if(voice->state & VOICE_STATE_DEACTIVATING)
-				{
-					voice->remaining -= nsamples;
-
-					if(voice->remaining <= 0)
-					{
-						voice->state = VOICE_STATE_INACTIVE;
 					}
 				}
 			}
@@ -958,25 +935,39 @@ _midi2cps(float pitch)
 static inline voice_t *
 _next_available_voice(dsp_t *dsp)
 {
-	VOICE_FOREACH(dsp, voice)
+	uint32_t i;
+
+	for(i = 0, dsp->ivoice = (dsp->ivoice + i + 1) % dsp->nvoices;
+		i < dsp->nvoices;
+		i++, dsp->ivoice = (dsp->ivoice + i) % dsp->nvoices)
 	{
+		voice_t *voice = &dsp->voices[dsp->ivoice];
+
 		if(voice->state == VOICE_STATE_INACTIVE)
 		{
 			return voice;
 		}
 	}
 
-	VOICE_FOREACH(dsp, voice)
+	for(i = 0, dsp->ivoice = (dsp->ivoice + i) % dsp->nvoices;
+		i < dsp->nvoices;
+		i++, dsp->ivoice = (dsp->ivoice + i) % dsp->nvoices)
 	{
-		if(voice->state & VOICE_STATE_DEACTIVATING)
+		voice_t *voice = &dsp->voices[dsp->ivoice];
+
+		if(voice->state & VOICE_STATE_SUSTAIN)
 		{
 			return voice;
 		}
 	}
 
-	VOICE_FOREACH(dsp, voice)
+	for(i = 0, dsp->ivoice = (dsp->ivoice + i) % dsp->nvoices;
+		i < dsp->nvoices;
+		i++, dsp->ivoice = (dsp->ivoice + i) % dsp->nvoices)
 	{
-		if(voice->state & VOICE_STATE_SUSTAIN)
+		voice_t *voice = &dsp->voices[dsp->ivoice];
+
+		if(voice->state & VOICE_STATE_ACTIVE)
 		{
 			return voice;
 		}
@@ -1063,18 +1054,16 @@ _voice_off(plughandle_t *handle, voice_t *voice)
 	{
 		_cntrl_refresh_value_abs(&voice->gate, 0.f);
 
-		voice->state |= VOICE_STATE_DEACTIVATING;
-		voice->remaining = handle->release_max;
+		voice->state = VOICE_STATE_INACTIVE;
 	}
 }
 
 static inline void
-_voice_off_panic(plughandle_t *handle, voice_t *voice)
+_voice_off_panic(voice_t *voice)
 {
 	_cntrl_refresh_value_abs(&voice->gate, 0.f);
 
-	voice->state |= VOICE_STATE_DEACTIVATING;
-	voice->remaining = handle->release_max;
+	voice->state = VOICE_STATE_INACTIVE;
 }
 
 static inline void
@@ -1082,12 +1071,11 @@ _voice_off_force(voice_t *voice)
 {
 	_cntrl_refresh_value_abs(&voice->gate, 0.f);
 
-	voice->state |= VOICE_STATE_DEACTIVATING;
-	voice->remaining = 1;
+	voice->state = VOICE_STATE_INACTIVE;
 }
 
 static void
-_handle_midi_2(plughandle_t *handle, dsp_t *dsp,
+_handle_midi_2(dsp_t *dsp,
 	int64_t frames __attribute__((unused)), const uint8_t *msg)
 {
 	const uint8_t cmd = msg[0] & 0xf0;
@@ -1110,7 +1098,7 @@ _handle_midi_2(plughandle_t *handle, dsp_t *dsp,
 				{
 					VOICE_FOREACH(dsp, voice)
 					{
-						_voice_off_panic(handle, voice);
+						_voice_off_panic(voice);
 					}
 				} break;
 				case LV2_MIDI_CTL_ALL_SOUNDS_OFF:
@@ -1156,7 +1144,6 @@ _handle_midi_3(plughandle_t *handle, dsp_t *dsp,
 				voice->hash.key = key;
 				voice->hash.chn = chn;
 				voice->state = VOICE_STATE_ACTIVE;
-				voice->remaining = 0;
 				voice->retrigger = true;
 			}
 		} break;
@@ -1289,7 +1276,7 @@ _handle_midi(plughandle_t *handle, dsp_t *dsp,
 	{
 		case 2:
 		{
-			_handle_midi_2(handle, dsp, frames, msg);
+			_handle_midi_2(dsp, frames, msg);
 		} break;
 		case 3:
 		{
@@ -2196,7 +2183,6 @@ _work_response(LV2_Handle instance, uint32_t size, const void *body)
 						_cntrl_get_value_abs(&cur_voice->gain));
 
 					new_voice->state = cur_voice->state;
-					new_voice->remaining = cur_voice->remaining;
 					new_voice->hash = cur_voice->hash;
 
 					if(!_voice_not_end(cur_dsp, cur_voice))

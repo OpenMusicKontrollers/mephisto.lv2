@@ -74,7 +74,7 @@ struct _plughandle_t {
 	LV2_URID urid_code;
 	LV2_URID urid_error;
 	LV2_URID urid_xfadeDuration;
-	LV2_URID urid_releaseDuration;
+	LV2_URID urid_fontHeight;
 	LV2_URID urid_control [NCONTROLS];
 
 	bool reinit;
@@ -82,13 +82,23 @@ struct _plughandle_t {
 	int fd;
 	time_t modtime;
 
+	float scale;
 	d2tk_coord_t header_height;
 	d2tk_coord_t footer_height;
 	d2tk_coord_t sidebar_width;
+	d2tk_coord_t item_height;
 	d2tk_coord_t font_height;
+
+	uint32_t max_red;
 
 	int done;
 };
+
+static inline void
+_update_font_height(plughandle_t *handle)
+{
+	handle->font_height = handle->state.font_height * handle->scale;
+}
 
 static void
 _intercept_code(void *data, int64_t frames __attribute__((unused)),
@@ -151,6 +161,15 @@ _intercept_code(void *data, int64_t frames __attribute__((unused)),
 }
 
 static void
+_intercept_font_height(void *data, int64_t frames __attribute__((unused)),
+	props_impl_t *impl __attribute__((unused)))
+{
+	plughandle_t *handle = data;
+
+	_update_font_height(handle);
+}
+
+static void
 _intercept_control(void *data __attribute__((unused)),
 	int64_t frames __attribute__((unused)), props_impl_t *impl __attribute__((unused)))
 {
@@ -178,9 +197,10 @@ static const props_def_t defs [MAX_NPROPS] = {
 		.type = LV2_ATOM__Int
 	},
 	{
-		.property = MEPHISTO__releaseDuration,
-		.offset = offsetof(plugstate_t, release_dur),
-		.type = LV2_ATOM__Int
+		.property = MEPHISTO__fontHeight,
+		.offset = offsetof(plugstate_t, font_height),
+		.type = LV2_ATOM__Int,
+		.event_cb = _intercept_font_height
 	},
 	CONTROL(1),
 	CONTROL(2),
@@ -460,7 +480,7 @@ _expose_xfade(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_frontend_t *dpugl = handle->dpugl;
 	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
-	if(d2tk_base_prop_int32_is_changed(base, D2TK_ID, rect,
+	if(d2tk_base_spinner_int32_is_changed(base, D2TK_ID, rect,
 		10, &handle->state.xfade_dur, 1000))
 	{
 		_message_set_key(handle, handle->urid_xfadeDuration);
@@ -468,15 +488,16 @@ _expose_xfade(plughandle_t *handle, const d2tk_rect_t *rect)
 }
 
 static inline void
-_expose_release(plughandle_t *handle, const d2tk_rect_t *rect)
+_expose_font_height(plughandle_t *handle, const d2tk_rect_t *rect)
 {
 	d2tk_frontend_t *dpugl = handle->dpugl;
 	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
-	if(d2tk_base_prop_int32_is_changed(base, D2TK_ID, rect,
-		0, &handle->state.release_dur, 100))
+	if(d2tk_base_spinner_int32_is_changed(base, D2TK_ID, rect,
+		10, &handle->state.font_height, 25))
 	{
-		_message_set_key(handle, handle->urid_releaseDuration);
+		_message_set_key(handle, handle->urid_fontHeight);
+		_update_font_height(handle);
 	}
 }
 
@@ -513,7 +534,7 @@ _expose_footer(plughandle_t *handle, const d2tk_rect_t *rect)
 				static const char *lbls [3] = {
 					"panic",
 					"crossfade•ms",
-					"release•s"
+					"font-height•px"
 				};
 
 				if(lbls[x])
@@ -536,7 +557,7 @@ _expose_footer(plughandle_t *handle, const d2tk_rect_t *rect)
 					} break;
 					case 2:
 					{
-						_expose_release(handle, trect);
+						_expose_font_height(handle, trect);
 					} break;
 				}
 			} break;
@@ -550,33 +571,47 @@ _expose_slot(plughandle_t *handle, const d2tk_rect_t *rect, unsigned k)
 	d2tk_frontend_t *dpugl = handle->dpugl;
 	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
-	static const char lbl [16][9] = {
-		"slot•01",
-		"slot•02",
-		"slot•03",
-		"slot•04",
-		"slot•05",
-		"slot•06",
-		"slot•07",
-		"slot•08",
-		"slot•09",
-		"slot•10",
-		"slot•11",
-		"slot•12",
-		"slot•13",
-		"slot•14",
-		"slot•15",
-		"slot•16",
+	static const char lbl [16][3] = {
+		"01",
+		"02",
+		"03",
+		"04",
+		"05",
+		"06",
+		"07",
+		"08",
+		"09",
+		"10",
+		"11",
+		"12",
+		"13",
+		"14",
+		"15",
+		"16",
 	};
 
-	D2TK_BASE_FRAME(base, rect, sizeof(lbl[k]), lbl[k], frm)
+	const d2tk_coord_t frac [2] = { 1, 7 };
+	D2TK_BASE_LAYOUT(rect, 2, frac, D2TK_FLAG_LAYOUT_X_REL, hlay)
 	{
-		const d2tk_rect_t *frect = d2tk_frame_get_rect(frm);
+		const d2tk_rect_t *hrect = d2tk_layout_get_rect(hlay);
+		const unsigned j = d2tk_layout_get_index(hlay);
 
-		if(d2tk_base_dial_float_is_changed(base, D2TK_ID_IDX(k), frect,
-			0.f, &handle->state.control[k], 1.f))
+		switch(j)
 		{
-			_message_set_control(handle, k);
+			case 0:
+			{
+				d2tk_base_label(base, sizeof(lbl[k]), lbl[k], 0.5f, hrect,
+					D2TK_ALIGN_MIDDLE | D2TK_ALIGN_LEFT);
+			} break;
+			case 1:
+			{
+
+				if(d2tk_base_spinner_float_is_changed(base, D2TK_ID_IDX(k), hrect,
+					0.f, &handle->state.control[k], 1.f))
+				{
+					_message_set_control(handle, k);
+				}
+			} break;
 		}
 	}
 }
@@ -584,12 +619,29 @@ _expose_slot(plughandle_t *handle, const d2tk_rect_t *rect, unsigned k)
 static inline void
 _expose_sidebar_right(plughandle_t *handle, const d2tk_rect_t *rect)
 {
-	D2TK_BASE_TABLE(rect, 2, NCONTROLS/2,  D2TK_FLAG_TABLE_REL, tab)
-	{
-		const unsigned k = d2tk_table_get_index(tab);
-		const d2tk_rect_t *trect = d2tk_table_get_rect(tab);
+	d2tk_frontend_t *dpugl = handle->dpugl;
+	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
-		_expose_slot(handle, trect, k);
+	const uint32_t numv = rect->h / handle->item_height;
+	const uint32_t max [2] = { 0, NCONTROLS };
+	const uint32_t num [2] = { 0, numv };
+	D2TK_BASE_SCROLLBAR(base, rect, D2TK_ID, D2TK_FLAG_SCROLL_Y, max, num, vscroll)
+	{
+		const unsigned offy = d2tk_scrollbar_get_offset_y(vscroll);
+		const d2tk_rect_t *vrect = d2tk_scrollbar_get_rect(vscroll);
+
+		D2TK_BASE_TABLE(vrect, 1, numv,  D2TK_FLAG_TABLE_REL, tab)
+		{
+			const unsigned k = d2tk_table_get_index(tab) + offy;
+			const d2tk_rect_t *trect = d2tk_table_get_rect(tab);
+
+			if(k >= NCONTROLS)
+			{
+				break;
+			}
+
+			_expose_slot(handle, trect, k);
+		}
 	}
 }
 
@@ -645,6 +697,13 @@ _expose_term(plughandle_t *handle, const d2tk_rect_t *rect)
 		handle->font_height, rect, handle->reinit, pty)
 	{
 		const d2tk_state_t state = d2tk_pty_get_state(pty);
+		const uint32_t max_red = d2tk_pty_get_max_red(pty);
+
+		if(max_red != handle->max_red)
+		{
+			handle->max_red = max_red;
+			d2tk_frontend_redisplay(handle->dpugl);
+		}
 
 		if(d2tk_state_is_close(state))
 		{
@@ -776,7 +835,21 @@ static int
 _expose(void *data, d2tk_coord_t w, d2tk_coord_t h)
 {
 	plughandle_t *handle = data;
+	d2tk_base_t *base = d2tk_frontend_get_base(handle->dpugl);
 	const d2tk_rect_t rect = D2TK_RECT(0, 0, w, h);
+
+	const d2tk_style_t *old_style = d2tk_base_get_style(base);
+	d2tk_style_t style = *old_style;
+	const uint32_t light = handle->max_red;
+	const uint32_t dark = (light & ~0xff) | 0x7f;
+	style.fill_color[D2TK_TRIPLE_ACTIVE]           = dark;
+	style.fill_color[D2TK_TRIPLE_ACTIVE_HOT]       = light;
+	style.fill_color[D2TK_TRIPLE_ACTIVE_FOCUS]     = dark;
+	style.fill_color[D2TK_TRIPLE_ACTIVE_HOT_FOCUS] = light;
+	style.text_stroke_color[D2TK_TRIPLE_HOT]       = light;
+	style.text_stroke_color[D2TK_TRIPLE_HOT_FOCUS] = light;
+
+	d2tk_base_set_style(base, &style);
 
 	const d2tk_coord_t frac [2] = { handle->header_height, 0 };
 	D2TK_BASE_LAYOUT(&rect, 2, frac, D2TK_FLAG_LAYOUT_Y_ABS, lay)
@@ -796,6 +869,8 @@ _expose(void *data, d2tk_coord_t w, d2tk_coord_t h)
 			} break;
 		}
 	}
+
+	d2tk_base_set_style(base, old_style);
 
 	return 0;
 }
@@ -858,8 +933,8 @@ instantiate(const LV2UI_Descriptor *descriptor,
 		MEPHISTO__error);
 	handle->urid_xfadeDuration = handle->map->map(handle->map->handle,
 		MEPHISTO__xfadeDuration);
-	handle->urid_releaseDuration = handle->map->map(handle->map->handle,
-		MEPHISTO__releaseDuration);
+	handle->urid_fontHeight = handle->map->map(handle->map->handle,
+		MEPHISTO__fontHeight);
 	handle->urid_control[0] = handle->map->map(handle->map->handle,
 		MEPHISTO__control_1);
 	handle->urid_control[1] = handle->map->map(handle->map->handle,
@@ -927,11 +1002,14 @@ instantiate(const LV2UI_Descriptor *descriptor,
 		return NULL;
 	}
 
-	const float scale = d2tk_frontend_get_scale(handle->dpugl);
-	handle->header_height = 32 * scale;
-	handle->footer_height = 64 * scale;
-	handle->sidebar_width = 150 * scale;
-	handle->font_height = 16 * scale;
+	handle->scale = d2tk_frontend_get_scale(handle->dpugl);
+	handle->header_height = 32 * handle->scale;
+	handle->footer_height = 64 * handle->scale;
+	handle->sidebar_width = 200 * handle->scale;
+	handle->item_height = 32 * handle->scale;
+
+	handle->state.font_height = 16;
+	_update_font_height(handle);
 
 	if(host_resize)
 	{
@@ -951,7 +1029,7 @@ instantiate(const LV2UI_Descriptor *descriptor,
 	_message_get(handle, handle->urid_code);
 	_message_get(handle, handle->urid_error);
 	_message_get(handle, handle->urid_xfadeDuration);
-	_message_get(handle, handle->urid_releaseDuration);
+	_message_get(handle, handle->urid_fontHeight);
 	for(unsigned i = 0; i < NCONTROLS; i++)
 	{
 		_message_get(handle, handle->urid_control[i]);

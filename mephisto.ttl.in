@@ -51,6 +51,13 @@ proj:mephisto
 	doap:maintainer omk:me ;
 	doap:name "Mephisto Bundle" .
 
+# Units
+mephisto:px
+	a units:Unit ;
+	rdfs:label "pixels" ;
+	units:render "%f px" ;
+	units:symbol "px" .
+
 # Params
 mephisto:code
 	a lv2:Parameter ;
@@ -70,14 +77,14 @@ mephisto:xfadeDuration
 	lv2:minimum 10 ;
 	lv2:maximum 1000 ;
 	units:unit units:ms .
-mephisto:releaseDuration
+mephisto:fontHeight
 	a lv2:Parameter ;
 	rdfs:range atom:Int ;
-	rdfs:label "Release duration" ;
-	rdfs:comment "get/set note release duration in s" ;
-	lv2:minimum 0 ;
-	lv2:maximum 100 ;
-	units:unit units:s .
+	rdfs:label "Font height" ;
+	rdfs:comment "get/set font height in px" ;
+	lv2:minimum 10 ;
+	lv2:maximum 25 ;
+	units:unit mephisto:px .
 mephisto:control_1
 	a lv2:Parameter ;
 	rdfs:range atom:Float ;
@@ -262,7 +269,7 @@ mephisto:audio_1x1
 	patch:writable
 		mephisto:code ,
 		mephisto:xfadeDuration ,
-		mephisto:releaseDuration ,
+		mephisto:fontHeight ,
 		mephisto:control_1 ,
 		mephisto:control_2 ,
 		mephisto:control_3 ,
@@ -283,7 +290,7 @@ mephisto:audio_1x1
 	state:state [
 		mephisto:code """@BANK-FILTER_THROUGH@""" ;
 		mephisto:xfadeDuration "100"^^xsd:int ;
-		mephisto:releaseDuration "10"^^xsd:int ;
+		mephisto:fontHeight "16"^^xsd:int ;
 		mephisto:control_1 "0.0"^^xsd:float ;
 		mephisto:control_2 "0.0"^^xsd:float ;
 		mephisto:control_3 "0.0"^^xsd:float ;
@@ -369,7 +376,7 @@ mephisto:audio_2x2
 	patch:writable
 		mephisto:code ,
 		mephisto:xfadeDuration ,
-		mephisto:releaseDuration ,
+		mephisto:fontHeight ,
 		mephisto:control_1 ,
 		mephisto:control_2 ,
 		mephisto:control_3 ,
@@ -390,7 +397,7 @@ mephisto:audio_2x2
 	state:state [
 		mephisto:code """@BANK-FILTER_THROUGH@""" ;
 		mephisto:xfadeDuration "100"^^xsd:int ;
-		mephisto:releaseDuration "10"^^xsd:int ;
+		mephisto:fontHeight "16"^^xsd:int ;
 		mephisto:control_1 "0.0"^^xsd:float ;
 		mephisto:control_2 "0.0"^^xsd:float ;
 		mephisto:control_3 "0.0"^^xsd:float ;
@@ -500,7 +507,7 @@ mephisto:audio_4x4
 	patch:writable
 		mephisto:code ,
 		mephisto:xfadeDuration ,
-		mephisto:releaseDuration ,
+		mephisto:fontHeight ,
 		mephisto:control_1 ,
 		mephisto:control_2 ,
 		mephisto:control_3 ,
@@ -521,7 +528,7 @@ mephisto:audio_4x4
 	state:state [
 		mephisto:code """@BANK-FILTER_THROUGH@""" ;
 		mephisto:xfadeDuration "100"^^xsd:int ;
-		mephisto:releaseDuration "10"^^xsd:int ;
+		mephisto:fontHeight "16"^^xsd:int ;
 		mephisto:control_1 "0.0"^^xsd:float ;
 		mephisto:control_2 "0.0"^^xsd:float ;
 		mephisto:control_3 "0.0"^^xsd:float ;
@@ -679,7 +686,7 @@ mephisto:audio_8x8
 	patch:writable
 		mephisto:code ,
 		mephisto:xfadeDuration ,
-		mephisto:releaseDuration ,
+		mephisto:fontHeight ,
 		mephisto:control_1 ,
 		mephisto:control_2 ,
 		mephisto:control_3 ,
@@ -700,7 +707,7 @@ mephisto:audio_8x8
 	state:state [
 		mephisto:code """@BANK-FILTER_THROUGH@""" ;
 		mephisto:xfadeDuration "100"^^xsd:int ;
-		mephisto:releaseDuration "10"^^xsd:int ;
+		mephisto:fontHeight "16"^^xsd:int ;
 		mephisto:control_1 "0.0"^^xsd:float ;
 		mephisto:control_2 "0.0"^^xsd:float ;
 		mephisto:control_3 "0.0"^^xsd:float ;
@@ -777,7 +784,7 @@ mephisto:cv_1x1
 	patch:writable
 		mephisto:code ,
 		mephisto:xfadeDuration ,
-		mephisto:releaseDuration ,
+		mephisto:fontHeight ,
 		mephisto:control_1 ,
 		mephisto:control_2 ,
 		mephisto:control_3 ,
@@ -798,7 +805,7 @@ mephisto:cv_1x1
 	state:state [
 		mephisto:code """@BANK-FILTER_THROUGH@""" ;
 		mephisto:xfadeDuration "100"^^xsd:int ;
-		mephisto:releaseDuration "10"^^xsd:int ;
+		mephisto:fontHeight "16"^^xsd:int ;
 		mephisto:control_1 "0.0"^^xsd:float ;
 		mephisto:control_2 "0.0"^^xsd:float ;
 		mephisto:control_3 "0.0"^^xsd:float ;
@@ -890,7 +897,7 @@ mephisto:cv_2x2
 	patch:writable
 		mephisto:code ,
 		mephisto:xfadeDuration ,
-		mephisto:releaseDuration ,
+		mephisto:fontHeight ,
 		mephisto:control_1 ,
 		mephisto:control_2 ,
 		mephisto:control_3 ,
@@ -911,7 +918,7 @@ mephisto:cv_2x2
 	state:state [
 		mephisto:code """@BANK-FILTER_THROUGH@""" ;
 		mephisto:xfadeDuration "100"^^xsd:int ;
-		mephisto:releaseDuration "10"^^xsd:int ;
+		mephisto:fontHeight "16"^^xsd:int ;
 		mephisto:control_1 "0.0"^^xsd:float ;
 		mephisto:control_2 "0.0"^^xsd:float ;
 		mephisto:control_3 "0.0"^^xsd:float ;
@@ -1033,7 +1040,7 @@ mephisto:cv_4x4
 	patch:writable
 		mephisto:code ,
 		mephisto:xfadeDuration ,
-		mephisto:releaseDuration ,
+		mephisto:fontHeight ,
 		mephisto:control_1 ,
 		mephisto:control_2 ,
 		mephisto:control_3 ,
@@ -1054,7 +1061,7 @@ mephisto:cv_4x4
 	state:state [
 		mephisto:code """@BANK-FILTER_THROUGH@""" ;
 		mephisto:xfadeDuration "100"^^xsd:int ;
-		mephisto:releaseDuration "10"^^xsd:int ;
+		mephisto:fontHeight "16"^^xsd:int ;
 		mephisto:control_1 "0.0"^^xsd:float ;
 		mephisto:control_2 "0.0"^^xsd:float ;
 		mephisto:control_3 "0.0"^^xsd:float ;
@@ -1236,7 +1243,7 @@ mephisto:cv_8x8
 	patch:writable
 		mephisto:code ,
 		mephisto:xfadeDuration ,
-		mephisto:releaseDuration ,
+		mephisto:fontHeight ,
 		mephisto:control_1 ,
 		mephisto:control_2 ,
 		mephisto:control_3 ,
@@ -1257,7 +1264,7 @@ mephisto:cv_8x8
 	state:state [
 		mephisto:code """@BANK-FILTER_THROUGH@""" ;
 		mephisto:xfadeDuration "100"^^xsd:int ;
-		mephisto:releaseDuration "10"^^xsd:int ;
+		mephisto:fontHeight "16"^^xsd:int ;
 		mephisto:control_1 "0.0"^^xsd:float ;
 		mephisto:control_2 "0.0"^^xsd:float ;
 		mephisto:control_3 "0.0"^^xsd:float ;

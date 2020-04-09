@@ -1,4 +1,4 @@
-declare options "[nvoices:48][midi:on]";
+declare options "[nvoices:16][midi:on]";
 
 import("stdfaust.lib");
 
