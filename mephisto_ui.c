@@ -572,6 +572,7 @@ _expose_slot(plughandle_t *handle, const d2tk_rect_t *rect, unsigned k)
 	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
 	static const char lbl [16][3] = {
+		"00",
 		"01",
 		"02",
 		"03",
@@ -586,8 +587,7 @@ _expose_slot(plughandle_t *handle, const d2tk_rect_t *rect, unsigned k)
 		"12",
 		"13",
 		"14",
-		"15",
-		"16",
+		"15"
 	};
 
 	const d2tk_coord_t frac [2] = { 1, 7 };
