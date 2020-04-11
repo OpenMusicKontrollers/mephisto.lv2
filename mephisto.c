@@ -1135,7 +1135,8 @@ _handle_midi_3(plughandle_t *handle, dsp_t *dsp,
 			voice_t *voice = _next_available_voice(dsp);
 			if(voice)
 			{
-				const float freq = _midi2cps(key);
+				const float freq = _midi2cps((float)key
+					+ handle->bend[chn]*handle->range[chn]);
 
 				_cntrl_refresh_value_abs(&voice->freq, freq);
 				_cntrl_refresh_value_abs(&voice->gain, vel * 0x1p-7);
