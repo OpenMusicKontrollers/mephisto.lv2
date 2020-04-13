@@ -9,6 +9,7 @@ d2tk = subproject('d2tk')
 
 lv2libdir = get_option('lv2libdir')
 build_tests = get_option('build-tests')
+use_fontconfig = get_option('use-fontconfig')
 
 inst_dir = join_paths(lv2libdir, meson.project_name())
 
@@ -132,6 +133,45 @@ configure_file(
 	copy : true,
 	install : true,
 	install_dir : inst_dir)
+
+if not use_fontconfig.enabled()
+	fira_sans_bold_ttf = d2tk.get_variable('fira_sans_bold_ttf')
+	fira_code_bold_ttf = d2tk.get_variable('fira_code_bold_ttf')
+	fira_code_light_ttf = d2tk.get_variable('fira_code_light_ttf')
+	fira_code_medium_ttf = d2tk.get_variable('fira_code_medium_ttf')
+	fira_code_regular_ttf = d2tk.get_variable('fira_code_regular_ttf')
+
+	configure_file(
+		input : fira_sans_bold_ttf,
+		output : 'FiraSans:bold.ttf',
+		copy : true,
+		install : true,
+		install_dir : inst_dir)
+	configure_file(
+		input : fira_code_bold_ttf,
+		output : 'FiraCode:bold.ttf',
+		copy : true,
+		install : true,
+		install_dir : inst_dir)
+	configure_file(
+		input : fira_code_light_ttf,
+		output : 'FiraCode:light.ttf',
+		copy : true,
+		install : true,
+		install_dir : inst_dir)
+	configure_file(
+		input : fira_code_medium_ttf,
+		output : 'FiraCode:medium.ttf',
+		copy : true,
+		install : true,
+		install_dir : inst_dir)
+	configure_file(
+		input : fira_code_regular_ttf,
+		output : 'FiraCode:regular.ttf',
+		copy : true,
+		install : true,
+		install_dir : inst_dir)
+endif
 
 if build_tests
 	if lv2_validate.found() and sord_validate.found()
