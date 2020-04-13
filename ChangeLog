@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.8.0] - 13 Apr 2020
+
+### Fixed
+
+* wrong note frequency at noteOn when pitch bending
+
+### Deprecated
+
+* release duration paramter (voices are always on now)
+
+### Changed
+
+* to build with pugl master
+* to use spinners instead of dials
+* to automagically adapt color theme to terminal colors
+* to count slots from 0 in ui
+
 ## [0.6.0] - 15 Jan 2020
 
 ### Deprecated
