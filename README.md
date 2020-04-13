@@ -184,7 +184,7 @@ The plugin supports building instruments with
 For this to work you have to enable the MIDI option and declare amount of polyphony
 (maximum polyphony is 64).
 
-The plugin automatically derives the 3 control signals:
+The plugin automatically derives the 4 control signals:
 
 * gate (NoteOn vs NoteOff)
 * freq (NoteOn-note + PitchBend), honouring PitchBend range RPN 0/0
@@ -200,7 +200,7 @@ Additionally, the following MIDI ControlChanges are supported:
 Other MIDI events are not supported as of today and thus should be
 automated via the plugin host to one of the 16 control slots.
 
-    declare options("[midi:on][nvoices:32]");
+    declare options("[midi:on][nvoices:16]");
 
     freq = hslider("freq", 0, 0, 1, 0.1);
     gain = hslider("gain", 0, 0, 1, 0.1);
