@@ -55,7 +55,7 @@ folder out of the platform folder of the downloaded package into your
 
 #### Plugins
 
-![Screenshot](https://git.open-music-kontrollers.ch/lv2/mephisto.lv2/plain/screenshots/screenshot_1.png)
+![Screenshot](/screenshots/screenshot_1.png)
 
 ##### Audio 1x1
 
