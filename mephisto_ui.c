@@ -590,6 +590,12 @@ _expose_slot(plughandle_t *handle, const d2tk_rect_t *rect, unsigned k)
 		"15"
 	};
 
+	if(  (handle->state.control_min[k] == 0.f)
+		&& (handle->state.control_max[k] == 0.f) )
+	{
+		return;
+	}
+
 	const d2tk_coord_t frac [2] = { 1, 7 };
 	D2TK_BASE_LAYOUT(rect, 2, frac, D2TK_FLAG_LAYOUT_X_REL, hlay)
 	{
@@ -600,16 +606,66 @@ _expose_slot(plughandle_t *handle, const d2tk_rect_t *rect, unsigned k)
 		{
 			case 0:
 			{
+#if 1
 				d2tk_base_label(base, sizeof(lbl[k]), lbl[k], 0.5f, hrect,
 					D2TK_ALIGN_MIDDLE | D2TK_ALIGN_LEFT);
+#else
+				d2tk_base_label(base, -1, handle->state.control_label[k], 0.5f, hrect,
+					D2TK_ALIGN_MIDDLE | D2TK_ALIGN_LEFT);
+#endif
 			} break;
 			case 1:
 			{
+				const cntrl_type_t type = handle->state.control_type[k];
 
-				if(d2tk_base_spinner_float_is_changed(base, D2TK_ID_IDX(k), hrect,
-					0.f, &handle->state.control[k], 1.f))
+				switch(type)
 				{
-					_message_set_control(handle, k);
+					case CNTRL_BUTTON:
+					{
+						//FIXME
+					} break;
+					case CNTRL_CHECK_BUTTON:
+					{
+						bool val = handle->state.control[k] > 0.5;
+
+						if(d2tk_base_dial_bool_is_changed(base, D2TK_ID_IDX(k), hrect, &val))
+						{
+							handle->state.control[k] = val;
+
+							_message_set_control(handle, k);
+						}
+					} break;
+
+					case CNTRL_VERTICAL_SLIDER:
+						// fall-through
+					case CNTRL_HORIZONTAL_SLIDER:
+						// fall-through
+					case CNTRL_NUM_ENTRY:
+					{
+						const float min = handle->state.control_min[k];
+						const float max = handle->state.control_max[k];
+						const float range = max - min; //FIXME cache this somewhere
+						float abs = handle->state.control[k] * range + min;
+
+						if(d2tk_base_spinner_float_is_changed(base, D2TK_ID_IDX(k), hrect,
+							min, &abs, max))
+						{
+							handle->state.control[k] = (abs - min) / range;
+
+							_message_set_control(handle, k);
+						}
+					} break;
+
+					case CNTRL_NONE:
+						// fall-through
+					case CNTRL_HORIZONTAL_BARGRAPH: //FIXME
+						// fall-through
+					case CNTRL_VERTICAL_BARGRAPH: //FIXME
+						// fall-through
+					case CNTRL_SOUND_FILE: //FIXME
+					{
+						// nothing to do
+					} break;
 				}
 			} break;
 		}
@@ -1056,13 +1112,12 @@ instantiate(const LV2UI_Descriptor *descriptor,
 
 	lv2_log_note(&handle->logger, "template: %s\n", handle->template);
 
-	_message_get(handle, handle->urid_code);
-	_message_get(handle, handle->urid_error);
-	_message_get(handle, handle->urid_xfadeDuration);
-	_message_get(handle, handle->urid_fontHeight);
-	for(unsigned i = 0; i < NCONTROLS; i++)
+	for(unsigned i = 0; i < MAX_NPROPS; i++)
 	{
-		_message_get(handle, handle->urid_control[i]);
+		const props_def_t *def = &defs[i];
+		const LV2_URID urid = props_map(&handle->props, def->property);
+
+		_message_get(handle, urid);
 	}
 
 	return handle;

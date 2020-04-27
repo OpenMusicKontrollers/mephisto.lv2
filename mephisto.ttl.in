@@ -237,7 +237,7 @@ mephisto:audio_1x1
 		lv2:index 0 ;
 		lv2:symbol "control" ;
 		lv2:name "Control" ;
-		rsz:minimumSize 131072 ;
+		rsz:minimumSize 262144 ;
 		lv2:designation lv2:control ;
 	] , [
 	  a lv2:OutputPort ,
@@ -247,7 +247,7 @@ mephisto:audio_1x1
 		lv2:index 1 ;
 		lv2:symbol "notify" ;
 		lv2:name "Notify" ;
-		rsz:minimumSize 131072 ;
+		rsz:minimumSize 262144 ;
 		lv2:designation lv2:control ;
 	] , [
 	  a lv2:InputPort ,
@@ -332,7 +332,7 @@ mephisto:audio_2x2
 		lv2:index 0 ;
 		lv2:symbol "control" ;
 		lv2:name "Control" ;
-		rsz:minimumSize 131072 ;
+		rsz:minimumSize 262144 ;
 		lv2:designation lv2:control ;
 	] , [
 	  a lv2:OutputPort ,
@@ -342,7 +342,7 @@ mephisto:audio_2x2
 		lv2:index 1 ;
 		lv2:symbol "notify" ;
 		lv2:name "Notify" ;
-		rsz:minimumSize 131072 ;
+		rsz:minimumSize 262144 ;
 		lv2:designation lv2:control ;
 	] , [
 	  a lv2:InputPort ,
@@ -439,7 +439,7 @@ mephisto:audio_4x4
 		lv2:index 0 ;
 		lv2:symbol "control" ;
 		lv2:name "Control" ;
-		rsz:minimumSize 131072 ;
+		rsz:minimumSize 262144 ;
 		lv2:designation lv2:control ;
 	] , [
 	  a lv2:OutputPort ,
@@ -449,7 +449,7 @@ mephisto:audio_4x4
 		lv2:index 1 ;
 		lv2:symbol "notify" ;
 		lv2:name "Notify" ;
-		rsz:minimumSize 131072 ;
+		rsz:minimumSize 262144 ;
 		lv2:designation lv2:control ;
 	] , [
 	  a lv2:InputPort ,
@@ -570,7 +570,7 @@ mephisto:audio_8x8
 		lv2:index 0 ;
 		lv2:symbol "control" ;
 		lv2:name "Control" ;
-		rsz:minimumSize 131072 ;
+		rsz:minimumSize 262144 ;
 		lv2:designation lv2:control ;
 	] , [
 	  a lv2:OutputPort ,
@@ -580,7 +580,7 @@ mephisto:audio_8x8
 		lv2:index 1 ;
 		lv2:symbol "notify" ;
 		lv2:name "Notify" ;
-		rsz:minimumSize 131072 ;
+		rsz:minimumSize 262144 ;
 		lv2:designation lv2:control ;
 	] , [
 	  a lv2:InputPort ,
@@ -749,7 +749,7 @@ mephisto:cv_1x1
 		lv2:index 0 ;
 		lv2:symbol "control" ;
 		lv2:name "Control" ;
-		rsz:minimumSize 131072 ;
+		rsz:minimumSize 262144 ;
 		lv2:designation lv2:control ;
 	] , [
 	  a lv2:OutputPort ,
@@ -759,7 +759,7 @@ mephisto:cv_1x1
 		lv2:index 1 ;
 		lv2:symbol "notify" ;
 		lv2:name "Notify" ;
-		rsz:minimumSize 131072 ;
+		rsz:minimumSize 262144 ;
 		lv2:designation lv2:control ;
 	] , [
 	  a lv2:InputPort ,
@@ -847,7 +847,7 @@ mephisto:cv_2x2
 		lv2:index 0 ;
 		lv2:symbol "control" ;
 		lv2:name "Control" ;
-		rsz:minimumSize 131072 ;
+		rsz:minimumSize 262144 ;
 		lv2:designation lv2:control ;
 	] , [
 	  a lv2:OutputPort ,
@@ -857,7 +857,7 @@ mephisto:cv_2x2
 		lv2:index 1 ;
 		lv2:symbol "notify" ;
 		lv2:name "Notify" ;
-		rsz:minimumSize 131072 ;
+		rsz:minimumSize 262144 ;
 		lv2:designation lv2:control ;
 	] , [
 	  a lv2:InputPort ,
@@ -960,7 +960,7 @@ mephisto:cv_4x4
 		lv2:index 0 ;
 		lv2:symbol "control" ;
 		lv2:name "Control" ;
-		rsz:minimumSize 131072 ;
+		rsz:minimumSize 262144 ;
 		lv2:designation lv2:control ;
 	] , [
 	  a lv2:OutputPort ,
@@ -970,7 +970,7 @@ mephisto:cv_4x4
 		lv2:index 1 ;
 		lv2:symbol "notify" ;
 		lv2:name "Notify" ;
-		rsz:minimumSize 131072 ;
+		rsz:minimumSize 262144 ;
 		lv2:designation lv2:control ;
 	] , [
 	  a lv2:InputPort ,
@@ -1103,7 +1103,7 @@ mephisto:cv_8x8
 		lv2:index 0 ;
 		lv2:symbol "control" ;
 		lv2:name "Control" ;
-		rsz:minimumSize 131072 ;
+		rsz:minimumSize 262144 ;
 		lv2:designation lv2:control ;
 	] , [
 	  a lv2:OutputPort ,
@@ -1113,7 +1113,7 @@ mephisto:cv_8x8
 		lv2:index 1 ;
 		lv2:symbol "notify" ;
 		lv2:name "Notify" ;
-		rsz:minimumSize 131072 ;
+		rsz:minimumSize 262144 ;
 		lv2:designation lv2:control ;
 	] , [
 	  a lv2:InputPort ,

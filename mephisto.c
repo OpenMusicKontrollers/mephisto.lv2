@@ -35,7 +35,6 @@
 #include <faust/dsp/llvm-c-dsp.h>
 
 #define MAX_CHANNEL 8
-#define MAX_LABEL 32
 #define MAX_VOICES 64
 
 //#define MDI_MPE
@@ -55,18 +54,6 @@ typedef struct _cntrl_vertical_bargraph_t cntrl_vertical_bargraph_t;
 typedef struct _cntrl_sound_file_t cntrl_sound_file_t;
 
 typedef struct _cntrl_t cntrl_t;
-
-typedef enum _cntrl_type_t {
-	CNTRL_NONE = 0,
-	CNTRL_BUTTON,
-	CNTRL_CHECK_BUTTON,
-	CNTRL_VERTICAL_SLIDER,
-	CNTRL_HORIZONTAL_SLIDER,
-	CNTRL_NUM_ENTRY,
-	CNTRL_HORIZONTAL_BARGRAPH,
-	CNTRL_VERTICAL_BARGRAPH,
-	CNTRL_SOUND_FILE
-} cntrl_type_t;
 
 struct _cntrl_vertical_slider_t {
 	float init;
@@ -109,7 +96,7 @@ struct _cntrl_sound_file_t {
 };
 
 struct _cntrl_t {
-	char label [MAX_LABEL];
+	char label [LABEL_SIZE];
 	cntrl_type_t type;
 	float *zone;
 	union {
@@ -235,7 +222,16 @@ struct _plughandle_t {
 	char bundle_path [PATH_MAX];
 
 	LV2_URID mephisto_error;
-	bool dirty;
+	LV2_URID mephisto_controlMin [NCONTROLS];
+	LV2_URID mephisto_controlMax [NCONTROLS];
+	LV2_URID mephisto_controlStep [NCONTROLS];
+	LV2_URID mephisto_controlType [NCONTROLS];
+	LV2_URID mephisto_controlLabel [NCONTROLS];
+
+	struct {
+		bool error;
+		bool attributes;
+	} dirty;
 
 	bool play;
 	dsp_t *dsp [2];
@@ -414,6 +410,116 @@ _cntrl_refresh_value_rel(cntrl_t *cntrl, float val)
 		{
 			//FIXME
 		} break;
+	}
+}
+
+static void
+_cntrl_refresh_attributes(cntrl_t *cntrl, float *min, float *max, float *step,
+	int32_t *type, char *label)
+{
+	*type = cntrl->type;
+	strncpy(label, cntrl->label, LABEL_SIZE - 1);
+
+	switch(cntrl->type)
+	{
+		case CNTRL_BUTTON:
+			// fall-through
+		case CNTRL_CHECK_BUTTON:
+		{
+			*min = 0.f;
+			*max = 1.f;
+			*step = 1.f;
+		} break;
+
+		case CNTRL_VERTICAL_SLIDER:
+		{
+			*min = cntrl->vertical_slider.min;
+			*max = cntrl->vertical_slider.max;
+			*step = cntrl->vertical_slider.step;
+		} break;
+		case CNTRL_HORIZONTAL_SLIDER:
+		{
+			*min = cntrl->horizontal_slider.min;
+			*max = cntrl->horizontal_slider.max;
+			*step = cntrl->horizontal_slider.step;
+		} break;
+		case CNTRL_NUM_ENTRY:
+		{
+			*min = cntrl->num_entry.min;
+			*max = cntrl->num_entry.max;
+			*step = cntrl->num_entry.step;
+		} break;
+
+		case CNTRL_NONE:
+			// fall-through
+		case CNTRL_SOUND_FILE:
+		case CNTRL_HORIZONTAL_BARGRAPH:
+		case CNTRL_VERTICAL_BARGRAPH:
+		{
+			// do nothing
+		} break;
+	}
+}
+
+static void
+_refresh_attributes(plughandle_t *handle, uint32_t idx)
+{
+	float min = 0.f;
+	float max = 0.f;
+	float step = 0.f;
+	int32_t type = CNTRL_NONE;
+	char label [LABEL_SIZE] = "";
+
+	dsp_t *dsp = handle->dsp[!handle->play];
+
+	if(!dsp)
+	{
+		return;
+	}
+
+	VOICE_FOREACH(dsp, voice)
+	{
+		cntrl_t *cntrl = &voice->cntrls[idx];
+
+		if(cntrl->type == CNTRL_NONE)
+		{
+			continue;
+		}
+
+		_cntrl_refresh_attributes(cntrl, &min, &max, &step, &type, label);
+	}
+
+
+	props_impl_t *impl = NULL;
+
+	impl = _props_impl_get(&handle->props, handle->mephisto_controlMin[idx]);
+	if(impl)
+	{
+		_props_impl_set(&handle->props, impl, handle->forge.Float, sizeof(float), &min);
+	}
+
+	impl = _props_impl_get(&handle->props, handle->mephisto_controlMax[idx]);
+	if(impl)
+	{
+		_props_impl_set(&handle->props, impl, handle->forge.Float, sizeof(float), &max);
+	}
+
+	impl = _props_impl_get(&handle->props, handle->mephisto_controlStep[idx]);
+	if(impl)
+	{
+		_props_impl_set(&handle->props, impl, handle->forge.Float, sizeof(float), &step);
+	}
+
+	impl = _props_impl_get(&handle->props, handle->mephisto_controlType[idx]);
+	if(impl)
+	{
+		_props_impl_set(&handle->props, impl, handle->forge.Int, sizeof(int32_t), &type);
+	}
+
+	impl = _props_impl_get(&handle->props, handle->mephisto_controlLabel[idx]);
+	if(impl)
+	{
+		_props_impl_set(&handle->props, impl, handle->forge.String, strlen(label) + 1, label);
 	}
 }
 
@@ -835,6 +941,91 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 	}
 
 	handle->mephisto_error = props_map(&handle->props, MEPHISTO__error);
+
+	handle->mephisto_controlMin[0] = props_map(&handle->props, MEPHISTO__controlMin_1);
+	handle->mephisto_controlMin[1] = props_map(&handle->props, MEPHISTO__controlMin_2);
+	handle->mephisto_controlMin[2] = props_map(&handle->props, MEPHISTO__controlMin_3);
+	handle->mephisto_controlMin[3] = props_map(&handle->props, MEPHISTO__controlMin_4);
+	handle->mephisto_controlMin[4] = props_map(&handle->props, MEPHISTO__controlMin_5);
+	handle->mephisto_controlMin[5] = props_map(&handle->props, MEPHISTO__controlMin_6);
+	handle->mephisto_controlMin[6] = props_map(&handle->props, MEPHISTO__controlMin_7);
+	handle->mephisto_controlMin[7] = props_map(&handle->props, MEPHISTO__controlMin_8);
+	handle->mephisto_controlMin[8] = props_map(&handle->props, MEPHISTO__controlMin_9);
+	handle->mephisto_controlMin[9] = props_map(&handle->props, MEPHISTO__controlMin_10);
+	handle->mephisto_controlMin[10] = props_map(&handle->props, MEPHISTO__controlMin_11);
+	handle->mephisto_controlMin[11] = props_map(&handle->props, MEPHISTO__controlMin_12);
+	handle->mephisto_controlMin[12] = props_map(&handle->props, MEPHISTO__controlMin_13);
+	handle->mephisto_controlMin[13] = props_map(&handle->props, MEPHISTO__controlMin_14);
+	handle->mephisto_controlMin[14] = props_map(&handle->props, MEPHISTO__controlMin_15);
+	handle->mephisto_controlMin[15] = props_map(&handle->props, MEPHISTO__controlMin_16);
+
+	handle->mephisto_controlMax[0] = props_map(&handle->props, MEPHISTO__controlMax_1);
+	handle->mephisto_controlMax[1] = props_map(&handle->props, MEPHISTO__controlMax_2);
+	handle->mephisto_controlMax[2] = props_map(&handle->props, MEPHISTO__controlMax_3);
+	handle->mephisto_controlMax[3] = props_map(&handle->props, MEPHISTO__controlMax_4);
+	handle->mephisto_controlMax[4] = props_map(&handle->props, MEPHISTO__controlMax_5);
+	handle->mephisto_controlMax[5] = props_map(&handle->props, MEPHISTO__controlMax_6);
+	handle->mephisto_controlMax[6] = props_map(&handle->props, MEPHISTO__controlMax_7);
+	handle->mephisto_controlMax[7] = props_map(&handle->props, MEPHISTO__controlMax_8);
+	handle->mephisto_controlMax[8] = props_map(&handle->props, MEPHISTO__controlMax_9);
+	handle->mephisto_controlMax[9] = props_map(&handle->props, MEPHISTO__controlMax_10);
+	handle->mephisto_controlMax[10] = props_map(&handle->props, MEPHISTO__controlMax_11);
+	handle->mephisto_controlMax[11] = props_map(&handle->props, MEPHISTO__controlMax_12);
+	handle->mephisto_controlMax[12] = props_map(&handle->props, MEPHISTO__controlMax_13);
+	handle->mephisto_controlMax[13] = props_map(&handle->props, MEPHISTO__controlMax_14);
+	handle->mephisto_controlMax[14] = props_map(&handle->props, MEPHISTO__controlMax_15);
+	handle->mephisto_controlMax[15] = props_map(&handle->props, MEPHISTO__controlMax_16);
+
+	handle->mephisto_controlStep[0] = props_map(&handle->props, MEPHISTO__controlStep_1);
+	handle->mephisto_controlStep[1] = props_map(&handle->props, MEPHISTO__controlStep_2);
+	handle->mephisto_controlStep[2] = props_map(&handle->props, MEPHISTO__controlStep_3);
+	handle->mephisto_controlStep[3] = props_map(&handle->props, MEPHISTO__controlStep_4);
+	handle->mephisto_controlStep[4] = props_map(&handle->props, MEPHISTO__controlStep_5);
+	handle->mephisto_controlStep[5] = props_map(&handle->props, MEPHISTO__controlStep_6);
+	handle->mephisto_controlStep[6] = props_map(&handle->props, MEPHISTO__controlStep_7);
+	handle->mephisto_controlStep[7] = props_map(&handle->props, MEPHISTO__controlStep_8);
+	handle->mephisto_controlStep[8] = props_map(&handle->props, MEPHISTO__controlStep_9);
+	handle->mephisto_controlStep[9] = props_map(&handle->props, MEPHISTO__controlStep_10);
+	handle->mephisto_controlStep[10] = props_map(&handle->props, MEPHISTO__controlStep_11);
+	handle->mephisto_controlStep[11] = props_map(&handle->props, MEPHISTO__controlStep_12);
+	handle->mephisto_controlStep[12] = props_map(&handle->props, MEPHISTO__controlStep_13);
+	handle->mephisto_controlStep[13] = props_map(&handle->props, MEPHISTO__controlStep_14);
+	handle->mephisto_controlStep[14] = props_map(&handle->props, MEPHISTO__controlStep_15);
+	handle->mephisto_controlStep[15] = props_map(&handle->props, MEPHISTO__controlStep_16);
+
+	handle->mephisto_controlType[0] = props_map(&handle->props, MEPHISTO__controlType_1);
+	handle->mephisto_controlType[1] = props_map(&handle->props, MEPHISTO__controlType_2);
+	handle->mephisto_controlType[2] = props_map(&handle->props, MEPHISTO__controlType_3);
+	handle->mephisto_controlType[3] = props_map(&handle->props, MEPHISTO__controlType_4);
+	handle->mephisto_controlType[4] = props_map(&handle->props, MEPHISTO__controlType_5);
+	handle->mephisto_controlType[5] = props_map(&handle->props, MEPHISTO__controlType_6);
+	handle->mephisto_controlType[6] = props_map(&handle->props, MEPHISTO__controlType_7);
+	handle->mephisto_controlType[7] = props_map(&handle->props, MEPHISTO__controlType_8);
+	handle->mephisto_controlType[8] = props_map(&handle->props, MEPHISTO__controlType_9);
+	handle->mephisto_controlType[9] = props_map(&handle->props, MEPHISTO__controlType_10);
+	handle->mephisto_controlType[10] = props_map(&handle->props, MEPHISTO__controlType_11);
+	handle->mephisto_controlType[11] = props_map(&handle->props, MEPHISTO__controlType_12);
+	handle->mephisto_controlType[12] = props_map(&handle->props, MEPHISTO__controlType_13);
+	handle->mephisto_controlType[13] = props_map(&handle->props, MEPHISTO__controlType_14);
+	handle->mephisto_controlType[14] = props_map(&handle->props, MEPHISTO__controlType_15);
+	handle->mephisto_controlType[15] = props_map(&handle->props, MEPHISTO__controlType_16);
+
+	handle->mephisto_controlLabel[0] = props_map(&handle->props, MEPHISTO__controlLabel_1);
+	handle->mephisto_controlLabel[1] = props_map(&handle->props, MEPHISTO__controlLabel_2);
+	handle->mephisto_controlLabel[2] = props_map(&handle->props, MEPHISTO__controlLabel_3);
+	handle->mephisto_controlLabel[3] = props_map(&handle->props, MEPHISTO__controlLabel_4);
+	handle->mephisto_controlLabel[4] = props_map(&handle->props, MEPHISTO__controlLabel_5);
+	handle->mephisto_controlLabel[5] = props_map(&handle->props, MEPHISTO__controlLabel_6);
+	handle->mephisto_controlLabel[6] = props_map(&handle->props, MEPHISTO__controlLabel_7);
+	handle->mephisto_controlLabel[7] = props_map(&handle->props, MEPHISTO__controlLabel_8);
+	handle->mephisto_controlLabel[8] = props_map(&handle->props, MEPHISTO__controlLabel_9);
+	handle->mephisto_controlLabel[9] = props_map(&handle->props, MEPHISTO__controlLabel_10);
+	handle->mephisto_controlLabel[10] = props_map(&handle->props, MEPHISTO__controlLabel_11);
+	handle->mephisto_controlLabel[11] = props_map(&handle->props, MEPHISTO__controlLabel_12);
+	handle->mephisto_controlLabel[12] = props_map(&handle->props, MEPHISTO__controlLabel_13);
+	handle->mephisto_controlLabel[13] = props_map(&handle->props, MEPHISTO__controlLabel_14);
+	handle->mephisto_controlLabel[14] = props_map(&handle->props, MEPHISTO__controlLabel_15);
+	handle->mephisto_controlLabel[15] = props_map(&handle->props, MEPHISTO__controlLabel_16);
 
 	handle->to_worker = varchunk_new(BUF_SIZE, true);
 	handle->srate = rate;
@@ -1343,12 +1534,31 @@ run(LV2_Handle instance, uint32_t nsamples)
 	_play(handle, from, nsamples);
 
 	// send error if applicable
-	if(handle->dirty)
+	if(handle->dirty.error)
 	{
 		props_set(&handle->props, &handle->forge, nsamples-1, handle->mephisto_error,
 			&handle->ref);
 
-		handle->dirty = false;
+		handle->dirty.error = false;
+	}
+
+	if(handle->dirty.attributes)
+	{
+		for(unsigned i = 0; i < NCONTROLS; i++)
+		{
+			props_set(&handle->props, &handle->forge, nsamples-1, handle->mephisto_controlMin[i],
+				&handle->ref);
+			props_set(&handle->props, &handle->forge, nsamples-1, handle->mephisto_controlMax[i],
+				&handle->ref);
+			props_set(&handle->props, &handle->forge, nsamples-1, handle->mephisto_controlStep[i],
+				&handle->ref);
+			props_set(&handle->props, &handle->forge, nsamples-1, handle->mephisto_controlType[i],
+				&handle->ref);
+			props_set(&handle->props, &handle->forge, nsamples-1, handle->mephisto_controlLabel[i],
+				&handle->ref);
+		}
+
+		handle->dirty.attributes = false;
 	}
 
 	if(handle->ref)
@@ -2155,6 +2365,7 @@ _work_response(LV2_Handle instance, uint32_t size, const void *body)
 			for(uint32_t i = 0; i < NCONTROLS; i++)
 			{
 				_refresh_value(handle, i);
+				_refresh_attributes(handle, i);
 			}
 
 			dsp_t *cur_dsp = handle->dsp[handle->play];
@@ -2194,6 +2405,8 @@ _work_response(LV2_Handle instance, uint32_t size, const void *body)
 					cur_voice = _voice_next(cur_voice);
 				}
 			}
+
+			handle->dirty.attributes = true;
 		} break;
 		case JOB_TYPE_DEINIT:
 		{
@@ -2210,7 +2423,7 @@ _work_response(LV2_Handle instance, uint32_t size, const void *body)
 				strncpy(handle->state.error, empty, impl->def->max_size);
 				impl->value.size = strlen(handle->state.error) + 1;
 
-				handle->dirty = true;
+				handle->dirty.error = true;
 			}
 		} break;
 		case JOB_TYPE_ERROR_APPEND:
@@ -2222,7 +2435,7 @@ _work_response(LV2_Handle instance, uint32_t size, const void *body)
 				strncat(handle->state.error, job->error, impl->def->max_size - strlen(job->error) - 1);
 				impl->value.size = strlen(handle->state.error) + 1;
 
-				handle->dirty = true;
+				handle->dirty.error = true;
 
 				const job_t job2 = {
 					.type = JOB_TYPE_ERROR_FREE,
