@@ -889,16 +889,29 @@ instantiate(const LV2UI_Descriptor *descriptor,
 
 	void *parent = NULL;
 	LV2UI_Resize *host_resize = NULL;
+	LV2_Options_Option *opts = NULL;
 	for(int i=0; features[i]; i++)
 	{
 		if(!strcmp(features[i]->URI, LV2_UI__parent))
+		{
 			parent = features[i]->data;
+		}
 		else if(!strcmp(features[i]->URI, LV2_UI__resize))
+		{
 			host_resize = features[i]->data;
+		}
 		else if(!strcmp(features[i]->URI, LV2_URID__map))
+		{
 			handle->map = features[i]->data;
+		}
 		else if(!strcmp(features[i]->URI, LV2_LOG__log))
+		{
 			handle->log = features[i]->data;
+		}
+		else if(!strcmp(features[i]->URI, LV2_OPTIONS__options))
+		{
+			opts = features[i]->data;
+		}
 	}
 
 	if(!parent)
@@ -1002,7 +1015,24 @@ instantiate(const LV2UI_Descriptor *descriptor,
 		return NULL;
 	}
 
-	handle->scale = d2tk_frontend_get_scale(handle->dpugl);
+	const LV2_URID ui_scaleFactor = handle->map->map(handle->map->handle,
+		LV2_UI__scaleFactor);
+
+	for(LV2_Options_Option *opt = opts;
+		opt && (opt->key != 0) && (opt->value != NULL);
+		opt++)
+	{
+		if( (opt->key == ui_scaleFactor) && (opt->type == handle->forge.Float) )
+		{
+			handle->scale = *(float*)opt->value;
+		}
+	}
+
+	if(handle->scale == 0.f)
+	{
+		handle->scale = d2tk_frontend_get_scale(handle->dpugl);
+	}
+
 	handle->header_height = 32 * handle->scale;
 	handle->footer_height = 64 * handle->scale;
 	handle->sidebar_width = 200 * handle->scale;

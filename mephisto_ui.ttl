@@ -18,6 +18,7 @@
 @prefix atom: <http://lv2plug.in/ns/ext/atom#> .
 @prefix ui:   <http://lv2plug.in/ns/extensions/ui#> .
 @prefix urid: <http://lv2plug.in/ns/ext/urid#> .
+@prefix opts: <http://lv2plug.in/ns/ext/options#> .
 
 @prefix mephisto:	<http://open-music-kontrollers.ch/lv2/mephisto#> .
 
@@ -56,4 +57,6 @@ mephisto:ui
 		ui:protocol atom:eventTransfer ;
 	] ;
 	lv2:requiredFeature ui:idleInterface, ui:resize, ui:portMap, urid:map ;
+	lv2:optionalFeature opts:options ;
+	opts:supportedOption ui:scaleFactor ;
 	lv2:extensionData ui:idleInterface, ui:resize .

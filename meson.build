@@ -42,7 +42,7 @@ else
 endif
 
 m_dep = cc.find_library('m')
-lv2_dep = dependency('lv2', version : '>=1.14.0')
+lv2_dep = dependency('lv2', version : '>=1.18.0')
 faust_dep = cc.find_library('faust')
 
 dsp_deps = [m_dep, lv2_dep, faust_dep]
