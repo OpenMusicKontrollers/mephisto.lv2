@@ -480,8 +480,10 @@ _expose_xfade(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_frontend_t *dpugl = handle->dpugl;
 	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
+	static const char lbl [] = "crossfade•ms";
+
 	if(d2tk_base_spinner_int32_is_changed(base, D2TK_ID, rect,
-		10, &handle->state.xfade_dur, 1000))
+		sizeof(lbl), lbl, 10, &handle->state.xfade_dur, 1000))
 	{
 		_message_set_key(handle, handle->urid_xfadeDuration);
 	}
@@ -493,8 +495,10 @@ _expose_font_height(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_frontend_t *dpugl = handle->dpugl;
 	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
+	static const char lbl [] = "font-height•px";
+
 	if(d2tk_base_spinner_int32_is_changed(base, D2TK_ID, rect,
-		10, &handle->state.font_height, 25))
+		sizeof(lbl), lbl, 10, &handle->state.font_height, 25))
 	{
 		_message_set_key(handle, handle->urid_fontHeight);
 		_update_font_height(handle);
@@ -507,9 +511,11 @@ _expose_panic(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_frontend_t *dpugl = handle->dpugl;
 	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
+	static const char lbl [] = "panic";
 	static const char path [] = "libre-gui-exclamation-circle.png";
 
-	if(d2tk_base_button_image_is_changed(base, D2TK_ID, sizeof(path), path, rect))
+	if(d2tk_base_button_label_image_is_changed(base, D2TK_ID, sizeof(lbl), lbl,
+		D2TK_ALIGN_CENTERED, sizeof(path), path, rect))
 	{
 		_message_midi_allnotesoff(handle);
 	}
@@ -521,45 +527,25 @@ _expose_footer(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_frontend_t *dpugl = handle->dpugl;
 	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
-	D2TK_BASE_TABLE(rect, 3, 2, D2TK_FLAG_TABLE_REL, tab)
+	const d2tk_coord_t frac [3] = { 1, 1, 1 };
+	D2TK_BASE_LAYOUT(rect, 3, frac, D2TK_FLAG_LAYOUT_X_REL, lay)
 	{
-		const unsigned x = d2tk_table_get_index_x(tab);
-		const unsigned y = d2tk_table_get_index_y(tab);
-		const d2tk_rect_t *trect = d2tk_table_get_rect(tab);
+		const unsigned k = d2tk_layout_get_index(lay);
+		const d2tk_rect_t *lrect = d2tk_layout_get_rect(lay);
 
-		switch(y)
+		switch(k)
 		{
 			case 0:
 			{
-				static const char *lbls [3] = {
-					"panic",
-					"crossfade•ms",
-					"font-height•px"
-				};
-
-				if(lbls[x])
-				{
-					d2tk_base_label(base, -1, lbls[x], 0.5f, trect,
-						D2TK_ALIGN_MIDDLE | D2TK_ALIGN_RIGHT);
-				}
+				_expose_panic(handle, lrect);
 			} break;
 			case 1:
 			{
-				switch(x)
-				{
-					case 0:
-					{
-						_expose_panic(handle, trect);
-					} break;
-					case 1:
-					{
-						_expose_xfade(handle, trect);
-					} break;
-					case 2:
-					{
-						_expose_font_height(handle, trect);
-					} break;
-				}
+				_expose_xfade(handle, lrect);
+			} break;
+			case 2:
+			{
+				_expose_font_height(handle, lrect);
 			} break;
 		}
 	}
@@ -648,7 +634,7 @@ _expose_slot(plughandle_t *handle, const d2tk_rect_t *rect, unsigned k)
 						float abs = handle->state.control[k] * range + min;
 
 						if(d2tk_base_spinner_float_is_changed(base, D2TK_ID_IDX(k), hrect,
-							min, &abs, max))
+							-1, handle->state.control_label[k], min, &abs, max))
 						{
 							handle->state.control[k] = (abs - min) / range;
 
@@ -1090,9 +1076,9 @@ instantiate(const LV2UI_Descriptor *descriptor,
 	}
 
 	handle->header_height = 32 * handle->scale;
-	handle->footer_height = 64 * handle->scale;
-	handle->sidebar_width = 200 * handle->scale;
-	handle->item_height = 32 * handle->scale;
+	handle->footer_height = 40 * handle->scale;
+	handle->sidebar_width = 256 * handle->scale;
+	handle->item_height = 40 * handle->scale;
 
 	handle->state.font_height = 16;
 	_update_font_height(handle);
