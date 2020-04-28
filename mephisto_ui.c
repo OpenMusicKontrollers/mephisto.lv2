@@ -567,7 +567,8 @@ _expose_slot(plughandle_t *handle, const d2tk_rect_t *rect, unsigned k)
 		{
 			bool val = handle->state.control[k] > 0.5;
 
-			const d2tk_state_t state = d2tk_base_dial_bool(base, D2TK_ID_IDX(k), rect, &val);
+			const d2tk_state_t state = d2tk_base_spinner_bool(base, D2TK_ID_IDX(k), rect,
+				-1, handle->state.control_label[k], &val);
 
 			if(d2tk_state_is_down(state))
 			{
@@ -586,7 +587,8 @@ _expose_slot(plughandle_t *handle, const d2tk_rect_t *rect, unsigned k)
 		{
 			bool val = handle->state.control[k] > 0.5;
 
-			if(d2tk_base_dial_bool_is_changed(base, D2TK_ID_IDX(k), rect, &val))
+			if(d2tk_base_spinner_bool_is_changed(base, D2TK_ID_IDX(k), rect,
+				-1, handle->state.control_label[k], &val))
 			{
 				handle->state.control[k] = val;
 
@@ -1148,11 +1150,6 @@ _idle(LV2UI_Handle instance)
 
 		handle->modtime = st.st_mtime;
 	}
-
-	d2tk_base_t *base = d2tk_frontend_get_base(handle->dpugl);
-	d2tk_style_t style = *d2tk_base_get_default_style(base);
-	style.font_face = "FiraCode:regular";
-	d2tk_base_set_style(base, &style);
 
 	if(d2tk_frontend_step(handle->dpugl))
 	{
