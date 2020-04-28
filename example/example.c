@@ -62,7 +62,7 @@ typedef enum _bar_t {
 	BAR_MAX
 } bar_t;
 
-static bar_t bar = BAR_PTY;
+static bar_t bar = BAR_MIX;
 static const char *bar_lbl [BAR_MAX] = {
 	[BAR_MIX]        = "Mix of many",
 	[BAR_SPINNER]    = "Spinner",
@@ -265,32 +265,39 @@ _render_c_spinner(d2tk_base_t *base, const d2tk_rect_t *rect)
 		const unsigned k = d2tk_table_get_index(tab);
 		const d2tk_id_t id = D2TK_ID_IDX(k);
 
+		char lbl [32];
+		const size_t lbl_len = snprintf(lbl, sizeof(lbl), "Spinner/%02X", k);
+
 		switch(k % 4)
 		{
 			case 0:
 			{
-				if(d2tk_base_spinner_int32_is_changed(base, id, trect, 0, &val[k].i32, 99))
+				if(d2tk_base_spinner_int32_is_changed(base, id, trect, lbl_len, lbl,
+					0, &val[k].i32, 99))
 				{
 					fprintf(stdout, "spinner %016"PRIx64" %"PRIi32"\n", id, val[k].i32);
 				}
 			} break;
 			case 1:
 			{
-				if(d2tk_base_spinner_float_is_changed(base, id, trect, -1.f, &val[k].f32, 0.f))
+				if(d2tk_base_spinner_float_is_changed(base, id, trect, lbl_len, lbl,
+					-1.f, &val[k].f32, 0.f))
 				{
 					fprintf(stdout, "spinner %016"PRIx64" %f\n", id, val[k].f32);
 				}
 			} break;
 			case 2:
 			{
-				if(d2tk_base_spinner_int32_is_changed(base, id, trect, -99, &val[k].i32, 33))
+				if(d2tk_base_spinner_int32_is_changed(base, id, trect, lbl_len, lbl,
+					-99, &val[k].i32, 33))
 				{
 					fprintf(stdout, "spinner %016"PRIx64" %"PRIi32"\n", id, val[k].i32);
 				}
 			} break;
 			case 3:
 			{
-				if(d2tk_base_spinner_float_is_changed(base, id, trect, -0.5f, &val[k].f32, 1.f))
+				if(d2tk_base_spinner_float_is_changed(base, id, trect, 0, NULL,
+					-0.5f, &val[k].f32, 1.f))
 				{
 					fprintf(stdout, "spinner %016"PRIx64" %f\n", id, val[k].f32);
 				}
