@@ -524,9 +524,6 @@ _expose_panic(plughandle_t *handle, const d2tk_rect_t *rect)
 static inline void
 _expose_footer(plughandle_t *handle, const d2tk_rect_t *rect)
 {
-	d2tk_frontend_t *dpugl = handle->dpugl;
-	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
-
 	const d2tk_coord_t frac [3] = { 1, 1, 1 };
 	D2TK_BASE_LAYOUT(rect, 3, frac, D2TK_FLAG_LAYOUT_X_REL, lay)
 	{
@@ -557,104 +554,76 @@ _expose_slot(plughandle_t *handle, const d2tk_rect_t *rect, unsigned k)
 	d2tk_frontend_t *dpugl = handle->dpugl;
 	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
-	static const char lbl [16][3] = {
-		"00",
-		"01",
-		"02",
-		"03",
-		"04",
-		"05",
-		"06",
-		"07",
-		"08",
-		"09",
-		"10",
-		"11",
-		"12",
-		"13",
-		"14",
-		"15"
-	};
-
 	if(  (handle->state.control_min[k] == 0.f)
 		&& (handle->state.control_max[k] == 0.f) )
 	{
 		return;
 	}
 
-	const d2tk_coord_t frac [2] = { 1, 7 };
-	D2TK_BASE_LAYOUT(rect, 2, frac, D2TK_FLAG_LAYOUT_X_REL, hlay)
+	const cntrl_type_t type = handle->state.control_type[k];
+	switch(type)
 	{
-		const d2tk_rect_t *hrect = d2tk_layout_get_rect(hlay);
-		const unsigned j = d2tk_layout_get_index(hlay);
-
-		switch(j)
+		case CNTRL_BUTTON: // momentary button FIXME lable
 		{
-			case 0:
+			bool val = handle->state.control[k] > 0.5;
+
+			const d2tk_state_t state = d2tk_base_dial_bool(base, D2TK_ID_IDX(k), rect, &val);
+
+			if(d2tk_state_is_down(state))
 			{
-#if 1
-				d2tk_base_label(base, sizeof(lbl[k]), lbl[k], 0.5f, hrect,
-					D2TK_ALIGN_MIDDLE | D2TK_ALIGN_LEFT);
-#else
-				d2tk_base_label(base, -1, handle->state.control_label[k], 0.5f, hrect,
-					D2TK_ALIGN_MIDDLE | D2TK_ALIGN_LEFT);
-#endif
-			} break;
-			case 1:
+				handle->state.control[k] = 1;
+
+				_message_set_control(handle, k);
+			}
+			else if(d2tk_state_is_up(state))
 			{
-				const cntrl_type_t type = handle->state.control_type[k];
+				handle->state.control[k] = 0;
 
-				switch(type)
-				{
-					case CNTRL_BUTTON:
-					{
-						//FIXME
-					} break;
-					case CNTRL_CHECK_BUTTON:
-					{
-						bool val = handle->state.control[k] > 0.5;
+				_message_set_control(handle, k);
+			}
+		} break;
+		case CNTRL_CHECK_BUTTON: // persistent button aka switch FIXME label
+		{
+			bool val = handle->state.control[k] > 0.5;
 
-						if(d2tk_base_dial_bool_is_changed(base, D2TK_ID_IDX(k), hrect, &val))
-						{
-							handle->state.control[k] = val;
+			if(d2tk_base_dial_bool_is_changed(base, D2TK_ID_IDX(k), rect, &val))
+			{
+				handle->state.control[k] = val;
 
-							_message_set_control(handle, k);
-						}
-					} break;
+				_message_set_control(handle, k);
+			}
+		} break;
 
-					case CNTRL_VERTICAL_SLIDER:
-						// fall-through
-					case CNTRL_HORIZONTAL_SLIDER:
-						// fall-through
-					case CNTRL_NUM_ENTRY:
-					{
-						const float min = handle->state.control_min[k];
-						const float max = handle->state.control_max[k];
-						const float range = max - min; //FIXME cache this somewhere
-						float abs = handle->state.control[k] * range + min;
+		case CNTRL_VERTICAL_SLIDER:
+			// fall-through
+		case CNTRL_HORIZONTAL_SLIDER:
+			// fall-through
+		case CNTRL_NUM_ENTRY:
+		{
+			const float min = handle->state.control_min[k];
+			const float max = handle->state.control_max[k];
+			const float range = max - min; //FIXME cache this somewhere
+			float abs = handle->state.control[k] * range + min;
 
-						if(d2tk_base_spinner_float_is_changed(base, D2TK_ID_IDX(k), hrect,
-							-1, handle->state.control_label[k], min, &abs, max))
-						{
-							handle->state.control[k] = (abs - min) / range;
+			if(d2tk_base_spinner_float_is_changed(base, D2TK_ID_IDX(k), rect,
+				-1, handle->state.control_label[k], min, &abs, max))
+			{
+				handle->state.control[k] = (abs - min) / range;
 
-							_message_set_control(handle, k);
-						}
-					} break;
+				_message_set_control(handle, k);
+			}
+		} break;
 
-					case CNTRL_NONE:
-						// fall-through
-					case CNTRL_HORIZONTAL_BARGRAPH: //FIXME
-						// fall-through
-					case CNTRL_VERTICAL_BARGRAPH: //FIXME
-						// fall-through
-					case CNTRL_SOUND_FILE: //FIXME
-					{
-						// nothing to do
-					} break;
-				}
-			} break;
-		}
+		case CNTRL_NONE:
+			// fall-through
+		case CNTRL_HORIZONTAL_BARGRAPH: //FIXME
+			// fall-through
+		case CNTRL_VERTICAL_BARGRAPH: //FIXME
+			// fall-through
+		case CNTRL_SOUND_FILE: //FIXME
+		{
+			// nothing to do
+		} break;
 	}
 }
 
