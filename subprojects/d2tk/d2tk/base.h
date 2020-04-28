@@ -567,6 +567,13 @@ d2tk_base_dial_double(d2tk_base_t *base, d2tk_id_t id, const d2tk_rect_t *rect,
 	d2tk_state_is_changed(d2tk_base_dial_double(__VA_ARGS__))
 
 D2TK_API d2tk_state_t
+d2tk_base_spinner_bool(d2tk_base_t *base, d2tk_id_t id, const d2tk_rect_t *rect,
+	ssize_t lbl_len, const char *lbl, bool *value);
+
+#define d2tk_base_spinner_bool_is_changed(...) \
+	d2tk_state_is_changed(d2tk_base_spinner_bool(__VA_ARGS__))
+
+D2TK_API d2tk_state_t
 d2tk_base_spinner_int32(d2tk_base_t *base, d2tk_id_t id, const d2tk_rect_t *rect,
 	ssize_t lbl_len, const char *lbl, int32_t min, int32_t *value, int32_t max);
 
