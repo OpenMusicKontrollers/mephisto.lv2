@@ -563,7 +563,7 @@ _expose_slot(plughandle_t *handle, const d2tk_rect_t *rect, unsigned k)
 	const cntrl_type_t type = handle->state.control_type[k];
 	switch(type)
 	{
-		case CNTRL_BUTTON: // momentary button FIXME lable
+		case CNTRL_BUTTON:
 		{
 			bool val = handle->state.control[k] > 0.5;
 
@@ -583,7 +583,7 @@ _expose_slot(plughandle_t *handle, const d2tk_rect_t *rect, unsigned k)
 				_message_set_control(handle, k);
 			}
 		} break;
-		case CNTRL_CHECK_BUTTON: // persistent button aka switch FIXME label
+		case CNTRL_CHECK_BUTTON:
 		{
 			bool val = handle->state.control[k] > 0.5;
 
@@ -616,11 +616,20 @@ _expose_slot(plughandle_t *handle, const d2tk_rect_t *rect, unsigned k)
 			}
 		} break;
 
+		case CNTRL_VERTICAL_BARGRAPH:
+			// fall-through
+		case CNTRL_HORIZONTAL_BARGRAPH:
+		{
+			const float min = handle->state.control_min[k];
+			const float max = handle->state.control_max[k];
+			const float range = max - min; //FIXME cache this somewhere
+			float abs = handle->state.control[k] * range + min;
+
+			d2tk_base_bar_float(base, D2TK_ID_IDX(k), rect,
+				min, &abs, max);
+		} break;
+
 		case CNTRL_NONE:
-			// fall-through
-		case CNTRL_HORIZONTAL_BARGRAPH: //FIXME
-			// fall-through
-		case CNTRL_VERTICAL_BARGRAPH: //FIXME
 			// fall-through
 		case CNTRL_SOUND_FILE: //FIXME
 		{

@@ -222,6 +222,7 @@ struct _plughandle_t {
 	char bundle_path [PATH_MAX];
 
 	LV2_URID mephisto_error;
+	LV2_URID mephisto_control [NCONTROLS];
 	LV2_URID mephisto_controlMin [NCONTROLS];
 	LV2_URID mephisto_controlMax [NCONTROLS];
 	LV2_URID mephisto_controlStep [NCONTROLS];
@@ -246,6 +247,8 @@ struct _plughandle_t {
 	bool sustain [0x10];
 
 	timely_t timely;
+
+	float old [NCONTROLS];
 
 	FAUSTFLOAT *faudio_in [MAX_CHANNEL];
 	FAUSTFLOAT *faudio_out [MAX_CHANNEL];
@@ -336,6 +339,48 @@ _cntrl_get_value_abs(cntrl_t *cntrl)
 	return 0.f;
 }
 
+static float
+_cntrl_get_value_rel(cntrl_t *cntrl)
+{
+	switch(cntrl->type)
+	{
+		case CNTRL_VERTICAL_BARGRAPH:
+		{
+			if(cntrl->zone)
+			{
+				return (*cntrl->zone - cntrl->vertical_bargraph.min) * cntrl->vertical_bargraph.ran_1;
+			}
+		} break;
+		case CNTRL_HORIZONTAL_BARGRAPH:
+		{
+			if(cntrl->zone)
+			{
+				return (*cntrl->zone - cntrl->horizontal_bargraph.min) * cntrl->horizontal_bargraph.ran_1;
+			}
+		} break;
+
+		case CNTRL_NONE:
+			// fall-through
+		case CNTRL_BUTTON:
+			// fall-through
+		case CNTRL_CHECK_BUTTON:
+			// fall-through
+		case CNTRL_VERTICAL_SLIDER:
+			// fall-through
+		case CNTRL_HORIZONTAL_SLIDER:
+			// fall-through
+		case CNTRL_NUM_ENTRY:
+			// fall-through
+		case CNTRL_SOUND_FILE:
+			// fall-through
+		{
+			// nothing to do
+		} break;
+	}
+
+	return 0.f;
+}
+
 static void
 _cntrl_refresh_value_rel(cntrl_t *cntrl, float val)
 {
@@ -403,12 +448,10 @@ _cntrl_refresh_value_rel(cntrl_t *cntrl, float val)
 		} break;
 
 		case CNTRL_HORIZONTAL_BARGRAPH:
-		{
-			//FIXME
-		} break;
+			// fall-through
 		case CNTRL_VERTICAL_BARGRAPH:
 		{
-			//FIXME
+			// nothing to do
 		} break;
 	}
 }
@@ -449,12 +492,22 @@ _cntrl_refresh_attributes(cntrl_t *cntrl, float *min, float *max, float *step,
 			*max = cntrl->num_entry.max;
 			*step = cntrl->num_entry.step;
 		} break;
+		case CNTRL_HORIZONTAL_BARGRAPH:
+		{
+			*min = cntrl->horizontal_bargraph.min;
+			*max = cntrl->horizontal_bargraph.max;
+			*step = 1.f;
+		} break;
+		case CNTRL_VERTICAL_BARGRAPH:
+		{
+			*min = cntrl->vertical_bargraph.min;
+			*max = cntrl->vertical_bargraph.max;
+			*step = 1.f;
+		} break;
 
 		case CNTRL_NONE:
 			// fall-through
 		case CNTRL_SOUND_FILE:
-		case CNTRL_HORIZONTAL_BARGRAPH:
-		case CNTRL_VERTICAL_BARGRAPH:
 		{
 			// do nothing
 		} break;
@@ -942,6 +995,23 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 
 	handle->mephisto_error = props_map(&handle->props, MEPHISTO__error);
 
+	handle->mephisto_control[0] = props_map(&handle->props, MEPHISTO__control_1);
+	handle->mephisto_control[1] = props_map(&handle->props, MEPHISTO__control_2);
+	handle->mephisto_control[2] = props_map(&handle->props, MEPHISTO__control_3);
+	handle->mephisto_control[3] = props_map(&handle->props, MEPHISTO__control_4);
+	handle->mephisto_control[4] = props_map(&handle->props, MEPHISTO__control_5);
+	handle->mephisto_control[5] = props_map(&handle->props, MEPHISTO__control_6);
+	handle->mephisto_control[6] = props_map(&handle->props, MEPHISTO__control_7);
+	handle->mephisto_control[7] = props_map(&handle->props, MEPHISTO__control_8);
+	handle->mephisto_control[8] = props_map(&handle->props, MEPHISTO__control_9);
+	handle->mephisto_control[9] = props_map(&handle->props, MEPHISTO__control_10);
+	handle->mephisto_control[10] = props_map(&handle->props, MEPHISTO__control_11);
+	handle->mephisto_control[11] = props_map(&handle->props, MEPHISTO__control_12);
+	handle->mephisto_control[12] = props_map(&handle->props, MEPHISTO__control_13);
+	handle->mephisto_control[13] = props_map(&handle->props, MEPHISTO__control_14);
+	handle->mephisto_control[14] = props_map(&handle->props, MEPHISTO__control_15);
+	handle->mephisto_control[15] = props_map(&handle->props, MEPHISTO__control_16);
+
 	handle->mephisto_controlMin[0] = props_map(&handle->props, MEPHISTO__controlMin_1);
 	handle->mephisto_controlMin[1] = props_map(&handle->props, MEPHISTO__controlMin_2);
 	handle->mephisto_controlMin[2] = props_map(&handle->props, MEPHISTO__controlMin_3);
@@ -1270,7 +1340,6 @@ _handle_midi_2(dsp_t *dsp,
 	int64_t frames __attribute__((unused)), const uint8_t *msg)
 {
 	const uint8_t cmd = msg[0] & 0xf0;
-	//const uint8_t chn = msg[0] & 0x0f; FIXME
 
 	if(!dsp || !dsp->is_instrument || !dsp->midi_on)
 	{
@@ -1559,6 +1628,20 @@ run(LV2_Handle instance, uint32_t nsamples)
 		}
 
 		handle->dirty.attributes = false;
+	}
+
+	for(unsigned i = 0; i < NCONTROLS; i++)
+	{
+		dsp_t *dsp = NULL; //FIXME
+		const float new = _cntrl_get_value_rel(&dsp->voices[0].cntrls[i]);
+
+		if(new != handle->old[i])
+		{
+			props_set(&handle->props, &handle->forge, nsamples-1, handle->mephisto_control[i],
+				&handle->ref);
+
+			handle->old[i] = new;
+		}
 	}
 
 	if(handle->ref)
