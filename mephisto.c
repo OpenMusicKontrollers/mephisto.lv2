@@ -98,6 +98,7 @@ struct _cntrl_sound_file_t {
 struct _cntrl_t {
 	char label [LABEL_SIZE];
 	cntrl_type_t type;
+	bool readonly;
 	float *zone;
 	union {
 		cntrl_vertical_slider_t vertical_slider;
@@ -247,8 +248,6 @@ struct _plughandle_t {
 	bool sustain [0x10];
 
 	timely_t timely;
-
-	float old [NCONTROLS];
 
 	FAUSTFLOAT *faudio_in [MAX_CHANNEL];
 	FAUSTFLOAT *faudio_out [MAX_CHANNEL];
@@ -1632,15 +1631,29 @@ run(LV2_Handle instance, uint32_t nsamples)
 
 	for(unsigned i = 0; i < NCONTROLS; i++)
 	{
-		dsp_t *dsp = NULL; //FIXME
-		const float new = _cntrl_get_value_rel(&dsp->voices[0].cntrls[i]);
+		dsp_t *dsp = handle->dsp[handle->play];
 
-		if(new != handle->old[i])
+		if(!dsp)
 		{
+			continue;
+		}
+
+		voice_t *voice = &dsp->voices[0];
+		cntrl_t *cntrl = &voice->cntrls[i];
+
+		if(!cntrl->readonly)
+		{
+			continue;
+		}
+
+		const float new = _cntrl_get_value_rel(&voice->cntrls[i]);
+
+		if(new != handle->state.control[i])
+		{
+			handle->state.control[i] = new;
+
 			props_set(&handle->props, &handle->forge, nsamples-1, handle->mephisto_control[i],
 				&handle->ref);
-
-			handle->old[i] = new;
 		}
 	}
 
@@ -1988,6 +2001,7 @@ _ui_add_horizontal_bargraph(void* iface, const char* label, FAUSTFLOAT* zone,
 	}
 
 	cntrl->zone = zone;
+	cntrl->readonly = true;
 	cntrl->horizontal_bargraph.min = min;
 	cntrl->horizontal_bargraph.max = max;
 	cntrl->horizontal_bargraph.ran_1 = 1.f / (max - min);
@@ -2010,6 +2024,7 @@ _ui_add_vertical_bargraph(void* iface, const char* label, FAUSTFLOAT* zone,
 	}
 
 	cntrl->zone = zone;
+	cntrl->readonly = true;
 	cntrl->vertical_bargraph.min = min;
 	cntrl->vertical_bargraph.max = max;
 	cntrl->vertical_bargraph.ran_1 = 1.f / (max - min);
