@@ -46,8 +46,14 @@
 #define NCOLS_MAX 512
 
 #define MAX(x, y) (x > y ? y : x)
+#define WAV_MAX 256
 
+typedef struct _wav_t wav_t;
 typedef struct _plughandle_t plughandle_t;
+
+struct _wav_t {
+	float vals [WAV_MAX];	
+};
 
 struct _plughandle_t {
 	LV2_URID_Map *map;
@@ -66,6 +72,10 @@ struct _plughandle_t {
 
 	plugstate_t state;
 	plugstate_t stash;
+
+	uint32_t srate;
+	struct timespec ts;
+	wav_t wavs [NCONTROLS];
 
 	uint64_t hash;
 
@@ -1086,6 +1096,9 @@ instantiate(const LV2UI_Descriptor *descriptor,
 		_message_get(handle, urid);
 	}
 
+	clock_gettime(CLOCK_MONOTONIC, &handle->ts);
+	handle->srate = 48000; //FIXME
+
 	return handle;
 }
 
@@ -1106,22 +1119,66 @@ port_event(LV2UI_Handle instance, uint32_t index __attribute__((unused)),
 	uint32_t size __attribute__((unused)), uint32_t protocol, const void *buf)
 {
 	plughandle_t *handle = instance;
+	const LV2_Atom *atom = buf;
 
 	if(protocol != handle->atom_eventTransfer)
 	{
 		return;
 	}
 
-	const LV2_Atom_Object *obj = buf;
+	if(atom->type == handle->forge.Tuple)
+	{
+		const LV2_Atom_Tuple *tup = buf;
 
-	ser_atom_t ser;
-	ser_atom_init(&ser);
-	ser_atom_reset(&ser, &handle->forge);
+		unsigned i = 0;
+		int64_t offset = 0;
+		LV2_URID key = 0;
+		float val = 0.f;
 
-	LV2_Atom_Forge_Ref ref = 0;
-	props_advance(&handle->props, &handle->forge, 0, obj, &ref);
+		LV2_ATOM_TUPLE_FOREACH(tup, atm)
+		{
+			switch(i++)
+			{
+				case 0:
+				{
+					if(atm->type == handle->forge.Long)
+					{
+						offset = ((const LV2_Atom_Long *)atm)->body;
+					}
+				} break;
+				case 1:
+				{
+					if(atm->type == handle->forge.URID)
+					{
+						key = ((const LV2_Atom_URID *)atm)->body;
+					}
+				} break;
+				case 2:
+				{
+					if(atm->type == handle->forge.Float)
+					{
+						val = ((const LV2_Atom_Float *)atm)->body;
+					}
+				} break;
+			}
+		}
 
-	ser_atom_deinit(&ser);
+		lv2_log_note(&handle->logger, "%"PRIi64", %"PRIu32", %f\n", offset, key, val);
+		//FIXME do something with offset/key/val
+	}
+	else
+	{
+		const LV2_Atom_Object *obj = buf;
+
+		ser_atom_t ser;
+		ser_atom_init(&ser);
+		ser_atom_reset(&ser, &handle->forge);
+
+		LV2_Atom_Forge_Ref ref = 0;
+		props_advance(&handle->props, &handle->forge, 0, obj, &ref);
+
+		ser_atom_deinit(&ser);
+	}
 
 	d2tk_frontend_redisplay(handle->dpugl);
 }
@@ -1142,10 +1199,37 @@ _file_read(plughandle_t *handle)
 	_message_set_code(handle, len + 1);
 }
 
+static void
+_update_wavs(plughandle_t *handle, double ts_diff)
+{
+	const uint32_t nframes = ts_diff * WAV_MAX;
+
+	for(unsigned c = 0; c < NCONTROLS; c++)
+	{
+		for(unsigned i = 0; i < WAV_MAX-nframes; i++)
+		{
+			handle->wavs[c].vals[i] = handle->wavs[c].vals[i + nframes];
+		}
+
+		for(unsigned i = WAV_MAX-nframes; i < WAV_MAX; i++)
+		{
+			handle->wavs[c].vals[i] = handle->state.control[i];
+		}
+	}
+}
+
 static int
 _idle(LV2UI_Handle instance)
 {
 	plughandle_t *handle = instance;
+
+	struct timespec ts;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	const double ts_diff = (double)(ts.tv_sec - handle->ts.tv_sec)
+		+ (ts.tv_nsec - handle->ts.tv_nsec)*1e-9;
+	handle->ts = ts;
+
+	_update_wavs(handle, ts_diff);
 
 	struct stat st;
 	if(stat(handle->template, &st) == -1)

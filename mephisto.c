@@ -249,6 +249,8 @@ struct _plughandle_t {
 
 	timely_t timely;
 
+	int64_t offset;
+
 	FAUSTFLOAT *faudio_in [MAX_CHANNEL];
 	FAUSTFLOAT *faudio_out [MAX_CHANNEL];
 };
@@ -1546,6 +1548,26 @@ _handle_midi(plughandle_t *handle, dsp_t *dsp,
 }
 
 static void
+_tuple_set(LV2_Atom_Forge *forge, uint32_t frames, int64_t offset,
+	LV2_URID key, float val, LV2_Atom_Forge_Ref *ref)
+{
+	LV2_Atom_Forge_Frame frm;
+
+	if(*ref)
+		*ref = lv2_atom_forge_frame_time(forge, frames);
+	if(*ref)
+		*ref = lv2_atom_forge_tuple(forge, &frm);
+	if(*ref)
+		*ref = lv2_atom_forge_long(forge, offset);
+	if(*ref)
+		*ref = lv2_atom_forge_urid(forge, key);
+	if(*ref)
+		*ref = lv2_atom_forge_float(forge, val);
+	if(*ref)
+		lv2_atom_forge_pop(forge, &frm);
+}
+
+static void
 run(LV2_Handle instance, uint32_t nsamples)
 {
 	plughandle_t *handle = instance;
@@ -1654,8 +1676,13 @@ run(LV2_Handle instance, uint32_t nsamples)
 
 			props_set(&handle->props, &handle->forge, nsamples-1, handle->mephisto_control[i],
 				&handle->ref);
+
+			_tuple_set(&handle->forge, nsamples-1, handle->offset, handle->mephisto_control[i],
+				handle->state.control[i], &handle->ref);
 		}
 	}
+
+	handle->offset += nsamples;
 
 	if(handle->ref)
 	{
