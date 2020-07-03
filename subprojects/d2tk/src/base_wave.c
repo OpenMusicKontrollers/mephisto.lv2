@@ -48,7 +48,7 @@ _d2tk_base_draw_wave(d2tk_core_t *core, const d2tk_rect_t *rect,
 		{
 			for(int32_t i = 0; i < rect->w; i++)
 			{
-				const int32_t off = i * nelem / (rect->w - 1);
+				const int32_t off = i * (nelem - 1) / (rect->w - 1);
 				const float rel = 1.f - (value[off] - min)*range_1;
 
 				const int32_t x0 = rect->x + i;
@@ -68,7 +68,7 @@ _d2tk_base_draw_wave(d2tk_core_t *core, const d2tk_rect_t *rect,
 		{
 			for(int32_t off = 0; off < nelem; off++)
 			{
-				const int32_t i = off * rect->w / (nelem - 1);
+				const int32_t i = off * (rect->w - 1) / (nelem - 1);
 				const float rel = 1.f - (value[off] - min) * range_1;
 
 				const int32_t x0 = rect->x + i;
