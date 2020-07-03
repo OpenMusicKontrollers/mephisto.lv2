@@ -46,7 +46,7 @@
 #define NCOLS_MAX 512
 
 #define MAX(x, y) (x > y ? y : x)
-#define WAV_MAX 512
+#define WAV_MAX 48000
 
 typedef struct _wav_t wav_t;
 typedef struct _plughandle_t plughandle_t;
@@ -74,7 +74,7 @@ struct _plughandle_t {
 	plugstate_t stash;
 
 	uint32_t srate;
-	struct timespec ts;
+	int64_t ts;
 	wav_t wavs [NCONTROLS];
 
 	uint64_t hash;
@@ -180,6 +180,39 @@ _intercept_font_height(void *data, int64_t frames __attribute__((unused)),
 }
 
 static void
+_update_wavs(plughandle_t *handle, unsigned nframes)
+{
+	for(unsigned c = 0; c < NCONTROLS; c++)
+	{
+		for(unsigned i = 0; i < WAV_MAX-nframes; i++)
+		{
+			handle->wavs[c].vals[i] = handle->wavs[c].vals[i + nframes];
+		}
+
+		for(unsigned i = WAV_MAX-nframes; i < WAV_MAX; i++)
+		{
+			handle->wavs[c].vals[i] = handle->state.control[c];
+		}
+	}
+}
+
+static void
+_intercept_timestamp(void *data, int64_t frames __attribute__((unused)),
+	props_impl_t *impl __attribute__((unused)))
+{
+	plughandle_t *handle = data;
+
+	if(handle->ts && (handle->state.timestamp > handle->ts) )
+	{
+		const unsigned nframes = handle->state.timestamp - handle->ts;
+
+		_update_wavs(handle, nframes);
+	}
+
+	handle->ts = handle->state.timestamp;
+}
+
+static void
 _intercept_control(void *data, int64_t frames __attribute__((unused)),
 	props_impl_t *impl)
 {
@@ -245,7 +278,8 @@ static const props_def_t defs [MAX_NPROPS] = {
 		.property = MEPHISTO__timestamp,
 		.access = LV2_PATCH__readable,
 		.offset = offsetof(plugstate_t, timestamp),
-		.type = LV2_ATOM__Long
+		.type = LV2_ATOM__Long,
+		.event_cb = _intercept_timestamp
 	},
 	CONTROL(1),
 	CONTROL(2),
@@ -1134,7 +1168,6 @@ instantiate(const LV2UI_Descriptor *descriptor,
 		_message_get(handle, urid);
 	}
 
-	clock_gettime(CLOCK_MONOTONIC, &handle->ts);
 	handle->srate = 48000; //FIXME
 
 	return handle;
@@ -1192,37 +1225,10 @@ _file_read(plughandle_t *handle)
 	_message_set_code(handle, len + 1);
 }
 
-static void
-_update_wavs(plughandle_t *handle, double ts_diff)
-{
-	const unsigned nframes = ts_diff * WAV_MAX;
-
-	for(unsigned c = 0; c < NCONTROLS; c++)
-	{
-		for(unsigned i = 0; i < WAV_MAX-nframes; i++)
-		{
-			handle->wavs[c].vals[i] = handle->wavs[c].vals[i + nframes];
-		}
-
-		for(unsigned i = WAV_MAX-nframes; i < WAV_MAX; i++)
-		{
-			handle->wavs[c].vals[i] = handle->state.control[c];
-		}
-	}
-}
-
 static int
 _idle(LV2UI_Handle instance)
 {
 	plughandle_t *handle = instance;
-
-	struct timespec ts;
-	clock_gettime(CLOCK_MONOTONIC, &ts);
-	const double ts_diff = (double)(ts.tv_sec - handle->ts.tv_sec)
-		+ (ts.tv_nsec - handle->ts.tv_nsec)*1e-9;
-	handle->ts = ts;
-
-	_update_wavs(handle, ts_diff);
 
 	struct stat st;
 	if(stat(handle->template, &st) == -1)
