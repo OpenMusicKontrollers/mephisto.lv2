@@ -46,7 +46,7 @@
 #define NCOLS_MAX 512
 
 #define MAX(x, y) (x > y ? y : x)
-#define WAV_MAX 256
+#define WAV_MAX 512
 
 typedef struct _wav_t wav_t;
 typedef struct _plughandle_t plughandle_t;
@@ -665,13 +665,16 @@ _expose_slot(plughandle_t *handle, const d2tk_rect_t *rect, unsigned k)
 			// fall-through
 		case CNTRL_HORIZONTAL_BARGRAPH:
 		{
+#if 0
 			const float min = handle->state.control_min[k];
 			const float max = handle->state.control_max[k];
-			const float range = max - min; //FIXME cache this somewhere
-			float abs = handle->state.control[k] * range + min;
+#else
+			const float min = 0.f;
+			const float max = 1.f;
+#endif
 
-			d2tk_base_bar_float(base, D2TK_ID_IDX(k), rect,
-				min, &abs, max);
+			d2tk_base_wave_float(base, D2TK_ID_IDX(k), rect,
+				min, handle->wavs[k].vals, WAV_MAX, max);
 		} break;
 
 		case CNTRL_NONE:
@@ -1192,7 +1195,7 @@ _file_read(plughandle_t *handle)
 static void
 _update_wavs(plughandle_t *handle, double ts_diff)
 {
-	const uint32_t nframes = ts_diff * WAV_MAX;
+	const unsigned nframes = ts_diff * WAV_MAX;
 
 	for(unsigned c = 0; c < NCONTROLS; c++)
 	{
@@ -1203,7 +1206,7 @@ _update_wavs(plughandle_t *handle, double ts_diff)
 
 		for(unsigned i = WAV_MAX-nframes; i < WAV_MAX; i++)
 		{
-			handle->wavs[c].vals[i] = handle->state.control[i];
+			handle->wavs[c].vals[i] = handle->state.control[c];
 		}
 	}
 }
