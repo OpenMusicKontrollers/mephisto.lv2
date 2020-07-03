@@ -223,6 +223,7 @@ struct _plughandle_t {
 	char bundle_path [PATH_MAX];
 
 	LV2_URID mephisto_error;
+	LV2_URID mephisto_timestamp;
 	LV2_URID mephisto_control [NCONTROLS];
 	LV2_URID mephisto_controlMin [NCONTROLS];
 	LV2_URID mephisto_controlMax [NCONTROLS];
@@ -248,8 +249,6 @@ struct _plughandle_t {
 	bool sustain [0x10];
 
 	timely_t timely;
-
-	int64_t offset;
 
 	FAUSTFLOAT *faudio_in [MAX_CHANNEL];
 	FAUSTFLOAT *faudio_out [MAX_CHANNEL];
@@ -694,6 +693,12 @@ static const props_def_t defs [MAX_NPROPS] = {
 		.offset = offsetof(plugstate_t, font_height),
 		.type = LV2_ATOM__Int
 	},
+	{
+		.property = MEPHISTO__timestamp,
+		.access = LV2_PATCH__readable,
+		.offset = offsetof(plugstate_t, timestamp),
+		.type = LV2_ATOM__Long
+	},
 	CONTROL(1),
 	CONTROL(2),
 	CONTROL(3),
@@ -995,6 +1000,7 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 	}
 
 	handle->mephisto_error = props_map(&handle->props, MEPHISTO__error);
+	handle->mephisto_timestamp = props_map(&handle->props, MEPHISTO__timestamp);
 
 	handle->mephisto_control[0] = props_map(&handle->props, MEPHISTO__control_1);
 	handle->mephisto_control[1] = props_map(&handle->props, MEPHISTO__control_2);
@@ -1548,26 +1554,6 @@ _handle_midi(plughandle_t *handle, dsp_t *dsp,
 }
 
 static void
-_tuple_set(LV2_Atom_Forge *forge, uint32_t frames, int64_t offset,
-	LV2_URID key, float val, LV2_Atom_Forge_Ref *ref)
-{
-	LV2_Atom_Forge_Frame frm;
-
-	if(*ref)
-		*ref = lv2_atom_forge_frame_time(forge, frames);
-	if(*ref)
-		*ref = lv2_atom_forge_tuple(forge, &frm);
-	if(*ref)
-		*ref = lv2_atom_forge_long(forge, offset);
-	if(*ref)
-		*ref = lv2_atom_forge_urid(forge, key);
-	if(*ref)
-		*ref = lv2_atom_forge_float(forge, val);
-	if(*ref)
-		lv2_atom_forge_pop(forge, &frm);
-}
-
-static void
 run(LV2_Handle instance, uint32_t nsamples)
 {
 	plughandle_t *handle = instance;
@@ -1668,21 +1654,16 @@ run(LV2_Handle instance, uint32_t nsamples)
 			continue;
 		}
 
-		const float new = _cntrl_get_value_rel(&voice->cntrls[i]);
+		handle->state.control[i] = _cntrl_get_value_rel(&voice->cntrls[i]);
 
-		if(new != handle->state.control[i])
-		{
-			handle->state.control[i] = new;
+		props_set(&handle->props, &handle->forge, nsamples-1, handle->mephisto_timestamp,
+			&handle->ref);
 
-			props_set(&handle->props, &handle->forge, nsamples-1, handle->mephisto_control[i],
-				&handle->ref);
-
-			_tuple_set(&handle->forge, nsamples-1, handle->offset, handle->mephisto_control[i],
-				handle->state.control[i], &handle->ref);
-		}
+		props_set(&handle->props, &handle->forge, nsamples-1, handle->mephisto_control[i],
+			&handle->ref);
 	}
 
-	handle->offset += nsamples;
+	handle->state.timestamp += nsamples;
 
 	if(handle->ref)
 	{

@@ -63,6 +63,8 @@
 #define MEPHISTO__xfadeDuration MEPHISTO_PREFIX "xfadeDuration"
 #define MEPHISTO__fontHeight    MEPHISTO_PREFIX "fontHeight"
 
+#define MEPHISTO__timestamp     MEPHISTO_PREFIX "timestamp"
+
 #define MEPHISTO__control_1     MEPHISTO_PREFIX "control_1"
 #define MEPHISTO__control_2     MEPHISTO_PREFIX "control_2"
 #define MEPHISTO__control_3     MEPHISTO_PREFIX "control_3"
@@ -166,7 +168,7 @@
 #define MEPHISTO__controlLabel_16    MEPHISTO_PREFIX "controlLabel_16"
 
 #define NCONTROLS 16
-#define MAX_NPROPS (4 + 6*NCONTROLS)
+#define MAX_NPROPS (5 + 6*NCONTROLS)
 #define CODE_SIZE 0x10000 // 64 K
 #define ERROR_SIZE 0x2000 // 8 K
 #define BUF_SIZE (CODE_SIZE * 4)
@@ -236,6 +238,7 @@ struct _plugstate_t {
 	char control_label [NCONTROLS][LABEL_SIZE];
 	int32_t xfade_dur;
 	int32_t font_height;
+	int64_t timestamp;
 };
 
 #endif // _MEPHISTO_LV2_H

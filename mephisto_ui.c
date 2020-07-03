@@ -180,10 +180,39 @@ _intercept_font_height(void *data, int64_t frames __attribute__((unused)),
 }
 
 static void
-_intercept_control(void *data __attribute__((unused)),
-	int64_t frames __attribute__((unused)), props_impl_t *impl __attribute__((unused)))
+_intercept_control(void *data, int64_t frames __attribute__((unused)),
+	props_impl_t *impl)
 {
-	// nothing to do, yet
+	plughandle_t *handle = data;
+	const uint32_t k = (float *)impl->value.body - handle->state.control;
+
+	const cntrl_type_t type = handle->state.control_type[k];
+	switch(type)
+	{
+		case CNTRL_VERTICAL_BARGRAPH:
+			// fall-through
+		case CNTRL_HORIZONTAL_BARGRAPH:
+		{
+			//FIXME
+		} break;
+
+		case CNTRL_BUTTON:
+			// fall-through
+		case CNTRL_CHECK_BUTTON:
+			// fall-through
+		case CNTRL_VERTICAL_SLIDER:
+			// fall-through
+		case CNTRL_HORIZONTAL_SLIDER:
+			// fall-through
+		case CNTRL_NUM_ENTRY:
+			// fall-through
+		case CNTRL_NONE:
+			// fall-through
+		case CNTRL_SOUND_FILE:
+		{
+			// nothing to do
+		} break;
+	}
 }
 
 static const props_def_t defs [MAX_NPROPS] = {
@@ -211,6 +240,12 @@ static const props_def_t defs [MAX_NPROPS] = {
 		.offset = offsetof(plugstate_t, font_height),
 		.type = LV2_ATOM__Int,
 		.event_cb = _intercept_font_height
+	},
+	{
+		.property = MEPHISTO__timestamp,
+		.access = LV2_PATCH__readable,
+		.offset = offsetof(plugstate_t, timestamp),
+		.type = LV2_ATOM__Long
 	},
 	CONTROL(1),
 	CONTROL(2),
@@ -1119,66 +1154,21 @@ port_event(LV2UI_Handle instance, uint32_t index __attribute__((unused)),
 	uint32_t size __attribute__((unused)), uint32_t protocol, const void *buf)
 {
 	plughandle_t *handle = instance;
-	const LV2_Atom *atom = buf;
+	const LV2_Atom_Object *obj = buf;
 
 	if(protocol != handle->atom_eventTransfer)
 	{
 		return;
 	}
 
-	if(atom->type == handle->forge.Tuple)
-	{
-		const LV2_Atom_Tuple *tup = buf;
+	ser_atom_t ser;
+	ser_atom_init(&ser);
+	ser_atom_reset(&ser, &handle->forge);
 
-		unsigned i = 0;
-		int64_t offset = 0;
-		LV2_URID key = 0;
-		float val = 0.f;
+	LV2_Atom_Forge_Ref ref = 0;
+	props_advance(&handle->props, &handle->forge, 0, obj, &ref);
 
-		LV2_ATOM_TUPLE_FOREACH(tup, atm)
-		{
-			switch(i++)
-			{
-				case 0:
-				{
-					if(atm->type == handle->forge.Long)
-					{
-						offset = ((const LV2_Atom_Long *)atm)->body;
-					}
-				} break;
-				case 1:
-				{
-					if(atm->type == handle->forge.URID)
-					{
-						key = ((const LV2_Atom_URID *)atm)->body;
-					}
-				} break;
-				case 2:
-				{
-					if(atm->type == handle->forge.Float)
-					{
-						val = ((const LV2_Atom_Float *)atm)->body;
-					}
-				} break;
-			}
-		}
-
-		lv2_log_note(&handle->logger, "%"PRIi64", %"PRIu32", %f\n", offset, key, val);
-		//FIXME do something with offset/key/val
-	}
-	else
-	{
-		const LV2_Atom_Object *obj = buf;
-
-		ser_atom_t ser;
-		ser_atom_init(&ser);
-		ser_atom_reset(&ser, &handle->forge);
-
-		LV2_Atom_Forge_Ref ref = 0;
-		props_advance(&handle->props, &handle->forge, 0, obj, &ref);
-
-		ser_atom_deinit(&ser);
-	}
+	ser_atom_deinit(&ser);
 
 	d2tk_frontend_redisplay(handle->dpugl);
 }
