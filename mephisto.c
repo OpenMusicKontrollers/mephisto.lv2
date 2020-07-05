@@ -1637,6 +1637,9 @@ run(LV2_Handle instance, uint32_t nsamples)
 		handle->dirty.attributes = false;
 	}
 
+	props_set(&handle->props, &handle->forge, nsamples-1, handle->mephisto_timestamp,
+		&handle->ref);
+
 	for(unsigned i = 0; i < NCONTROLS; i++)
 	{
 		dsp_t *dsp = handle->dsp[handle->play];
@@ -1655,9 +1658,6 @@ run(LV2_Handle instance, uint32_t nsamples)
 		}
 
 		handle->state.control[i] = _cntrl_get_value_rel(&voice->cntrls[i]);
-
-		props_set(&handle->props, &handle->forge, nsamples-1, handle->mephisto_timestamp,
-			&handle->ref);
 
 		props_set(&handle->props, &handle->forge, nsamples-1, handle->mephisto_control[i],
 			&handle->ref);
