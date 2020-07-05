@@ -73,7 +73,6 @@ struct _plughandle_t {
 	plugstate_t state;
 	plugstate_t stash;
 
-	uint32_t srate;
 	int64_t ts;
 	wav_t wavs [NCONTROLS];
 
@@ -93,6 +92,7 @@ struct _plughandle_t {
 	time_t modtime;
 
 	float scale;
+	float sample_rate;
 	d2tk_coord_t header_height;
 	d2tk_coord_t footer_height;
 	d2tk_coord_t sidebar_width;
@@ -1121,6 +1121,11 @@ instantiate(const LV2UI_Descriptor *descriptor,
 
 	const LV2_URID ui_scaleFactor = handle->map->map(handle->map->handle,
 		LV2_UI__scaleFactor);
+	const LV2_URID params_sample_rate = handle->map->map(handle->map->handle,
+		LV2_PARAMETERS__sampleRate);
+
+	// fall-back
+	handle->sample_rate = 48000.f;
 
 	for(LV2_Options_Option *opt = opts;
 		opt && (opt->key != 0) && (opt->value != NULL);
@@ -1129,6 +1134,10 @@ instantiate(const LV2UI_Descriptor *descriptor,
 		if( (opt->key == ui_scaleFactor) && (opt->type == handle->forge.Float) )
 		{
 			handle->scale = *(float*)opt->value;
+		}
+		else if( (opt->key == params_sample_rate) && (opt->type == handle->forge.Float) )
+		{
+			handle->sample_rate = *(float*)opt->value;
 		}
 	}
 
@@ -1167,8 +1176,6 @@ instantiate(const LV2UI_Descriptor *descriptor,
 
 		_message_get(handle, urid);
 	}
-
-	handle->srate = 48000; //FIXME
 
 	return handle;
 }
