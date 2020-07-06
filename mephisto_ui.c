@@ -46,7 +46,7 @@
 #define NCOLS_MAX 512
 
 #define MAX(x, y) (x > y ? y : x)
-#define WAV_MAX 48000
+#define WAV_MAX 512
 
 typedef struct _wav_t wav_t;
 typedef struct _plughandle_t plughandle_t;
@@ -93,6 +93,7 @@ struct _plughandle_t {
 
 	float scale;
 	float sample_rate;
+	double frac;
 	d2tk_coord_t header_height;
 	d2tk_coord_t footer_height;
 	d2tk_coord_t sidebar_width;
@@ -182,14 +183,20 @@ _intercept_font_height(void *data, int64_t frames __attribute__((unused)),
 static void
 _update_wavs(plughandle_t *handle, unsigned nframes)
 {
+	const double nsecs = 4.f; //FIXME make this configurable
+	const double npixels = handle->frac + nframes * WAV_MAX / (handle->sample_rate * nsecs);
+	double fpixels = 0.f;
+	handle->frac = modf(npixels, &fpixels);
+	const unsigned ipixels = fpixels;
+
 	for(unsigned c = 0; c < NCONTROLS; c++)
 	{
-		for(unsigned i = 0; i < WAV_MAX-nframes; i++)
+		for(unsigned i = 0; i < WAV_MAX-ipixels; i++)
 		{
-			handle->wavs[c].vals[i] = handle->wavs[c].vals[i + nframes];
+			handle->wavs[c].vals[i] = handle->wavs[c].vals[i + ipixels];
 		}
 
-		for(unsigned i = WAV_MAX-nframes; i < WAV_MAX; i++)
+		for(unsigned i = WAV_MAX-ipixels; i < WAV_MAX; i++)
 		{
 			handle->wavs[c].vals[i] = handle->state.control[c];
 		}
