@@ -706,13 +706,8 @@ _expose_slot(plughandle_t *handle, const d2tk_rect_t *rect, unsigned k)
 			// fall-through
 		case CNTRL_HORIZONTAL_BARGRAPH:
 		{
-#if 0
 			const float min = handle->state.control_min[k];
 			const float max = handle->state.control_max[k];
-#else
-			const float min = 0.f;
-			const float max = 1.f;
-#endif
 
 			d2tk_base_wave_float(base, D2TK_ID_IDX(k), rect,
 				min, handle->wavs[k].vals, WAV_MAX, max);
