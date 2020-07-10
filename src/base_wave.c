@@ -39,52 +39,92 @@ _d2tk_base_draw_wave(d2tk_core_t *core, const d2tk_rect_t *rect,
 
 	D2TK_CORE_WIDGET(core, hash, widget)
 	{
+		d2tk_triple_t triple = D2TK_TRIPLE_NONE;
+		d2tk_triple_t triple_active = D2TK_TRIPLE_ACTIVE;
+		d2tk_triple_t triple_inactive = D2TK_TRIPLE_NONE;
+
+		if(d2tk_state_is_active(state))
+		{
+			triple |= D2TK_TRIPLE_ACTIVE;
+		}
+
+		if(d2tk_state_is_hot(state))
+		{
+			triple |= D2TK_TRIPLE_HOT;
+			triple_active |= D2TK_TRIPLE_HOT;
+			triple_inactive |= D2TK_TRIPLE_HOT;
+		}
+
+		if(d2tk_state_is_focused(state))
+		{
+			triple |= D2TK_TRIPLE_FOCUS;
+			triple_active |= D2TK_TRIPLE_FOCUS;
+			triple_inactive |= D2TK_TRIPLE_FOCUS;
+		}
+
 		const size_t ref = d2tk_core_bbox_push(core, true, rect);
 		const float range_1 = 1.f / (max - min);
 
+		d2tk_rect_t bnd_outer;
+		d2tk_rect_t bnd_inner;
+		d2tk_rect_shrink(&bnd_outer, rect, style->padding);
+		d2tk_rect_shrink(&bnd_inner, &bnd_outer, 2*style->padding);
+
 		d2tk_core_begin_path(core);
+		d2tk_core_rect(core, &bnd_inner);
+		d2tk_core_color(core, style->fill_color[triple_inactive]);
+		d2tk_core_fill(core);
 
-		if(nelem > rect->w)
+		d2tk_core_color(core, style->fill_color[triple_active]);
+
+		if(nelem > bnd_inner.w)
 		{
-			for(int32_t i = 0; i < rect->w; i++)
+			for(int32_t i = 0; i < bnd_inner.w; i++)
 			{
-				const int32_t off = i * (nelem - 1) / (rect->w - 1);
+				const int32_t off = i * (nelem - 1) / (bnd_inner.w - 1);
+				if(value[off] == HUGE_VAL)
+				{
+					continue;
+				}
 				const float rel = 1.f - (value[off] - min)*range_1;
+				const d2tk_rect_t point = {
+					.x = bnd_inner.x + i,
+					.y = bnd_inner.y + rel*bnd_inner.h,
+					.w = style->border_width,
+					.h = style->border_width
+				};
 
-				const int32_t x0 = rect->x + i;
-				const int32_t y0 = rect->y + rel*rect->h;
-
-				if(i == 0)
-				{
-					d2tk_core_move_to(core, x0, y0);
-				}
-				else
-				{
-					d2tk_core_line_to(core, x0, y0);
-				}
+				d2tk_core_begin_path(core);
+				d2tk_core_rect(core, &point);
+				d2tk_core_fill(core);
 			}
 		}
 		else
 		{
 			for(int32_t off = 0; off < nelem; off++)
 			{
-				const int32_t i = off * (rect->w - 1) / (nelem - 1);
+				const int32_t i = off * (bnd_inner.w - 1) / (nelem - 1);
+				if(value[off] == HUGE_VAL)
+				{
+					continue;
+				}
 				const float rel = 1.f - (value[off] - min) * range_1;
+				const d2tk_rect_t point = {
+					.x = bnd_inner.x + i,
+					.y = bnd_inner.y + rel*bnd_inner.h,
+					.w = style->border_width,
+					.h = style->border_width
+				};
 
-				const int32_t x0 = rect->x + i;
-				const int32_t y0 = rect->y + rel*rect->h;
-
-				if(i == 0)
-				{
-					d2tk_core_move_to(core, x0, y0);
-				}
-				else
-				{
-					d2tk_core_line_to(core, x0, y0);
-				}
+				d2tk_core_begin_path(core);
+				d2tk_core_rect(core, &point);
+				d2tk_core_fill(core);
 			}
 		}
-		d2tk_core_color(core, style->stroke_color[D2TK_TRIPLE_ACTIVE_HOT_FOCUS]);
+
+		d2tk_core_begin_path(core);
+		d2tk_core_rect(core, &bnd_outer);
+		d2tk_core_color(core, style->stroke_color[triple]);
 		d2tk_core_stroke_width(core, style->border_width);
 		d2tk_core_stroke(core);
 
