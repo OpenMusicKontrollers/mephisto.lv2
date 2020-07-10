@@ -96,6 +96,9 @@ conf_data.set('BANK-TIME_LFO', bank_time_lfo)
 bank_instrument_osc = run_command('cat', 'bank-instrument_osc.dsp').stdout()
 conf_data.set('BANK-INSTRUMENT_OSC', bank_instrument_osc)
 
+bank_analyzer_vu_meter = run_command('cat', 'bank-analyzer_vu-meter.dsp').stdout()
+conf_data.set('BANK-ANALYZER_VU-METER', bank_analyzer_vu_meter)
+
 suffix = mod.full_path().strip().split('.')[-1]
 conf_data.set('MODULE_SUFFIX', '.' + suffix)
 
@@ -207,6 +210,9 @@ if build_tests
 		])
 		test('FAUST bank-instrument_osc', faust, args : [
 			join_paths(source_root, 'bank-instrument_osc.dsp')
+		])
+		test('FAUST bank-analyzer_vu-meter', faust, args : [
+			join_paths(source_root, 'bank-analyzer_vu-meter.dsp')
 		])
 	endif
 endif

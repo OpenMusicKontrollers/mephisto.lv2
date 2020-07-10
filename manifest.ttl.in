@@ -109,6 +109,9 @@ mephisto:bank-instrument
 mephisto:bank-time
 	a pset:Bank ;
 	rdfs:label "Time bank" .
+mephisto:bank-analyzer
+	a pset:Bank ;
+	rdfs:label "Analyzer bank" .
 
 # Filter bank
 mephisto:bank-filter_through
@@ -150,4 +153,15 @@ mephisto:bank-instrument_osc
 		mephisto:audio_8x8 ;
 	pset:bank mephisto:bank-instrument ;
 	rdfs:label "[Instrument] Simple Oscillator" ;
+	rdfs:seeAlso <presets.ttl> .
+
+# Analyzer bank
+mephisto:bank-analyzer_vu-meter
+	a pset:Preset ;
+	lv2:appliesTo mephisto:audio_1x1 ,
+		mephisto:audio_2x2 ,
+		mephisto:audio_4x4 ,
+		mephisto:audio_8x8 ;
+	pset:bank mephisto:bank-analyzer ;
+	rdfs:label "[Analyzer] VU Meter" ;
 	rdfs:seeAlso <presets.ttl> .
