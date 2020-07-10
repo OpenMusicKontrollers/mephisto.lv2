@@ -595,6 +595,13 @@ d2tk_base_spinner_float(d2tk_base_t *base, d2tk_id_t id, const d2tk_rect_t *rect
 	d2tk_state_is_changed(d2tk_base_spinner_float(__VA_ARGS__))
 
 D2TK_API d2tk_state_t
+d2tk_base_spinner_wave_float(d2tk_base_t *base, d2tk_id_t id, const d2tk_rect_t *rect,
+	ssize_t lbl_len, const char *lbl, float min, const float *value, int32_t nelem, float max);
+
+#define d2tk_base_spinner_wave_float_is_changed(...) \
+	d2tk_state_is_changed(d2tk_base_spinner_wave_float(__VA_ARGS__))
+
+D2TK_API d2tk_state_t
 d2tk_base_bar_float(d2tk_base_t *base, d2tk_id_t id, const d2tk_rect_t *rect,
 	float min, float *value, float max);
 

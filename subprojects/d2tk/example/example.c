@@ -254,9 +254,10 @@ _render_c_mix(d2tk_base_t *base, const d2tk_rect_t *rect)
 static inline void
 _render_c_spinner(d2tk_base_t *base, const d2tk_rect_t *rect)
 {
-#define N 8
+#define N 6
 #define M 24
 	static union {
+		bool b32;
 		int32_t i32;
 		float f32;
 	} val [N*M];
@@ -270,7 +271,7 @@ _render_c_spinner(d2tk_base_t *base, const d2tk_rect_t *rect)
 		char lbl [32];
 		const size_t lbl_len = snprintf(lbl, sizeof(lbl), "Spinner/%02X", k);
 
-		switch(k % 4)
+		switch(k % N)
 		{
 			case 0:
 			{
@@ -302,6 +303,22 @@ _render_c_spinner(d2tk_base_t *base, const d2tk_rect_t *rect)
 					-0.5f, &val[k].f32, 1.f))
 				{
 					fprintf(stdout, "spinner %016"PRIx64" %f\n", id, val[k].f32);
+				}
+			} break;
+			case 4:
+			{
+				if(d2tk_base_spinner_wave_float_is_changed(base, id, trect, lbl_len, lbl,
+					-0.5f, (const float *)val, N*M, 1.f))
+				{
+					fprintf(stdout, "spinner %016"PRIx64" %f\n", id, val[k].f32);
+				}
+			} break;
+			case 5:
+			{
+				if(d2tk_base_spinner_bool_is_changed(base, id, trect, lbl_len, lbl,
+					&val[k].b32))
+				{
+					fprintf(stdout, "spinner %016"PRIx64" %s\n", id, val[k].b32 ? "true" : "false");
 				}
 			} break;
 		}
