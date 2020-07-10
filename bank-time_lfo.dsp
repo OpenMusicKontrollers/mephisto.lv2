@@ -9,7 +9,10 @@ gate = button("speed[time:speed]");
 mul = hslider("mul[0]", 0, 0, 1000, 1);
 add = hslider("add[1]", 0, 0, 1000, 1);
 
-freq = sin(barBeat / beatsPerBar * ma.PI) * mul + add;
+frac = barBeat / beatsPerBar
+	: hbargraph("bar pos %[2]", 0, 1);
+
+freq = sin(frac * ma.PI) * mul + add;
 
 env = en.adsr(0.01, 1.0, 0.8, 0.1, gate);
 
