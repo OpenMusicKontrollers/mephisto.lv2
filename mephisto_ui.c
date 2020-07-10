@@ -181,9 +181,21 @@ _intercept_font_height(void *data, int64_t frames __attribute__((unused)),
 }
 
 static void
+_reset_wavs(plughandle_t *handle)
+{
+	for(unsigned c = 0; c < NCONTROLS; c++)
+	{
+		for(unsigned i = 0; i < WAV_MAX; i++)
+		{
+			handle->wavs[c].vals[i] = HUGE_VAL;
+		}
+	}
+}
+
+static void
 _update_wavs(plughandle_t *handle, unsigned nframes)
 {
-	const double nsecs = 4.f; //FIXME make this configurable
+	const double nsecs = 2.f; //FIXME make this configurable
 	const double npixels = handle->frac + nframes * WAV_MAX / (handle->sample_rate * nsecs);
 	double fpixels = 0.f;
 	handle->frac = modf(npixels, &fpixels);
@@ -198,8 +210,10 @@ _update_wavs(plughandle_t *handle, unsigned nframes)
 
 		for(unsigned i = WAV_MAX-ipixels; i < WAV_MAX; i++)
 		{
-			handle->wavs[c].vals[i] = handle->state.control[c];
+			handle->wavs[c].vals[i] = HUGE_VAL;
 		}
+
+		handle->wavs[c].vals[WAV_MAX-1] = handle->state.control[c];
 	}
 }
 
@@ -992,6 +1006,8 @@ instantiate(const LV2UI_Descriptor *descriptor,
 	plughandle_t *handle = calloc(1, sizeof(plughandle_t));
 	if(!handle)
 		return NULL;
+
+	_reset_wavs(handle);
 
 	void *parent = NULL;
 	LV2UI_Resize *host_resize = NULL;
