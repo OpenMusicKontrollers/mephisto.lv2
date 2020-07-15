@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.12.0] - 15 Jul 2020
+
+### Added
+
+* support for bargraphs
+* preset for simple VU meter
+* momentary button ui-widget
+* support for ui:scaleFactor option
+
+### Changed
+
+* all ui-widgets to show labels and correct value ranges
+
 ## [0.8.0] - 13 Apr 2020
 
 ### Fixed

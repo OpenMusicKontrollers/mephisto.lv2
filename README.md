@@ -8,8 +8,7 @@ DSP language without any need to restart/reload host or plugin upon code changes
 Use it for one-off instruments/filters, prototyping, experimenting or
 glueing stuff together.
 
-*Note: This is an early release, it may thus have rough edges and will need a
-fairly recent libFAUST and/or bleeding edge GNU/Linux distribution.*
+*Note: This will need a fairly recent libFAUST and/or bleeding edge GNU/Linux distribution.*
 
 *Note: libFAUST 2.20.2 has a broken LLVM C-API and thus will be non-functional
 with this plugin.*
@@ -38,7 +37,7 @@ folder out of the platform folder of the downloaded package into your
 
 #### Stable release
 
-* [mephisto.lv2-0.8.0.tar.xz](https://git.open-music-kontrollers.ch/lv2/mephisto.lv2/snapshot/mephisto.lv2-0.8.0.tar.xz)
+* [mephisto.lv2-0.8.0.tar.xz](https://git.open-music-kontrollers.ch/lv2/mephisto.lv2/snapshot/mephisto.lv2-0.8.0.tar.xz)([sig](https://git.open-music-kontrollers.ch/lv2/mephisto.lv2/snapshot/mephisto.lv2-0.8.0.tar.xz.asc))
 
 #### Git repository
 
@@ -170,12 +169,16 @@ If not, you can manually set your DPI via environmental variable *D2TK_SCALE*:
 The plugin supports up to 16 controls implemented as LV2
 [Parameters](http://lv2plug.in/ns/lv2core/lv2core.html#Parameter). To have
 access to them, simply use one of FAUST's active control structures with
-[ordering indexes](https://faust.grame.fr/doc/manual/index.html#ordering-ui-elements)
+[ordering indeces](https://faust.grame.fr/doc/manual/index.html#ordering-ui-elements)
 (monitonically rising starting from 0) in their labels in your DSP code:
 
     cntrl1 = hslider("[0]Control 0", 500.0, 10.0, 1000.0, 1.0);
     cntrl2 = hslider("[1]Control 1", 5.0, 1.0, 10.0, 1.0);
     cntrl3 = hslider("[2]Control 2", 0.5, 0.0, 1.0, 0.1);
+
+Read-only controls are also supported and will be shown as waveforms in the UI:
+
+    _ : hbargraph("[3]Probe 3", 0, 1);
 
 #### MIDI and polyphony
 
