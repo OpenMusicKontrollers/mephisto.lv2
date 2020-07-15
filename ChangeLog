@@ -8,6 +8,7 @@
 * preset for simple VU meter
 * momentary button ui-widget
 * support for ui:scaleFactor option
+* support for GL double buffering
 
 ### Changed
 
