@@ -19,6 +19,7 @@
 #define _D2TK_EXAMPLE_H
 
 #include <d2tk/base.h>
+#include <d2tk/frontend.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,7 +32,8 @@ D2TK_API void
 d2tk_example_deinit();
 
 D2TK_API void
-d2tk_example_run(d2tk_base_t *base, d2tk_coord_t w, d2tk_coord_t h);
+d2tk_example_run(d2tk_frontend_t *frontend, d2tk_base_t *base,
+	d2tk_coord_t w, d2tk_coord_t h);
 
 #ifdef __cplusplus
 }

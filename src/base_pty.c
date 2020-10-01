@@ -24,9 +24,9 @@
 #include <pty.h>
 #include <utmp.h>
 #include <sched.h>
+#include <limits.h>
 #include <sys/wait.h>
 #include <sys/mman.h>
-#include <poll.h>
 
 #include "base_internal.h"
 
@@ -279,10 +279,21 @@ _clone(void *data)
 	signal(SIGSTOP, SIG_DFL);
 	signal(SIGCONT, SIG_DFL);
 
-	putenv("TERM=xterm-256color");
-	//putenv("COLORTERM=truecolor");
+	char envh [PATH_MAX];
+	char envu [PATH_MAX];
+	char *home = getenv("HOME");
+	char *user = getenv("USER");
+	snprintf(envh, sizeof(envh), "HOME=%s", home ? home : "");
+	snprintf(envu, sizeof(envu), "USER=%s", user ? user : "");
 
-	execvp(clone_data->argv[0], clone_data->argv);
+	char *envp [] = {
+		"TERM=xterm-256color",
+		envh,
+		envu,
+		NULL
+	};
+
+	execvpe(clone_data->argv[0], clone_data->argv, envp);
 	fprintf(stderr_save, "cannot exec(%s) - %s\n", clone_data->argv[0], strerror(errno));
 	_exit(EXIT_FAILURE);
 
@@ -445,33 +456,9 @@ _term_init(d2tk_atom_body_pty_t *vpty, char **argv,
 }
 
 static int
-_term_probe(d2tk_atom_body_pty_t *vpty)
+_term_fd(d2tk_atom_body_pty_t *vpty)
 {
-	int again = 0;
-
-	struct pollfd fds = {
-		.fd = vpty->fd,
-		.events = POLLIN
-	};
-
-	switch(poll(&fds, 1, 0))
-	{
-		case -1:
-		{
-			//printf("[%s] error: %s\n", __func__, strerror(errno));
-		} break;
-		case 0:
-		{
-			//printf("[%s] timeout\n", __func__);
-		} break;
-		default:
-		{
-			//printf("[%s] ready\n", __func__);
-			again = 1;
-		} break;
-	}
-
-	return again;
+	return vpty->fd;
 }
 
 static int
@@ -525,9 +512,9 @@ _term_event(d2tk_atom_event_type_t event, void *data)
 
 	switch(event)
 	{
-		case D2TK_ATOM_EVENT_PROBE:
+		case D2TK_ATOM_EVENT_FD:
 		{
-			return _term_probe(vpty);
+			return _term_fd(vpty);
 		} break;
 		case D2TK_ATOM_EVENT_DEINIT:
 		{
