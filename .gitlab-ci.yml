@@ -31,14 +31,6 @@ stages:
   image: ventosus/arm-linux-gnueabihf:bullseye
   <<: *build_definition
 
-.universal_w64_template: &universal_w64_definition
-  image: ventosus/universal-w64-mingw32
-  <<: *build_definition
-
-.universal_apple_template: &universal_apple_definition
-  image: ventosus/universal-apple-darwin
-  <<: *build_definition
-
 # building in docker
 x86_64-linux-gnu-bullseye:
   before_script:
@@ -65,15 +57,6 @@ i686-linux-gnu-bullseye:
 #    - apt-get update
 #    - apt-get install -y faust-common:arm64 libfaust2:arm64 libglu1-mesa-dev:arm64 libvterm-dev:arm64
 #  <<: *arm_linux_definition_bullseye
-
-#x86_64-w64-mingw32:
-#  <<: *universal_w64_definition
-
-#i686-w64-mingw32:
-#  <<: *universal_w64_definition
-
-#universal-apple-darwin:
-#  <<: *universal_apple_definition
 
 pack:
   <<: *variables_definition
