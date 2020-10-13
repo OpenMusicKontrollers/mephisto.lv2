@@ -17,7 +17,7 @@ x86_64-linux-gnu-bullseye:
   before_script:
     - apt-get update
     - apt-get install -y -q faust-common libfaust2
-    - ln -s /usr/lib/x86_64-linux-gnu/libfaust.so.2.20.2 /usr/lib/x86_64-linux-gnu/libfaust.so
+    - ln -s /usr/lib/x86_64-linux-gnu/libfaust.so.2.27.2 /usr/lib/x86_64-linux-gnu/libfaust.so
 
 i686-linux-gnu-stretch:
   except:
@@ -31,7 +31,7 @@ i686-linux-gnu-bullseye:
   before_script:
     - apt-get update
     - apt-get install -y -q faust-common:i386 libfaust2:i386
-    - ln -s /usr/lib/i386-linux-gnu/libfaust.so.2.20.2 /usr/lib/i386-linux-gnu/libfaust.so
+    - ln -s /usr/lib/i386-linux-gnu/libfaust.so.2.27.2 /usr/lib/i386-linux-gnu/libfaust.so
 
 arm-linux-gnueabihf-stretch:
   except:
@@ -45,7 +45,7 @@ arm-linux-gnueabihf-bullseye:
   before_script:
     - apt-get update
     - apt-get install -y -q faust-common:armhf libfaust2:armhf
-    - ln -s /usr/lib/arm-linux-gnu/libfaust.so.2.20.2 /usr/lib/arm-linux-gnu/libfaust.so
+    - ln -s /usr/lib/arm-linux-gnu/libfaust.so.2.27.2 /usr/lib/arm-linux-gnu/libfaust.so
 
 aarch64-linux-gnu-stretch:
   except:
@@ -59,4 +59,4 @@ aarch64-linux-gnu-bullseye:
   before_script:
     - apt-get update
     - apt-get install -y -q faust-common:arm64 libfaust2:arm64
-    - ln -s /usr/lib/aarch64-linux-gnu/libfaust.so.2.20.2 /usr/lib/aarch64-linux-gnu/libfaust.so
+    - ln -s /usr/lib/aarch64-linux-gnu/libfaust.so.2.27.2 /usr/lib/aarch64-linux-gnu/libfaust.so
