@@ -45,7 +45,7 @@ arm-linux-gnueabihf-bullseye:
   before_script:
     - apt-get update
     - apt-get install -y -q faust-common:armhf libfaust2:armhf
-    - ln -s /usr/lib/arm-linux-gnu/libfaust.so.2.27.2 /usr/lib/arm-linux-gnu/libfaust.so
+    - ln -s /usr/lib/arm-linux-gnueabihf/libfaust.so.2.27.2 /usr/lib/arm-linux-gnueabihf/libfaust.so
 
 aarch64-linux-gnu-stretch:
   except:
