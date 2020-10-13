@@ -3,3 +3,36 @@ include:
 
 variables:
   BUILD_OPTS: "-Duse-fontconfig=disabled"
+
+# build
+x86_64-linux-gnu-stretch:
+  except:
+    - /^.*$/i
+
+x86_64-linux-gnu-buster:
+  except:
+    - /^.*$/i
+
+i686-linux-gnu-stretch:
+  except:
+    - /^.*$/i
+
+i686-linux-gnu-buster:
+  except:
+    - /^.*$/i
+
+arm-linux-gnueabihf-stretch:
+  except:
+    - /^.*$/i
+
+arm-linux-gnueabihf-buster:
+  except:
+    - /^.*$/i
+
+aarch64-linux-gnu-stretch:
+  except:
+    - /^.*$/i
+
+aarch64-linux-gnu-buster:
+  except:
+    - /^.*$/i
