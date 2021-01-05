@@ -42,8 +42,14 @@ else
 endif
 
 m_dep = cc.find_library('m')
-lv2_dep = dependency('lv2', version : '>=1.18.0')
+lv2_dep = dependency('lv2', version : '>=1.16.0')
 faust_dep = cc.find_library('faust')
+
+if cc.has_member('LV2UI_Request_Value', 'request',
+		prefix : '#include <lv2/lv2plug.in/ns/extensions/ui/ui.h>')
+	add_project_arguments('-D_LV2_HAS_REQUEST_VALUE', language : 'c')
+	message('building with ui:requestValue support')
+endif
 
 dsp_deps = [m_dep, lv2_dep, faust_dep]
 ui_deps = [lv2_dep, d2tk_dep]
@@ -130,10 +136,46 @@ pset_ttl = configure_file(
 	install : true,
 	install_dir : inst_dir)
 
-configure_file(
-	input : 'libre-gui-exclamation-circle.png',
-	output : 'libre-gui-exclamation-circle.png',
+alert_triangle_png = configure_file(
+	input : join_paths('png', 'alert-triangle.png'),
+	output : 'alert-triangle.png',
 	copy : true,
+	install : true,
+	install_dir : inst_dir)
+clipboard_png = configure_file(
+	input : join_paths('png', 'clipboard.png'),
+	output : 'clipboard.png',
+	copy: true,
+	install : true,
+	install_dir : inst_dir)
+copy_png = configure_file(
+	input : join_paths('png', 'copy.png'),
+	output : 'copy.png',
+	copy: true,
+	install : true,
+	install_dir : inst_dir)
+delete_png = configure_file(
+	input : join_paths('png', 'delete.png'),
+	output : 'delete.png',
+	copy: true,
+	install : true,
+	install_dir : inst_dir)
+eye_off_png = configure_file(
+	input : join_paths('png', 'eye-off.png'),
+	output : 'eye-off.png',
+	copy: true,
+	install : true,
+	install_dir : inst_dir)
+eye_png = configure_file(
+	input : join_paths('png', 'eye.png'),
+	output : 'eye.png',
+	copy: true,
+	install : true,
+	install_dir : inst_dir)
+save_png = configure_file(
+	input : join_paths('png', 'save.png'),
+	output : 'save.png',
+	copy: true,
 	install : true,
 	install_dir : inst_dir)
 
