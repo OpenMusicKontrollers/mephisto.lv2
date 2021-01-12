@@ -1404,7 +1404,7 @@ instantiate(const LV2UI_Descriptor *descriptor,
 	}
 
 	handle->header_height = 32 * handle->scale;
-	handle->footer_height = 40 * handle->scale;
+	handle->footer_height = 32 * handle->scale;
 	handle->tip_height = 20 * handle->scale;
 	handle->sidebar_width = 256 * handle->scale;
 	handle->item_height = 40 * handle->scale;
