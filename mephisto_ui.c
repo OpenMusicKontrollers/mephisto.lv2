@@ -591,7 +591,7 @@ _expose_xfade(plughandle_t *handle, const d2tk_rect_t *rect)
 	static const char lbl [] = "crossfade•ms";
 
 	if(d2tk_base_spinner_int32_is_changed(base, D2TK_ID, rect,
-		sizeof(lbl), lbl, 10, &handle->state.xfade_dur, 1000))
+		sizeof(lbl), lbl, 10, &handle->state.xfade_dur, 1000, D2TK_FLAG_NONE))
 	{
 		_message_set_key(handle, handle->urid_xfadeDuration);
 	}
@@ -606,7 +606,7 @@ _expose_font_height(plughandle_t *handle, const d2tk_rect_t *rect)
 	static const char lbl [] = "font-height•px";
 
 	if(d2tk_base_spinner_int32_is_changed(base, D2TK_ID, rect,
-		sizeof(lbl), lbl, 10, &handle->state.font_height, 25))
+		sizeof(lbl), lbl, 10, &handle->state.font_height, 25, D2TK_FLAG_NONE))
 	{
 		_message_set_key(handle, handle->urid_fontHeight);
 		_update_font_height(handle);
@@ -893,7 +893,7 @@ _expose_slot(plughandle_t *handle, const d2tk_rect_t *rect, unsigned k)
 			bool val = handle->state.control[k] > 0.5;
 
 			const d2tk_state_t state = d2tk_base_spinner_bool(base, D2TK_ID_IDX(k), rect,
-				-1, handle->state.control_label[k], &val);
+				-1, handle->state.control_label[k], &val, D2TK_FLAG_NONE);
 
 			if(d2tk_state_is_down(state))
 			{
@@ -913,7 +913,7 @@ _expose_slot(plughandle_t *handle, const d2tk_rect_t *rect, unsigned k)
 			bool val = handle->state.control[k] > 0.5;
 
 			if(d2tk_base_spinner_bool_is_changed(base, D2TK_ID_IDX(k), rect,
-				-1, handle->state.control_label[k], &val))
+				-1, handle->state.control_label[k], &val, D2TK_FLAG_NONE))
 			{
 				handle->state.control[k] = val;
 
@@ -933,7 +933,7 @@ _expose_slot(plughandle_t *handle, const d2tk_rect_t *rect, unsigned k)
 			float abs = handle->state.control[k] * range + min;
 
 			if(d2tk_base_spinner_float_is_changed(base, D2TK_ID_IDX(k), rect,
-				-1, handle->state.control_label[k], min, &abs, max))
+				-1, handle->state.control_label[k], min, &abs, max, D2TK_FLAG_NONE))
 			{
 				handle->state.control[k] = (abs - min) / range;
 
