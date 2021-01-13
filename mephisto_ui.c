@@ -879,13 +879,14 @@ _expose_slot(plughandle_t *handle, const d2tk_rect_t *rect, unsigned k)
 	d2tk_frontend_t *dpugl = handle->dpugl;
 	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
+	cntrl_type_t type = handle->state.control_type[k];
+
 	if(  (handle->state.control_min[k] == 0.f)
 		&& (handle->state.control_max[k] == 0.f) )
 	{
-		return;
+		type = CNTRL_NONE;
 	}
 
-	const cntrl_type_t type = handle->state.control_type[k];
 	switch(type)
 	{
 		case CNTRL_BUTTON:
@@ -955,9 +956,12 @@ _expose_slot(plughandle_t *handle, const d2tk_rect_t *rect, unsigned k)
 
 		case CNTRL_NONE:
 			// fall-through
-		case CNTRL_SOUND_FILE: //FIXME
+		case CNTRL_SOUND_FILE:
 		{
-			// nothing to do
+			char lbl [32];
+			const size_t lbl_len = snprintf(lbl, sizeof(lbl), "- slot•%02d empty -", k);
+
+			d2tk_base_label(base, lbl_len, lbl, 0.375f, rect, D2TK_ALIGN_CENTERED);
 		} break;
 	}
 }
