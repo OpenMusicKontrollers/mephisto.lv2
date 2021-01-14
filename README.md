@@ -240,7 +240,7 @@ and additionally enable the time option:
 
 #### License
 
-Copyright (c) 2019-2020 Hanspeter Portner (dev@open-music-kontrollers.ch)
+Copyright (c) 2019-2021 Hanspeter Portner (dev@open-music-kontrollers.ch)
 
 This is free software: you can redistribute it and/or modify
 it under the terms of the Artistic License 2.0 as published by
