@@ -24,11 +24,10 @@
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
 @prefix mephisto: <http://open-music-kontrollers.ch/lv2/mephisto#> .
-@prefix lic: <http://opensource.org/licenses/> .
 
 mephisto:bank-filter_through
 	a pset:Preset ;
-	doap:license lic:Artistic-2.0 ;
+	doap:license <https://spdx.org/licenses/Artistic-2.0> ;
 	state:state [
 		mephisto:code """@BANK-FILTER_THROUGH@""" ;
 		mephisto:control_1 "0.0"^^xsd:float ;
@@ -51,7 +50,7 @@ mephisto:bank-filter_through
 
 mephisto:bank-filter_gain
 	a pset:Preset ;
-	doap:license lic:Artistic-2.0 ;
+	doap:license <https://spdx.org/licenses/Artistic-2.0> ;
 	state:state [
 		mephisto:code """@BANK-FILTER_GAIN@""" ;
 		mephisto:control_1 "0.0"^^xsd:float ;
@@ -74,7 +73,7 @@ mephisto:bank-filter_gain
 
 mephisto:bank-time_lfo
 	a pset:Preset ;
-	doap:license lic:Artistic-2.0 ;
+	doap:license <https://spdx.org/licenses/Artistic-2.0> ;
 	state:state [
 		mephisto:code """@BANK-TIME_LFO@""" ;
 		mephisto:control_1 "0.0"^^xsd:float ;
@@ -97,7 +96,7 @@ mephisto:bank-time_lfo
 
 mephisto:bank-instrument_osc
 	a pset:Preset ;
-	doap:license lic:Artistic-2.0 ;
+	doap:license <https://spdx.org/licenses/Artistic-2.0> ;
 	state:state [
 		mephisto:code """@BANK-INSTRUMENT_OSC@""" ;
 		mephisto:control_1 "0.0"^^xsd:float ;
@@ -120,7 +119,7 @@ mephisto:bank-instrument_osc
 
 mephisto:bank-analyzer_vu-meter
 	a pset:Preset ;
-	doap:license lic:Artistic-2.0 ;
+	doap:license <https://spdx.org/licenses/Artistic-2.0> ;
 	state:state [
 		mephisto:code """@BANK-ANALYZER_VU-METER@""" ;
 		mephisto:control_1 "0.0"^^xsd:float ;

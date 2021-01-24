@@ -33,7 +33,6 @@
 @prefix log:			<http://lv2plug.in/ns/ext/log#> .
 @prefix opts:			<http://lv2plug.in/ns/ext/options#> .
 
-@prefix lic:			<http://opensource.org/licenses/> .
 @prefix omk:			<http://open-music-kontrollers.ch/ventosus#> .
 @prefix proj:			<http://open-music-kontrollers.ch/lv2/> .
 @prefix mephisto:		<http://open-music-kontrollers.ch/lv2/mephisto#> .
@@ -219,7 +218,7 @@ mephisto:audio_1x1
 		#lv2:FilterPlugin ,
 		lv2:InstrumentPlugin ;
 	doap:name "Mephisto Audio 1x1" ;
-	doap:license lic:Artistic-2.0 ;
+	doap:license <https://spdx.org/licenses/Artistic-2.0> ;
 	lv2:project proj:mephisto ;
 	lv2:requiredFeature urid:map, state:loadDefaultState, work:schedule, opts:options ;
 	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, state:threadSafeRestore, log:log ;
@@ -314,7 +313,7 @@ mephisto:audio_2x2
 		#lv2:FilterPlugin ,
 		lv2:InstrumentPlugin ;
 	doap:name "Mephisto Audio 2x2" ;
-	doap:license lic:Artistic-2.0 ;
+	doap:license <https://spdx.org/licenses/Artistic-2.0> ;
 	lv2:project proj:mephisto ;
 	lv2:requiredFeature urid:map, state:loadDefaultState, work:schedule, opts:options ;
 	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, state:threadSafeRestore, log:log ;
@@ -421,7 +420,7 @@ mephisto:audio_4x4
 		#lv2:FilterPlugin ,
 		lv2:InstrumentPlugin ;
 	doap:name "Mephisto Audio 4x4" ;
-	doap:license lic:Artistic-2.0 ;
+	doap:license <https://spdx.org/licenses/Artistic-2.0> ;
 	lv2:project proj:mephisto ;
 	lv2:requiredFeature urid:map, state:loadDefaultState, work:schedule, opts:options ;
 	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, state:threadSafeRestore, log:log ;
@@ -552,7 +551,7 @@ mephisto:audio_8x8
 		#lv2:FilterPlugin ,
 		lv2:InstrumentPlugin ;
 	doap:name "Mephisto Audio 8x8" ;
-	doap:license lic:Artistic-2.0 ;
+	doap:license <https://spdx.org/licenses/Artistic-2.0> ;
 	lv2:project proj:mephisto ;
 	lv2:requiredFeature urid:map, state:loadDefaultState, work:schedule, opts:options ;
 	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, state:threadSafeRestore, log:log ;
@@ -731,7 +730,7 @@ mephisto:cv_1x1
 		#lv2:FilterPlugin ,
 		lv2:InstrumentPlugin ;
 	doap:name "Mephisto CV 1x1" ;
-	doap:license lic:Artistic-2.0 ;
+	doap:license <https://spdx.org/licenses/Artistic-2.0> ;
 	lv2:project proj:mephisto ;
 	lv2:requiredFeature urid:map, state:loadDefaultState, work:schedule, opts:options ;
 	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, state:threadSafeRestore, log:log ;
@@ -829,7 +828,7 @@ mephisto:cv_2x2
 		#lv2:FilterPlugin ,
 		lv2:InstrumentPlugin ;
 	doap:name "Mephisto CV 2x2" ;
-	doap:license lic:Artistic-2.0 ;
+	doap:license <https://spdx.org/licenses/Artistic-2.0> ;
 	lv2:project proj:mephisto ;
 	lv2:requiredFeature urid:map, state:loadDefaultState, work:schedule, opts:options ;
 	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, state:threadSafeRestore, log:log ;
@@ -942,7 +941,7 @@ mephisto:cv_4x4
 		#lv2:FilterPlugin ,
 		lv2:InstrumentPlugin ;
 	doap:name "Mephisto CV 4x4" ;
-	doap:license lic:Artistic-2.0 ;
+	doap:license <https://spdx.org/licenses/Artistic-2.0> ;
 	lv2:project proj:mephisto ;
 	lv2:requiredFeature urid:map, state:loadDefaultState, work:schedule, opts:options ;
 	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, state:threadSafeRestore, log:log ;
@@ -1085,7 +1084,7 @@ mephisto:cv_8x8
 		#lv2:FilterPlugin ,
 		lv2:InstrumentPlugin ;
 	doap:name "Mephisto CV 8x8" ;
-	doap:license lic:Artistic-2.0 ;
+	doap:license <https://spdx.org/licenses/Artistic-2.0> ;
 	lv2:project proj:mephisto ;
 	lv2:requiredFeature urid:map, state:loadDefaultState, work:schedule, opts:options ;
 	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, state:threadSafeRestore, log:log ;
