@@ -58,7 +58,7 @@ mephisto:ui
 		lv2:symbol "notify" ;
 		ui:protocol atom:eventTransfer ;
 	] ;
-	lv2:requiredFeature ui:idleInterface, urid:map  ;
+	lv2:requiredFeature ui:idleInterface, urid:map, ui:parent ;
 	lv2:optionalFeature ui:requestValue, ui:resize, opts:options, log:log ;
 	opts:supportedOption ui:scaleFactor ;
 	#opts:requiredOption param:sampleRate ;
