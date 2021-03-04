@@ -25,6 +25,7 @@
 #include <time.h>
 #include <utime.h>
 #include <limits.h>
+#include <wordexp.h>
 
 #include <mephisto.h>
 #include <props.h>
@@ -111,6 +112,8 @@ struct _plughandle_t {
 
 	int done;
 	int kid;
+
+	wordexp_t wordexp;
 };
 
 static inline void
@@ -1035,13 +1038,7 @@ _expose_term(plughandle_t *handle, const d2tk_rect_t *rect)
 	d2tk_frontend_t *dpugl = handle->dpugl;
 	d2tk_base_t *base = d2tk_frontend_get_base(dpugl);
 
-	char *editor = getenv("EDITOR");
-
-	char *args [] = {
-		editor ? editor : "vi",
-		handle->template,
-		NULL
-	};
+	char **args = handle->wordexp.we_wordv;
 
 	d2tk_flag_t flag = D2TK_FLAG_NONE;
 	if(handle->reinit)
@@ -1436,6 +1433,19 @@ instantiate(const LV2UI_Descriptor *descriptor,
 
 	lv2_log_note(&handle->logger, "template: %s\n", handle->template);
 
+	static const char *fallback= "vi";
+	const char *editor = getenv("EDITOR");
+	char cmdline [PATH_MAX];
+	snprintf(cmdline, sizeof(cmdline), "%s %s",
+			editor ? editor : fallback,
+			handle->template);
+	if(wordexp(cmdline, &handle->wordexp, WRDE_NOCMD) != 0)
+	{
+		fprintf(stderr, "failed to parse EDITOR");
+		free(handle);
+		return NULL;
+	}
+
 	for(unsigned i = 0; i < MAX_NPROPS; i++)
 	{
 		const props_def_t *def = &defs[i];
@@ -1454,6 +1464,8 @@ cleanup(LV2UI_Handle instance)
 
 	d2tk_util_kill(&handle->kid);
 	d2tk_frontend_free(handle->dpugl);
+
+	wordfree(&handle->wordexp);
 
 	unlink(handle->template);
 	close(handle->fd);
